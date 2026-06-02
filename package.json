@@ -11,7 +11,7 @@
     "transition"
   ],
   "license": "MIT",
-  "author": "",
+  "author": "wangjagom",
   "homepage": "https://github.com/wangjagom/react-native-strx#readme",
   "repository": {
     "type": "git",
@@ -32,7 +32,10 @@
   "sideEffects": false,
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "pack:check": "npm pack --dry-run"
+    "pack:check": "npm pack --dry-run",
+    "prepublishOnly": "npm run typecheck && npm run pack:check",
+    "publish:npm": "npm publish --access public",
+    "npm:whoami": "npm whoami"
   },
   "peerDependencies": {
     "react": ">=18",
@@ -57,5 +60,15 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "source": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/types/index.d.ts",
+      "react-native": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./package.json": "./package.json"
   }
 }

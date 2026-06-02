@@ -12,7 +12,21 @@ It supports preset animations, explicit `from:/to:/exit:` keyframes, implicit `t
 
 ## Installation
 
+### From npm
+
+```sh
+npm install react-native-strx react-native-reanimated
+```
+
+If your Reanimated version requires Worklets as a separate package, also install:
+
+```sh
+npm install react-native-worklets
+```
+
 ### From GitHub
+
+Use this only when testing unreleased commits:
 
 ```sh
 npm install github:wangjagom/react-native-strx
@@ -26,17 +40,12 @@ npm install github:wangjagom/react-native-strx#v0.1.2
 
 ### Peer dependencies
 
-Install Reanimated in the consuming app:
+`react-native-strx` expects these packages to be installed by the consuming app:
 
-```sh
-npm install react-native-reanimated
-```
-
-For Reanimated versions that require Worklets as a separate package, also install:
-
-```sh
-npm install react-native-worklets
-```
+- `react` >= 18
+- `react-native` >= 0.74
+- `react-native-reanimated` >= 3
+- `react-native-worklets` when required by your Reanimated version
 
 ## Required app setup
 
@@ -338,6 +347,37 @@ Use `layoutPropagation="none"` to isolate untrusted or independent subtrees:
 - Keep `react-native-reanimated/plugin` last in Babel config.
 - Run `pod install` for iOS after installing Reanimated.
 - Reset Metro cache after installation or Babel changes.
+
+## Maintainer publishing
+
+The package is configured for public npm publishing. Before publishing, make sure you are logged in with an npm account that can claim or maintain `react-native-strx`:
+
+```sh
+npm login
+npm whoami
+```
+
+Run the verification steps:
+
+```sh
+npm install
+npm run typecheck
+npm run pack:check
+```
+
+Publish the current version:
+
+```sh
+npm publish --access public
+```
+
+For the first publish, npm will claim the `react-native-strx` package name under your account. For later releases, bump `package.json` with `npm version patch`, `npm version minor`, or `npm version major`, then publish again.
+
+After publishing, users can install it with:
+
+```sh
+npm install react-native-strx
+```
 
 ## License
 
