@@ -1,32 +1,5 @@
 import type { ViewStyle } from 'react-native';
 
-export type AnimateLayoutToken =
-  | 'layout-linear'
-  | 'layout-spring'
-  | 'layout-fade'
-  | 'layout-spring-stiff'
-  | 'layout-spring-bouncy';
-
-export type AnimatePrefixedToken =
-  | `from:${string}`
-  | `to:${string}`
-  | `exit:${string}`;
-
-export type AnimateTransitionToken =
-  | 'transition'
-  | 'transition-all'
-  | 'transition-colors'
-  | 'transition-opacity'
-  | 'transition-transform'
-  | 'transition-spacing'
-  | 'transition-layout';
-
-export type AnimateToken =
-  | AnimateLayoutToken
-  | AnimatePrefixedToken
-  | AnimateTransitionToken
-  | (string & {});
-
 export type AnimatePresetType =
   | 'fade-in'
   | 'fade-out'
@@ -46,6 +19,126 @@ export type AnimateEasing =
   | 'ease-in'
   | 'ease-out'
   | 'ease-in-out';
+
+export type AnimateLayoutToken =
+  | 'layout-linear'
+  | 'layout-spring'
+  | 'layout-fade'
+  | 'layout-spring-stiff'
+  | 'layout-spring-bouncy';
+
+export type AnimateTransitionToken =
+  | 'transition'
+  | 'transition-all'
+  | 'transition-colors'
+  | 'transition-opacity'
+  | 'transition-transform'
+  | 'transition-spacing'
+  | 'transition-layout';
+
+export type AnimateTimingToken =
+  | `duration-${number}`
+  | `delay-${number}`
+  | `repeat-${number}`
+  | 'repeat-infinite'
+  | AnimateEasing;
+
+export type AnimateCommonTimingToken =
+  | 'duration-75'
+  | 'duration-100'
+  | 'duration-150'
+  | 'duration-200'
+  | 'duration-250'
+  | 'duration-300'
+  | 'duration-500'
+  | 'duration-700'
+  | 'duration-1000'
+  | 'delay-75'
+  | 'delay-100'
+  | 'delay-150'
+  | 'delay-200'
+  | 'delay-300'
+  | 'delay-500'
+  | 'repeat-1'
+  | 'repeat-2'
+  | 'repeat-3'
+  | 'repeat-infinite'
+  | AnimateEasing;
+
+export type AnimateOpacityUtilityToken =
+  | 'opacity-0'
+  | 'opacity-5'
+  | 'opacity-10'
+  | 'opacity-15'
+  | 'opacity-20'
+  | 'opacity-25'
+  | 'opacity-30'
+  | 'opacity-35'
+  | 'opacity-40'
+  | 'opacity-45'
+  | 'opacity-50'
+  | 'opacity-55'
+  | 'opacity-60'
+  | 'opacity-65'
+  | 'opacity-70'
+  | 'opacity-75'
+  | 'opacity-80'
+  | 'opacity-85'
+  | 'opacity-90'
+  | 'opacity-95'
+  | 'opacity-100'
+  | `opacity-${number}`;
+
+export type AnimateTransformUtilityToken =
+  | `translate-x-${number}`
+  | `-translate-x-${number}`
+  | `translate-y-${number}`
+  | `-translate-y-${number}`
+  | `scale-${number}`
+  | `scale-x-${number}`
+  | `scale-y-${number}`
+  | `rotate-${number}`
+  | `-rotate-${number}`;
+
+export type AnimateDimensionUtilityToken = `w-${number}` | `h-${number}`;
+
+export type AnimateUtilityToken =
+  | AnimateOpacityUtilityToken
+  | AnimateTransformUtilityToken
+  | AnimateDimensionUtilityToken;
+
+export type AnimatePrefixedToken =
+  | `from:${AnimateUtilityToken}`
+  | `to:${AnimateUtilityToken}`
+  | `exit:${AnimateUtilityToken}`
+  | `from:${string}`
+  | `to:${string}`
+  | `exit:${string}`;
+
+export type AnimateAutocompleteToken =
+  | AnimatePresetType
+  | AnimateLayoutToken
+  | AnimateTransitionToken
+  | AnimateCommonTimingToken
+  | `from:${AnimateUtilityToken}`
+  | `to:${AnimateUtilityToken}`
+  | `exit:${AnimateUtilityToken}`;
+
+export type AnimateKnownToken =
+  | AnimatePresetType
+  | AnimateLayoutToken
+  | AnimatePrefixedToken
+  | AnimateTransitionToken
+  | AnimateTimingToken;
+
+export type AnimateTokenList =
+  | AnimateAutocompleteToken
+  | `${AnimateAutocompleteToken} ${string}`;
+
+export type AnimateToken =
+  | AnimateTokenList
+  | AnimateKnownToken
+  | (string & {});
 
 export type AnimateScalar = number | string;
 export type AnimateDimension = number | `${number}%`;

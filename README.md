@@ -102,6 +102,16 @@ export default function App() {
 }
 ```
 
+## TypeScript Autocomplete
+
+`animate` is typed with STRX token unions, so editors such as VS Code can suggest tokens while you type:
+
+```tsx
+<Strx.View animate="fade-in layout-spring duration-300 ease-out" />
+```
+
+Typing `f` suggests preset tokens such as `fade-in` and `fade-out`. The type hints also cover layout tokens, transition tokens, common timing tokens, and prefixed keyframe utilities such as `from:opacity-0`, `to:translate-y-0`, and `exit:opacity-0`. Arbitrary strings are still accepted for forward compatibility.
+
 ## Token Reference
 
 `animate` is a whitespace-separated token string. Tokens can be combined in one string:

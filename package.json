@@ -1,6 +1,6 @@
 {
   "name": "react-native-strx",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Tailwind-style declarative animations and layout transitions for React Native Reanimated.",
   "keywords": [
     "react-native",
