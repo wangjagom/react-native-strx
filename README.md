@@ -5,7 +5,7 @@ Tailwind-style declarative animations and layout transitions for React Native Re
 `react-native-strx` lets you write animation intent directly on React Native primitives:
 
 ```tsx
-<View animate="fade-in layout-spring transition-all duration-300" />
+<Strx.View animate="fade-in layout-spring transition-all duration-300" />
 ```
 
 It supports preset animations, explicit `from:/to:/exit:` keyframes, implicit `transition-*` style transitions, and Reanimated layout transitions.
@@ -21,7 +21,7 @@ npm install github:wangjagom/react-native-strx
 or with a release tag:
 
 ```sh
-npm install github:wangjagom/react-native-strx#v0.1.0
+npm install github:wangjagom/react-native-strx#v0.1.2
 ```
 
 ### Peer dependencies
@@ -80,26 +80,35 @@ npx react-native start --reset-cache
 ## Basic Usage
 
 ```tsx
-import { StrxLayoutRoot, View, Text, Pressable } from 'react-native-strx';
+import { Strx } from 'react-native-strx';
 
 export default function App() {
   return (
-    <StrxLayoutRoot>
-      <View animate="fade-in layout-spring">
-        <Text>Hello STRX</Text>
-      </View>
-    </StrxLayoutRoot>
+    <Strx.LayoutRoot>
+      <Strx.View animate="fade-in layout-spring">
+        <Strx.Text>Hello STRX</Strx.Text>
+      </Strx.View>
+    </Strx.LayoutRoot>
   );
 }
 ```
-
 
 ## Token Reference
 
 `animate` is a whitespace-separated token string. Tokens can be combined in one string:
 
+The recommended import style is the namespace API, which keeps STRX components visually distinct from React Native built-ins:
+
 ```tsx
-<View animate="fade-in layout-spring transition-all duration-300 ease-out" />
+import { Strx } from 'react-native-strx';
+
+<Strx.View animate="fade-in" />
+```
+
+Alias exports are also available: `StrxView`, `StrxText`, and `StrxPressable`. The plain `View`, `Text`, and `Pressable` exports remain for backward compatibility.
+
+```tsx
+<Strx.View animate="fade-in layout-spring transition-all duration-300 ease-out" />
 ```
 
 ### Preset tokens
@@ -166,7 +175,7 @@ Supported prefixed utilities:
 Example:
 
 ```tsx
-<View
+<Strx.View
   animate="from:opacity-0 from:-translate-y-20 to:opacity-100 to:translate-y-0 exit:opacity-0 duration-300"
 />
 ```
@@ -187,7 +196,7 @@ Transition tokens animate changes in the static `style` prop. They compare the p
 Example:
 
 ```tsx
-<View
+<Strx.View
   animate="transition-colors duration-250 ease-out"
   style={{ backgroundColor: active ? '#22c55e' : '#ef4444' }}
 />
@@ -218,9 +227,9 @@ Layout tokens are passed to Reanimated's `layout` prop through stable worklet tr
 ## Preset animations
 
 ```tsx
-<View animate="fade-in duration-500 ease-out">
-  <Text>Fade in</Text>
-</View>
+<Strx.View animate="fade-in duration-500 ease-out">
+  <Strx.Text>Fade in</Strx.Text>
+</Strx.View>
 ```
 
 Common tokens:
@@ -244,11 +253,11 @@ Common tokens:
 ## Explicit keyframes: from:/to:/exit:
 
 ```tsx
-<View
+<Strx.View
   animate="from:opacity-0 from:translate-y-20 to:opacity-100 to:translate-y-0 exit:opacity-0 duration-300"
 >
-  <Text>Animated content</Text>
-</View>
+  <Strx.Text>Animated content</Strx.Text>
+</Strx.View>
 ```
 
 Supported utility examples:
@@ -264,7 +273,7 @@ Supported utility examples:
 Animate changes in the static `style` prop:
 
 ```tsx
-<View
+<Strx.View
   animate="transition-all duration-300 ease-out"
   style={{
     width: open ? 220 : 120,
@@ -287,9 +296,9 @@ Supported transition tokens:
 ## Layout transitions
 
 ```tsx
-<View animate="layout-spring">
-  {open && <Text>Expanded content</Text>}
-</View>
+<Strx.View animate="layout-spring">
+  {open && <Strx.Text>Expanded content</Strx.Text>}
+</Strx.View>
 ```
 
 Supported layout tokens:
@@ -305,11 +314,11 @@ Supported layout tokens:
 Use `layoutPropagation="none"` to isolate untrusted or independent subtrees:
 
 ```tsx
-<View layoutPropagation="none">
-  <View animate="layout-spring">
-    <Text>This layout demand stays inside this boundary.</Text>
-  </View>
-</View>
+<Strx.View layoutPropagation="none">
+  <Strx.View animate="layout-spring">
+    <Strx.Text>This layout demand stays inside this boundary.</Strx.Text>
+  </Strx.View>
+</Strx.View>
 ```
 
 ## Clipping
@@ -317,15 +326,15 @@ Use `layoutPropagation="none"` to isolate untrusted or independent subtrees:
 `layoutClip` is opt-in. By default, STRX does not inject `overflow: 'hidden'` so text is not clipped unexpectedly.
 
 ```tsx
-<View animate="layout-spring" layoutClip>
-  {open && <Text>Clipped expandable content</Text>}
-</View>
+<Strx.View animate="layout-spring" layoutClip>
+  {open && <Strx.Text>Clipped expandable content</Strx.Text>}
+</Strx.View>
 ```
 
 ## Production notes
 
-- Use `StrxLayoutRoot` near the screen or app root.
-- Prefer `View`, `Text`, and `Pressable` from `react-native-strx` for animated regions.
+- Use `Strx.LayoutRoot` near the screen or app root.
+- Prefer the namespace API, such as `Strx.View`, `Strx.Text`, and `Strx.Pressable`, for animated regions. `StrxView`, `StrxText`, and `StrxPressable` are also exported for teams that prefer named aliases.
 - Keep `react-native-reanimated/plugin` last in Babel config.
 - Run `pod install` for iOS after installing Reanimated.
 - Reset Metro cache after installation or Babel changes.

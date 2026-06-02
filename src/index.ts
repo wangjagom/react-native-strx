@@ -1,3 +1,9 @@
+import { Pressable } from './components/Pressable';
+import { Text } from './components/Text';
+import { View } from './components/View';
+import { LayoutGroup } from './context/LayoutGroupContext';
+import { StrxLayoutRoot } from './context/StrxLayoutContext';
+
 export { Pressable } from './components/Pressable';
 export type { CodexPressableProps } from './components/Pressable';
 export { Text } from './components/Text';
@@ -44,3 +50,15 @@ export type {
   AnimateToken,
   AnimateValue,
 } from './types/animate';
+
+export { View as StrxView } from './components/View';
+export { Text as StrxText } from './components/Text';
+export { Pressable as StrxPressable } from './components/Pressable';
+
+export const Strx = Object.freeze({
+  View,
+  Text,
+  Pressable,
+  LayoutRoot: StrxLayoutRoot,
+  LayoutGroup,
+});

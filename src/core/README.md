@@ -15,13 +15,13 @@ Planned responsibilities:
 ## Runtime Sketch
 
 ```tsx
-import { View } from '../src';
+import { Strx } from '../src';
 
 export function Example() {
   return (
-    <View animate="fade-in duration-300, slide-up delay-100">
+    <Strx.View animate="fade-in duration-300, slide-up delay-100">
       ...
-    </View>
+    </Strx.View>
   );
 }
 ```
