@@ -1,0 +1,8 @@
+node_modules/
+outputs/
+work/
+.DS_Store
+.vscode/
+.idea/
+*.log
+*.tgz

@@ -1,0 +1,12 @@
+{
+  "extends": "@react-native/typescript-config/tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "baseUrl": ".",
+    "types": ["react"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "example", "dist", "build"]
+}

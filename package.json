@@ -1,0 +1,61 @@
+{
+  "name": "react-native-strx",
+  "version": "0.1.0",
+  "description": "Tailwind-style declarative animations and layout transitions for React Native Reanimated.",
+  "keywords": [
+    "react-native",
+    "reanimated",
+    "animation",
+    "layout-animation",
+    "tailwind",
+    "transition"
+  ],
+  "license": "MIT",
+  "author": "",
+  "homepage": "https://github.com/wangjagom/react-native-strx#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wangjagom/react-native-strx.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wangjagom/react-native-strx/issues"
+  },
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "react-native": "src/index.ts",
+  "types": "src/types/index.d.ts",
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "pack:check": "npm pack --dry-run"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-native": ">=0.74",
+    "react-native-reanimated": ">=3"
+  },
+  "peerDependenciesMeta": {
+    "react-native-worklets": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@react-native/typescript-config": ">=0.74",
+    "@types/react": ">=18",
+    "react": ">=18",
+    "react-native": ">=0.74",
+    "react-native-reanimated": ">=3",
+    "typescript": ">=5"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
