@@ -35,7 +35,7 @@ npm install github:wangjagom/react-native-strx
 or with a release tag:
 
 ```sh
-npm install github:wangjagom/react-native-strx#v0.1.2
+npm install github:wangjagom/react-native-strx#v0.1.3
 ```
 
 ### Peer dependencies
