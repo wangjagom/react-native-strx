@@ -124,6 +124,8 @@ Alias exports are also available: `StrxView`, `StrxText`, and `StrxPressable`. T
 
 Preset tokens create an explicit animation plan with predefined `from` and `to` values.
 
+The `Default motion` values below are STRX preset defaults, not Reanimated defaults. They were chosen as opinionated starter timings for each motion family, and you can override them with tokens such as `duration-500`, `ease-out`, `linear`, or object configs.
+
 | Token | Starts from | Animates to | Default motion |
 | --- | --- | --- | --- |
 | `fade-in` | `opacity: 0` | `opacity: 1` | timing, 300ms |
