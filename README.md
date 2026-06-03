@@ -35,7 +35,7 @@ npm install github:wangjagom/react-native-strx
 or with a release tag:
 
 ```sh
-npm install github:wangjagom/react-native-strx#v0.1.3
+npm install github:wangjagom/react-native-strx#v0.1.6
 ```
 
 ### Peer dependencies
@@ -112,6 +112,96 @@ export default function App() {
 
 Typing `f` suggests preset tokens such as `fade-in` and `fade-out`. The type hints also cover layout tokens, transition tokens, common timing tokens, and prefixed keyframe utilities such as `from:opacity-0`, `to:translate-y-0`, and `exit:opacity-0`. Arbitrary strings are still accepted for forward compatibility.
 
+
+## Components
+
+The recommended API is the `Strx` namespace. It keeps animated STRX primitives visually separate from React Native built-ins.
+
+### `Strx.View`
+
+The primary animated container. Use it for preset animations, explicit `from:/to:/exit:` keyframes, implicit `transition-*` style transitions, and Reanimated layout transitions.
+
+```tsx
+<Strx.View animate="fade-in layout-spring duration-300">
+  <Strx.Text>Card content</Strx.Text>
+</Strx.View>
+```
+
+### `Strx.Text`
+
+A layout-aware text primitive. It participates in inherited layout transitions from `Strx.View` and `Strx.LayoutGroup`, which helps text move with surrounding animated layout changes.
+
+```tsx
+<Strx.Text>Animated layout text</Strx.Text>
+```
+
+### `Strx.Pressable`
+
+A layout-aware press target for buttons and touchable rows. Use it when a button should move with a surrounding layout transition.
+
+```tsx
+<Strx.Pressable onPress={onToggle}>
+  <Strx.Text>Toggle</Strx.Text>
+</Strx.Pressable>
+```
+
+### `Strx.Image`
+
+An animated image primitive for image entrance, fade, scale, and layout transitions. Keep image dimensions explicit, as React Native images without dimensions may not render predictably.
+
+```tsx
+<Strx.Image
+  animate="fade-in scale-in layout-linear"
+  source={{ uri: avatarUrl }}
+  style={{ width: 72, height: 72, borderRadius: 36 }}
+/>
+```
+
+### `Strx.ScrollView`
+
+A scroll container that can receive layout transitions and provide STRX layout context to children. Use it for screens where sections expand, collapse, or shift inside a scrollable area.
+
+```tsx
+<Strx.ScrollView animate="layout-linear" contentContainerStyle={{ gap: 12 }}>
+  <Strx.View animate="fade-in layout-spring" />
+</Strx.ScrollView>
+```
+
+### `Strx.TextInput`
+
+An animated input primitive for focus, validation, and color/spacing transitions. Prefer `transition-colors` for focus rings and validation states.
+
+```tsx
+<Strx.TextInput
+  animate="transition-colors duration-200"
+  value={value}
+  onChangeText={setValue}
+  style={{ borderColor: focused ? '#2563eb' : '#d1d5db' }}
+/>
+```
+
+### `createStrxComponent`
+
+Use `createStrxComponent` to adapt your own component to STRX. The wrapped component receives `animate`, `layoutClip`, and `layoutPropagation` while preserving its original props.
+
+```tsx
+import { createStrxComponent } from 'react-native-strx';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const StrxSafeAreaView = createStrxComponent(SafeAreaView, {
+  displayName: 'Strx.SafeAreaView',
+});
+
+<StrxSafeAreaView animate="fade-in layout-linear" />
+```
+
+Security and stability notes:
+
+- `animate` strings are capped and cached before parsing to avoid repeated heavy work.
+- Layout transitions keep a stable no-op worklet when inactive, which avoids native layout tree churn.
+- Use `layoutPropagation="none"` around untrusted or independent subtrees to stop layout demand bubbling.
+- `layoutClip` is opt-in so text and images are not clipped unexpectedly.
+
 ## Token Reference
 
 `animate` is a whitespace-separated token string. Tokens can be combined in one string:
@@ -124,7 +214,7 @@ import { Strx } from 'react-native-strx';
 <Strx.View animate="fade-in" />
 ```
 
-Alias exports are also available: `StrxView`, `StrxText`, and `StrxPressable`. The plain `View`, `Text`, and `Pressable` exports remain for backward compatibility.
+Alias exports are also available: `StrxView`, `StrxText`, `StrxPressable`, `StrxImage`, `StrxScrollView`, and `StrxTextInput`. The plain component exports remain for backward compatibility.
 
 ```tsx
 <Strx.View animate="fade-in layout-spring transition-all duration-300 ease-out" />
@@ -241,9 +331,9 @@ Layout tokens are passed to Reanimated's `layout` prop through stable worklet tr
 
 | Prop | Component | Meaning |
 | --- | --- | --- |
-| `animate` | `View` | Animation token string or animation object/array. |
-| `layoutClip` | `View` | When `true`, injects `overflow: 'hidden'` during active layout animation. Default is `false`. |
-| `layoutPropagation` | `View` | Use `layoutPropagation="none"` to stop layout demand from bubbling past this boundary. |
+| `animate` | `View`, `Image`, `ScrollView`, `TextInput`, custom factory components | Animation token string or animation object/array. |
+| `layoutClip` | `View`, `Image`, `ScrollView`, `TextInput`, custom factory components | When `true`, injects `overflow: 'hidden'` during active layout animation. Default is `false`. |
+| `layoutPropagation` | `View`, `Image`, `ScrollView`, `TextInput`, custom factory components | Use `layoutPropagation="none"` to stop layout demand from bubbling past this boundary. |
 
 ## Preset animations
 
@@ -355,7 +445,7 @@ Use `layoutPropagation="none"` to isolate untrusted or independent subtrees:
 ## Production notes
 
 - Use `Strx.LayoutRoot` near the screen or app root.
-- Prefer the namespace API, such as `Strx.View`, `Strx.Text`, and `Strx.Pressable`, for animated regions. `StrxView`, `StrxText`, and `StrxPressable` are also exported for teams that prefer named aliases.
+- Prefer the namespace API, such as `Strx.View`, `Strx.Text`, `Strx.Pressable`, `Strx.Image`, `Strx.ScrollView`, and `Strx.TextInput`, for animated regions. Alias exports are also available for teams that prefer named imports.
 - Keep `react-native-reanimated/plugin` last in Babel config.
 - Run `pod install` for iOS after installing Reanimated.
 - Reset Metro cache after installation or Babel changes.

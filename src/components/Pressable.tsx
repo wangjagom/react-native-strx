@@ -7,6 +7,7 @@ import Animated from 'react-native-reanimated';
 
 import { useLayoutGroup } from '../context/LayoutGroupContext';
 import { useLayoutNode } from '../context/LayoutNodeContext';
+import { stableNoOpTransition } from './View';
 
 const AnimatedPressable = Animated.createAnimatedComponent(RNPressable);
 
@@ -25,7 +26,9 @@ export const Pressable = forwardRef<
     layoutGroup?.isInsideGroup === true;
 
   const layout = useMemo(() => {
-    return hasActiveLayoutTransition ? inheritedTransition : undefined;
+    return hasActiveLayoutTransition
+        ? inheritedTransition ?? stableNoOpTransition
+        : stableNoOpTransition;
   }, [hasActiveLayoutTransition, inheritedTransition]);
 
   return (

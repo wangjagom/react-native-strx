@@ -45,7 +45,7 @@ const LAYOUT_SPRING_BOUNCY_TOKEN = 'layout-spring-bouncy';
 const FROM_PREFIX = 'from:';
 const TO_PREFIX = 'to:';
 const EXIT_PREFIX = 'exit:';
-const LAYOUT_CLIP_STYLE: ViewStyle = { overflow: 'hidden' };
+export const LAYOUT_CLIP_STYLE: ViewStyle = { overflow: 'hidden' };
 const MAX_ANIMATE_STRING_LENGTH = 512;
 const TOKEN_CACHE_LIMIT = 256;
 
@@ -83,7 +83,7 @@ const layoutTokenCache = new Map<string, LayoutTokenState>();
 const styleAnimateCache = new Map<string, AnimateProp | undefined>();
 const exitTokenCache = new Map<string, ExitTokenState>();
 
-const stableNoOpTransition: LayoutAnimationFunction = values => {
+export const stableNoOpTransition: LayoutAnimationFunction = values => {
   'worklet';
   return {
     initialValues: {
@@ -267,7 +267,7 @@ const AnimatedCodexView = forwardRef<
   );
 });
 
-interface LayoutTokenState {
+export interface LayoutTokenState {
   explicitTransitionType: LayoutTransitionType | null;
   hasLayoutTransition: boolean;
 }
@@ -283,7 +283,7 @@ interface PrefixParseState {
   plainTokens: string;
 }
 
-interface ExitTokenState {
+export interface ExitTokenState {
   hasExitToken: boolean;
   style: AnimateStyle;
   duration?: number;
@@ -296,7 +296,7 @@ interface StructuralLayoutProps {
   layoutPropagation?: LayoutPropagationMode;
 }
 
-function getLayoutTransition(
+export function getLayoutTransition(
   transitionType: LayoutTransitionType,
 ): LayoutAnimationFunction {
   switch (transitionType) {
@@ -595,7 +595,7 @@ function springBouncyMeasuredLayoutTransition(values: LayoutAnimationsValues) {
   };
 }
 
-function getLayoutTokenState(
+export function getLayoutTokenState(
   animate: AnimateProp | undefined,
 ): LayoutTokenState {
   if (typeof animate !== 'string' || !isSafeAnimateString(animate)) {
@@ -634,7 +634,7 @@ function parseLayoutTokenState(animate: string): LayoutTokenState {
   return getLayoutTokenStateForType(immediateDemand ?? fallbackDemand);
 }
 
-function getStyleAnimateProp(
+export function getStyleAnimateProp(
   animate: AnimateProp | undefined,
 ): AnimateProp | undefined {
   if (typeof animate !== 'string') {
@@ -711,7 +711,7 @@ function parseStyleAnimateProp(animate: string): AnimateProp | undefined {
   }
 }
 
-function getExitTokenState(animate: AnimateProp | undefined): ExitTokenState {
+export function getExitTokenState(animate: AnimateProp | undefined): ExitTokenState {
   if (typeof animate !== 'string' || !isSafeAnimateString(animate)) {
     return EMPTY_EXIT_TOKEN_STATE;
   }
@@ -775,7 +775,7 @@ function parseExitTokenState(animate: string): ExitTokenState {
   });
 }
 
-function getExitAnimation(
+export function getExitAnimation(
   exitTokenState: ExitTokenState,
 ): EntryExitAnimationFunction | undefined {
   if (!exitTokenState.hasExitToken) {
@@ -1099,7 +1099,7 @@ function getTransitionPriority(transitionType: LayoutTransitionType): number {
   }
 }
 
-function findStructuralLayoutDemand(
+export function findStructuralLayoutDemand(
   children: ReactNode,
 ): LayoutTransitionType | null {
   let demand: LayoutTransitionType | null = null;
@@ -1278,7 +1278,7 @@ function setCappedCache<Key, Value>(
   cache.set(key, value);
 }
 
-function mergeRefs<T>(
+export function mergeRefs<T>(
   primaryRef: React.Ref<T>,
   secondaryRef: React.ForwardedRef<T>,
 ) {

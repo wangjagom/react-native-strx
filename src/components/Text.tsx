@@ -4,6 +4,7 @@ import Animated from 'react-native-reanimated';
 
 import { useLayoutGroup } from '../context/LayoutGroupContext';
 import { useLayoutNode } from '../context/LayoutNodeContext';
+import { stableNoOpTransition } from './View';
 
 export interface CodexTextProps extends RNTextProps {}
 
@@ -18,7 +19,9 @@ export const Text = forwardRef<React.ElementRef<typeof RNText>, CodexTextProps>(
       layoutGroup?.isInsideGroup === true;
 
     const layout = useMemo(() => {
-      return hasActiveLayoutTransition ? inheritedTransition : undefined;
+      return hasActiveLayoutTransition
+        ? inheritedTransition ?? stableNoOpTransition
+        : stableNoOpTransition;
     }, [hasActiveLayoutTransition, inheritedTransition]);
 
     return <Animated.Text {...props} ref={ref} layout={layout} style={style} />;
