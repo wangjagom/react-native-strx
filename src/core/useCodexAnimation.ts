@@ -204,18 +204,22 @@ export function useCodexAnimation(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animationKey]);
 
+  const transitionFrame = useMemo(() => {
+    const normalizedFrame = normalizeFrame(flattenedStyle);
+
+    return transitionSpec.enabled
+      ? filterFrameByTransitionKind(normalizedFrame, transitionSpec.kind)
+      : normalizedFrame;
+    // styleKey intentionally represents flattenedStyle structural equality.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [styleKey, transitionSpec]);
+
   const implicitPlan = useMemo(() => {
     if (!transitionSpec.enabled) {
-      previousStyleFrameRef.current = normalizeFrame(flattenedStyle);
       return null;
     }
 
-    const nextFrame = filterFrameByTransitionKind(
-      normalizeFrame(flattenedStyle),
-      transitionSpec.kind,
-    );
     const previousFrame = previousStyleFrameRef.current;
-    previousStyleFrameRef.current = nextFrame;
 
     if (!previousFrame) {
       return null;
@@ -223,12 +227,14 @@ export function useCodexAnimation(
 
     return createImplicitTransitionPlan(
       previousFrame,
-      nextFrame,
+      transitionFrame,
       transitionSpec,
     );
-    // styleKey intentionally represents flattenedStyle structural equality.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [styleKey, transitionSpec]);
+  }, [transitionFrame, transitionSpec]);
+
+  useEffect(() => {
+    previousStyleFrameRef.current = transitionFrame;
+  }, [transitionFrame]);
 
   const plan = useMemo(() => {
     if (explicitPlan && implicitPlan) {
@@ -523,7 +529,7 @@ function shouldTransitionStyleKey(key: string, kind: TransitionKind): boolean {
 }
 
 function shouldTransitionTransformKey(kind: TransitionKind): boolean {
-  return kind === 'transform';
+  return kind === 'all' || kind === 'transform';
 }
 
 function flattenAnimatableStyle(style?: AnimatableStaticStyle): AnimateStyle {
