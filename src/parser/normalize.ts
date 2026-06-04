@@ -25,6 +25,8 @@ export interface CustomFromToAnimConfig {
 }
 
 const stringParseCache = new Map<string, readonly StandardAnimConfig[]>();
+const STRING_PARSE_CACHE_LIMIT = 256;
+const MAX_ANIMATE_STRING_LENGTH = 512;
 
 const easingTokens = new Set([
   'linear',
@@ -61,34 +63,116 @@ export function getNormalizeAnimateCacheSize(): number {
 }
 
 function parseAnimateString(input: string): readonly StandardAnimConfig[] {
+  if (input.length > MAX_ANIMATE_STRING_LENGTH) {
+    return [];
+  }
+
   const cached = stringParseCache.get(input);
 
   if (cached) {
     return cached;
   }
 
-  const configs = input
-    .split(',')
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .map(parseAnimationPart);
+  const configs: StandardAnimConfig[] = [];
 
-  stringParseCache.set(input, configs);
+  forEachAnimationPart(input, (part) => {
+    const config = parseAnimationPart(part);
+
+    if (config.type.length > 0) {
+      configs.push(config);
+    }
+  });
+
+  setCappedMapValue(
+    stringParseCache,
+    input,
+    configs,
+    STRING_PARSE_CACHE_LIMIT,
+  );
 
   return configs;
 }
 
 function parseAnimationPart(part: string): PresetAnimConfig {
-  const tokens = part.split(/\s+/).filter(Boolean);
   const config: PresetAnimConfig = {
-    type: tokens[0] ?? '',
+    type: '',
   };
+  let tokenIndex = 0;
 
-  for (const token of tokens.slice(1)) {
-    applyToken(config, token);
-  }
+  forEachToken(part, (token) => {
+    if (tokenIndex === 0) {
+      config.type = token;
+    } else {
+      applyToken(config, token);
+    }
+
+    tokenIndex += 1;
+  });
 
   return config;
+}
+
+function forEachAnimationPart(
+  input: string,
+  visitor: (part: string) => void,
+): void {
+  let partStart = 0;
+
+  for (let index = 0; index <= input.length; index += 1) {
+    const isBoundary = index === input.length || input.charCodeAt(index) === 44;
+
+    if (!isBoundary) {
+      continue;
+    }
+
+    visitor(input.slice(partStart, index));
+    partStart = index + 1;
+  }
+}
+
+function forEachToken(input: string, visitor: (token: string) => void): void {
+  let tokenStart = -1;
+
+  for (let index = 0; index <= input.length; index += 1) {
+    const charCode = index < input.length ? input.charCodeAt(index) : 32;
+    const isBoundary =
+      charCode === 32 ||
+      charCode === 9 ||
+      charCode === 10 ||
+      charCode === 13;
+
+    if (!isBoundary && tokenStart === -1) {
+      tokenStart = index;
+    }
+
+    if ((isBoundary || index === input.length) && tokenStart !== -1) {
+      visitor(input.slice(tokenStart, index));
+      tokenStart = -1;
+    }
+  }
+}
+
+function setCappedMapValue<Key, Value>(
+  cache: Map<Key, Value>,
+  key: Key,
+  value: Value,
+  limit: number,
+): void {
+  if (cache.has(key)) {
+    cache.delete(key);
+  }
+
+  while (cache.size >= limit) {
+    const firstKey = cache.keys().next().value as Key | undefined;
+
+    if (firstKey === undefined) {
+      break;
+    }
+
+    cache.delete(firstKey);
+  }
+
+  cache.set(key, value);
 }
 
 function applyToken(config: StandardAnimConfig, token: string): void {

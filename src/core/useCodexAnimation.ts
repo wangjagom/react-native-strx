@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   type StyleProp,
@@ -232,7 +232,7 @@ export function useCodexAnimation(
     );
   }, [transitionFrame, transitionSpec]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     previousStyleFrameRef.current = transitionFrame;
   }, [transitionFrame]);
 
@@ -263,10 +263,33 @@ export function useCodexAnimation(
     mass: 1,
   });
 
-  useEffect(() => {
+  const shouldUseDoubleFrame = explicitPlan !== null;
+
+  useLayoutEffect(() => {
     cancelAnimation(target);
 
     if (!plan) {
+      if (transitionSpec.enabled) {
+        const nextKeys = collectFrameKeys(transitionFrame);
+        const staleStyleKeys = previousKeysRef.current.styleKeys.filter(
+          key => !nextKeys.styleKeys.includes(key),
+        );
+        const staleTransformKeys = previousKeysRef.current.transformKeys.filter(
+          key => !nextKeys.transformKeys.includes(key),
+        );
+
+        target.value = createRuntimeTarget(
+          transitionFrame,
+          staleStyleKeys,
+          staleTransformKeys,
+          false,
+        );
+        previousKeysRef.current = nextKeys;
+        return () => {
+          cancelAnimation(target);
+        };
+      }
+
       target.value = createUnsetTarget(
         previousKeysRef.current.styleKeys,
         previousKeysRef.current.transformKeys,
@@ -308,17 +331,22 @@ export function useCodexAnimation(
 
     let frame2: number | undefined;
 
-    // 2. 이중 requestAnimationFrame을 사용하여 네이티브 레이아웃 엔진이
-    // plan.from 상태의 스타일을 렌더링 스택에 등록할 시간을 벌어줍니다.
+    const startToAnimation = () => {
+      target.value = createRuntimeTarget(
+        plan.to,
+        staleStyleKeys,
+        staleTransformKeys,
+        true,
+      );
+    };
+
     const frame = requestAnimationFrame(() => {
-      frame2 = requestAnimationFrame(() => {
-        target.value = createRuntimeTarget(
-          plan.to,
-          staleStyleKeys,
-          staleTransformKeys,
-          true,
-        );
-      });
+      if (shouldUseDoubleFrame) {
+        frame2 = requestAnimationFrame(startToAnimation);
+        return;
+      }
+
+      startToAnimation();
     });
 
     return () => {
@@ -328,7 +356,7 @@ export function useCodexAnimation(
       }
       cancelAnimation(target);
     };
-  }, [config, plan, target]);
+  }, [config, plan, shouldUseDoubleFrame, target, transitionFrame, transitionSpec]);
 
   return useAnimatedStyle<ViewStyle>(() => {
     const runtimeTarget = target.value;
@@ -985,6 +1013,24 @@ function collectPlanKeys(plan: AnimationPlan): {
   return {
     styleKeys: Array.from(styleKeys),
     transformKeys: Array.from(transformKeys),
+  };
+}
+
+function collectFrameKeys(frame: AnimationFrame): {
+  styleKeys: string[];
+  transformKeys: TransformKey[];
+} {
+  const transformKeys: TransformKey[] = [];
+
+  for (const key of TRANSFORM_KEYS) {
+    if (frame.transform[key] !== undefined) {
+      transformKeys.push(key);
+    }
+  }
+
+  return {
+    styleKeys: Object.keys(frame.style),
+    transformKeys,
   };
 }
 

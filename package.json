@@ -26,7 +26,6 @@
   "types": "src/types/index.d.ts",
   "files": [
     "src",
-    "images",
     "README.md",
     "LICENSE"
   ],

@@ -20,6 +20,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# local security and gstack reports
+.gstack/
+
 # package managers
 .pnpm-store/
 example/
+StrxExampleApp/
