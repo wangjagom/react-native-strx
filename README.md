@@ -55,7 +55,7 @@ npm install github:wangjagom/react-native-strx
 or with a release tag:
 
 ```sh
-npm install github:wangjagom/react-native-strx#v0.1.8
+npm install github:wangjagom/react-native-strx#v0.1.11
 ```
 
 ### Peer dependencies
@@ -385,9 +385,9 @@ Layout tokens are passed to Reanimated's `layout` prop through stable worklet tr
 
 | Prop                | Component                                                             | Meaning                                                                                       |
 | ------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `animate`           | `View`, `Image`, `ScrollView`, `TextInput`, custom factory components | Animation token string or animation object/array.                                             |
-| `layoutClip`        | `View`, `Image`, `ScrollView`, `TextInput`, custom factory components | When `true`, injects `overflow: 'hidden'` during active layout animation. Default is `false`. |
-| `layoutPropagation` | `View`, `Image`, `ScrollView`, `TextInput`, custom factory components | Use `layoutPropagation="none"` to stop layout demand from bubbling past this boundary.        |
+| `animate`           | All STRX primitives and custom factory components                     | Animation token string or animation object/array.                                             |
+| `layoutClip`        | All STRX primitives and custom factory components                     | When `true`, injects `overflow: 'hidden'` during active layout animation. Default is `false`. |
+| `layoutPropagation` | All STRX primitives and custom factory components                     | Use `layoutPropagation="none"` to stop layout demand from bubbling past this boundary.        |
 
 ## Preset animations
 
@@ -499,41 +499,10 @@ Use `layoutPropagation="none"` to isolate untrusted or independent subtrees:
 - Use `Strx.LayoutRoot` near the screen or app root.
 - Prefer the namespace API, such as `Strx.View`, `Strx.Text`, `Strx.Pressable`, `Strx.Image`, `Strx.ScrollView`, and `Strx.TextInput`, for animated regions.
 - Alias exports are also available for teams that prefer named imports.
-- Keep `react-native-reanimated/plugin` last in Babel config.
+- Keep `react-native-worklets/plugin` last for Reanimated 4, or `react-native-reanimated/plugin` last for Reanimated 3.
 - Run `pod install` for iOS after installing Reanimated.
 - Reset Metro cache after installation or Babel changes.
 - Install [STRX Animation IntelliSense](https://marketplace.visualstudio.com/items?itemName=strx.strx-animation-intellisense) for the best `animate=""` authoring experience in VS Code.
-
-## Maintainer publishing
-
-The package is configured for public npm publishing. Before publishing, make sure you are logged in with an npm account that can claim or maintain `react-native-strx`:
-
-```sh
-npm login
-npm whoami
-```
-
-Run the verification steps:
-
-```sh
-npm install
-npm run typecheck
-npm run pack:check
-```
-
-Publish the current version:
-
-```sh
-npm publish --access public
-```
-
-For the first publish, npm will claim the `react-native-strx` package name under your account. For later releases, bump `package.json` with `npm version patch`, `npm version minor`, or `npm version major`, then publish again.
-
-After publishing, users can install it with:
-
-```sh
-npm install react-native-strx
-```
 
 ## License
 

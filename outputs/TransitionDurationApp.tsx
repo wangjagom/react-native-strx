@@ -101,7 +101,7 @@ export default function App() {
             </Strx.View>
           ))}
 
-          <Strx.LayoutGroup defaultTransition="spring">
+          <Strx.LayoutGroup transition="spring">
             <Strx.View animate="layout-spring fade-in" style={styles.card} layoutClip>
               <Strx.Text style={styles.caseTitle}>layout-spring + dynamic siblings</Strx.Text>
               <RNView style={styles.buttonRow}>
