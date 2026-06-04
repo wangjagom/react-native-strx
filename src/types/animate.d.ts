@@ -1,95 +1,60 @@
-import type { ViewStyle } from 'react-native';
+import type { ViewStyle } from "react-native";
 
-export type AnimatePresetType =
-  | 'fade-in'
-  | 'fade-out'
-  | 'slide-up'
-  | 'slide-down'
-  | 'slide-left'
-  | 'slide-right'
-  | 'scale-in'
-  | 'scale-out'
-  | 'scale-up'
-  | 'scale-down'
-  | 'bounce';
+/**
+ * STRX intentionally keeps the runtime token type open.
+ *
+ * Rich autocomplete for string tokens is provided by:
+ * STRX Animation IntelliSense
+ *
+ * This type file only provides a minimal set of known tokens
+ * and keeps custom string tokens valid.
+ */
 
-export type AnimateEasing =
-  | 'linear'
-  | 'ease'
-  | 'ease-in'
-  | 'ease-out'
-  | 'ease-in-out';
+export type AnimatePresetToken =
+  | "fade-in"
+  | "fade-out"
+  | "slide-up"
+  | "slide-down"
+  | "slide-left"
+  | "slide-right"
+  | "scale-in"
+  | "scale-out"
+  | "scale-up"
+  | "scale-down"
+  | "bounce";
+
+export type AnimateEasingToken =
+  | "linear"
+  | "ease"
+  | "ease-in"
+  | "ease-out"
+  | "ease-in-out";
 
 export type AnimateLayoutToken =
-  | 'layout-linear'
-  | 'layout-spring'
-  | 'layout-fade'
-  | 'layout-spring-stiff'
-  | 'layout-spring-bouncy';
+  | "layout-linear"
+  | "layout-spring"
+  | "layout-fade"
+  | "layout-spring-stiff"
+  | "layout-spring-bouncy";
 
 export type AnimateTransitionToken =
-  | 'transition'
-  | 'transition-all'
-  | 'transition-colors'
-  | 'transition-opacity'
-  | 'transition-transform'
-  | 'transition-spacing'
-  | 'transition-layout';
+  | "transition"
+  | "transition-all"
+  | "transition-colors"
+  | "transition-opacity"
+  | "transition-transform"
+  | "transition-spacing"
+  | "transition-layout";
 
 export type AnimateTimingToken =
   | `duration-${number}`
   | `delay-${number}`
   | `repeat-${number}`
-  | 'repeat-infinite'
-  | AnimateEasing;
+  | "repeat-infinite"
+  | AnimateEasingToken;
 
-export type AnimateCommonTimingToken =
-  | 'duration-75'
-  | 'duration-100'
-  | 'duration-150'
-  | 'duration-200'
-  | 'duration-250'
-  | 'duration-300'
-  | 'duration-500'
-  | 'duration-700'
-  | 'duration-1000'
-  | 'delay-75'
-  | 'delay-100'
-  | 'delay-150'
-  | 'delay-200'
-  | 'delay-300'
-  | 'delay-500'
-  | 'repeat-1'
-  | 'repeat-2'
-  | 'repeat-3'
-  | 'repeat-infinite'
-  | AnimateEasing;
-
-export type AnimateOpacityUtilityToken =
-  | 'opacity-0'
-  | 'opacity-5'
-  | 'opacity-10'
-  | 'opacity-15'
-  | 'opacity-20'
-  | 'opacity-25'
-  | 'opacity-30'
-  | 'opacity-35'
-  | 'opacity-40'
-  | 'opacity-45'
-  | 'opacity-50'
-  | 'opacity-55'
-  | 'opacity-60'
-  | 'opacity-65'
-  | 'opacity-70'
-  | 'opacity-75'
-  | 'opacity-80'
-  | 'opacity-85'
-  | 'opacity-90'
-  | 'opacity-95'
-  | 'opacity-100'
-  | `opacity-${number}`;
-
-export type AnimateTransformUtilityToken =
+export type AnimateUtilityToken =
+  | `opacity-${number}`
   | `translate-x-${number}`
   | `-translate-x-${number}`
   | `translate-y-${number}`
@@ -98,16 +63,11 @@ export type AnimateTransformUtilityToken =
   | `scale-x-${number}`
   | `scale-y-${number}`
   | `rotate-${number}`
-  | `-rotate-${number}`;
+  | `-rotate-${number}`
+  | `w-${number}`
+  | `h-${number}`;
 
-export type AnimateDimensionUtilityToken = `w-${number}` | `h-${number}`;
-
-export type AnimateUtilityToken =
-  | AnimateOpacityUtilityToken
-  | AnimateTransformUtilityToken
-  | AnimateDimensionUtilityToken;
-
-export type AnimatePrefixedToken =
+export type AnimateModifierToken =
   | `from:${AnimateUtilityToken}`
   | `to:${AnimateUtilityToken}`
   | `exit:${AnimateUtilityToken}`
@@ -115,30 +75,22 @@ export type AnimatePrefixedToken =
   | `to:${string}`
   | `exit:${string}`;
 
-export type AnimateAutocompleteToken =
-  | AnimatePresetType
-  | AnimateLayoutToken
-  | AnimateTransitionToken
-  | AnimateCommonTimingToken
-  | `from:${AnimateUtilityToken}`
-  | `to:${AnimateUtilityToken}`
-  | `exit:${AnimateUtilityToken}`;
-
 export type AnimateKnownToken =
-  | AnimatePresetType
+  | AnimatePresetToken
   | AnimateLayoutToken
-  | AnimatePrefixedToken
   | AnimateTransitionToken
-  | AnimateTimingToken;
+  | AnimateTimingToken
+  | AnimateModifierToken;
 
-export type AnimateTokenList =
-  | AnimateAutocompleteToken
-  | `${AnimateAutocompleteToken} ${string}`;
-
-export type AnimateToken =
-  | AnimateTokenList
-  | AnimateKnownToken
-  | (string & {});
+/**
+ * Allows known STRX tokens while still accepting custom user tokens.
+ *
+ * Example:
+ * animate="fade-in duration-300"
+ * animate="from:opacity-0 to:opacity-100"
+ * animate="my-custom-token"
+ */
+export type AnimateToken = AnimateKnownToken | (string & {});
 
 export type AnimateScalar = number | string;
 export type AnimateDimension = number | `${number}%`;
@@ -161,16 +113,19 @@ export interface AnimateTransformStyle {
 
 export interface AnimateStyle extends AnimateTransformStyle {
   opacity?: number;
+
   width?: AnimateDimension;
   height?: AnimateDimension;
   minWidth?: AnimateDimension;
   minHeight?: AnimateDimension;
   maxWidth?: AnimateDimension;
   maxHeight?: AnimateDimension;
+
   top?: AnimateDimension;
   right?: AnimateDimension;
   bottom?: AnimateDimension;
   left?: AnimateDimension;
+
   margin?: AnimateDimension;
   marginTop?: AnimateDimension;
   marginRight?: AnimateDimension;
@@ -178,6 +133,7 @@ export interface AnimateStyle extends AnimateTransformStyle {
   marginLeft?: AnimateDimension;
   marginHorizontal?: AnimateDimension;
   marginVertical?: AnimateDimension;
+
   padding?: AnimateDimension;
   paddingTop?: AnimateDimension;
   paddingRight?: AnimateDimension;
@@ -185,34 +141,38 @@ export interface AnimateStyle extends AnimateTransformStyle {
   paddingLeft?: AnimateDimension;
   paddingHorizontal?: AnimateDimension;
   paddingVertical?: AnimateDimension;
+
   borderRadius?: number;
   borderTopLeftRadius?: number;
   borderTopRightRadius?: number;
   borderBottomLeftRadius?: number;
   borderBottomRightRadius?: number;
+
   borderWidth?: number;
   borderTopWidth?: number;
   borderRightWidth?: number;
   borderBottomWidth?: number;
   borderLeftWidth?: number;
+
   backgroundColor?: AnimateColor;
   borderColor?: AnimateColor;
   borderTopColor?: AnimateColor;
   borderRightColor?: AnimateColor;
   borderBottomColor?: AnimateColor;
   borderLeftColor?: AnimateColor;
-  transform?: ViewStyle['transform'];
+
+  transform?: ViewStyle["transform"];
 }
 
 export interface AnimateTimingOptions {
   duration?: number;
   delay?: number;
-  easing?: AnimateEasing | (string & {});
-  repeat?: number | 'infinite';
+  easing?: AnimateEasingToken | (string & {});
+  repeat?: number | "infinite";
 }
 
 export type PresetAnimateObject = AnimateTimingOptions & {
-  type: AnimatePresetType | (string & {});
+  type: AnimatePresetToken | (string & {});
   from?: never;
   to?: never;
 };

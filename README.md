@@ -1,5 +1,23 @@
 # react-native-strx
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/wangjagom/react-native-strx/main/images/logo.png" alt="react-native-strx logo" width="160" />
+</p>
+
+<h1 align="center">react-native-strx</h1>
+
+<p align="center">
+  Tailwind-style declarative animation primitives for React Native.
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/react-native-strx">npm</a>
+  ·
+  <a href="https://github.com/wangjagom/react-native-strx">GitHub</a>
+  ·
+  <a href="https://marketplace.visualstudio.com/items?itemName=strx.strx-animation-intellisense">VS Code IntelliSense</a>
+</p>
+
 Tailwind-style declarative animations and layout transitions for React Native Reanimated.
 
 `react-native-strx` lets you write animation intent directly on React Native primitives:
@@ -17,6 +35,8 @@ It supports preset animations, explicit `from:/to:/exit:` keyframes, implicit `t
 ```sh
 npm install react-native-strx react-native-reanimated
 ```
+
+> Recommended: install [STRX Animation IntelliSense](https://marketplace.visualstudio.com/items?itemName=strx.strx-animation-intellisense) for Tailwind-style autocomplete inside `animate=""`.
 
 If your Reanimated version requires Worklets as a separate package, also install:
 
@@ -55,8 +75,8 @@ Add the Reanimated plugin as the last plugin in the consuming app's `babel.confi
 
 ```js
 module.exports = {
-  presets: ['module:@react-native/babel-preset'],
-  plugins: ['react-native-reanimated/plugin'],
+  presets: ["module:@react-native/babel-preset"],
+  plugins: ["react-native-reanimated/plugin"],
 };
 ```
 
@@ -89,7 +109,7 @@ npx react-native start --reset-cache
 ## Basic Usage
 
 ```tsx
-import { Strx } from 'react-native-strx';
+import { Strx } from "react-native-strx";
 
 export default function App() {
   return (
@@ -102,16 +122,30 @@ export default function App() {
 }
 ```
 
-## TypeScript Autocomplete
+## VS Code IntelliSense
 
-`animate` is typed with STRX token unions, so editors such as VS Code can suggest tokens while you type:
+For the best development experience, install **STRX Animation IntelliSense**.
+
+[Install STRX Animation IntelliSense](https://marketplace.visualstudio.com/items?itemName=strx.strx-animation-intellisense)
+
+The extension provides rich autocomplete suggestions for `animate=""` tokens used by `react-native-strx`.
 
 ```tsx
 <Strx.View animate="fade-in layout-spring duration-300 ease-out" />
 ```
 
-Typing `f` suggests preset tokens such as `fade-in` and `fade-out`. The type hints also cover layout tokens, transition tokens, common timing tokens, and prefixed keyframe utilities such as `from:opacity-0`, `to:translate-y-0`, and `exit:opacity-0`. Arbitrary strings are still accepted for forward compatibility.
+It suggests tokens such as:
 
+- `fade-in`
+- `slide-up`
+- `transition-all`
+- `duration-300`
+- `layout-spring`
+- `from:opacity-0`
+- `to:opacity-100`
+- `exit:opacity-0`
+
+The runtime package keeps `animate` flexible and accepts custom string tokens, while the VS Code extension provides the best autocomplete experience for known STRX animation tokens.
 
 ## Components
 
@@ -176,7 +210,7 @@ An animated input primitive for focus, validation, and color/spacing transitions
   animate="transition-colors duration-200"
   value={value}
   onChangeText={setValue}
-  style={{ borderColor: focused ? '#2563eb' : '#d1d5db' }}
+  style={{ borderColor: focused ? "#2563eb" : "#d1d5db" }}
 />
 ```
 
@@ -185,14 +219,14 @@ An animated input primitive for focus, validation, and color/spacing transitions
 Use `createStrxComponent` to adapt your own component to STRX. The wrapped component receives `animate`, `layoutClip`, and `layoutPropagation` while preserving its original props.
 
 ```tsx
-import { createStrxComponent } from 'react-native-strx';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { createStrxComponent } from "react-native-strx";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const StrxSafeAreaView = createStrxComponent(SafeAreaView, {
-  displayName: 'Strx.SafeAreaView',
+  displayName: "Strx.SafeAreaView",
 });
 
-<StrxSafeAreaView animate="fade-in layout-linear" />
+<StrxSafeAreaView animate="fade-in layout-linear" />;
 ```
 
 Security and stability notes:
@@ -204,14 +238,14 @@ Security and stability notes:
 
 ## Token Reference
 
-`animate` is a whitespace-separated token string. Tokens can be combined in one string:
+`animate` is a whitespace-separated token string. Tokens can be combined in one string.
 
 The recommended import style is the namespace API, which keeps STRX components visually distinct from React Native built-ins:
 
 ```tsx
-import { Strx } from 'react-native-strx';
+import { Strx } from "react-native-strx";
 
-<Strx.View animate="fade-in" />
+<Strx.View animate="fade-in" />;
 ```
 
 Alias exports are also available: `StrxView`, `StrxText`, `StrxPressable`, `StrxImage`, `StrxScrollView`, and `StrxTextInput`. The plain component exports remain for backward compatibility.
@@ -226,90 +260,88 @@ Preset tokens create an explicit animation plan with predefined `from` and `to` 
 
 The `Default motion` values below are STRX preset defaults, not Reanimated defaults. They were chosen as opinionated starter timings for each motion family, and you can override them with tokens such as `duration-500`, `ease-out`, `linear`, or object configs.
 
-| Token | Starts from | Animates to | Default motion |
-| --- | --- | --- | --- |
-| `fade-in` | `opacity: 0` | `opacity: 1` | timing, 300ms |
-| `fade-out` | `opacity: 1` | `opacity: 0` | timing, 250ms |
-| `slide-up` | `translateY: 24` | `translateY: 0` | timing, 320ms |
-| `slide-down` | `translateY: -24` | `translateY: 0` | timing, 320ms |
-| `slide-left` | `translateX: 24` | `translateX: 0` | timing, 320ms |
-| `slide-right` | `translateX: -24` | `translateX: 0` | timing, 320ms |
-| `scale-in` | `scale: 0.92` | `scale: 1` | timing, 260ms |
-| `scale-up` | `scale: 0.92` | `scale: 1` | timing, 260ms |
-| `scale-down` | `scale: 1.08` | `scale: 1` | timing, 260ms |
-| `scale-out` | `scale: 1` | `scale: 0.92` | timing, 220ms |
-| `bounce` | `translateY: -16`, `scale: 0.96` | `translateY: 0`, `scale: 1` | spring, damping 8, stiffness 180, mass 0.9 |
+| Token         | Starts from                      | Animates to                 | Default motion                             |
+| ------------- | -------------------------------- | --------------------------- | ------------------------------------------ |
+| `fade-in`     | `opacity: 0`                     | `opacity: 1`                | timing, 300ms                              |
+| `fade-out`    | `opacity: 1`                     | `opacity: 0`                | timing, 250ms                              |
+| `slide-up`    | `translateY: 24`                 | `translateY: 0`             | timing, 320ms                              |
+| `slide-down`  | `translateY: -24`                | `translateY: 0`             | timing, 320ms                              |
+| `slide-left`  | `translateX: 24`                 | `translateX: 0`             | timing, 320ms                              |
+| `slide-right` | `translateX: -24`                | `translateX: 0`             | timing, 320ms                              |
+| `scale-in`    | `scale: 0.92`                    | `scale: 1`                  | timing, 260ms                              |
+| `scale-up`    | `scale: 0.92`                    | `scale: 1`                  | timing, 260ms                              |
+| `scale-down`  | `scale: 1.08`                    | `scale: 1`                  | timing, 260ms                              |
+| `scale-out`   | `scale: 1`                       | `scale: 0.92`               | timing, 220ms                              |
+| `bounce`      | `translateY: -16`, `scale: 0.96` | `translateY: 0`, `scale: 1` | spring, damping 8, stiffness 180, mass 0.9 |
 
 ### Timing tokens
 
 Timing tokens configure preset, `from:/to:`, `exit:`, and `transition-*` animations.
 
-| Token | Meaning |
-| --- | --- |
-| `duration-300` | Sets duration to `300` milliseconds. Any finite number is accepted. |
-| `delay-100` | Delays animation by `100` milliseconds. Any finite number is accepted. |
-| `repeat-2` | Repeats explicit preset/from-to animation 2 times. |
-| `repeat-infinite` | Repeats explicit preset/from-to animation indefinitely. |
-| `linear` | Linear easing. |
-| `ease` | Smoothstep default easing. |
-| `ease-in` | Cubic ease-in. |
-| `ease-out` | Cubic ease-out. |
-| `ease-in-out` | Cubic ease-in-out. |
+| Token             | Meaning                                                                |
+| ----------------- | ---------------------------------------------------------------------- |
+| `duration-300`    | Sets duration to `300` milliseconds. Any finite number is accepted.    |
+| `delay-100`       | Delays animation by `100` milliseconds. Any finite number is accepted. |
+| `repeat-2`        | Repeats explicit preset/from-to animation 2 times.                     |
+| `repeat-infinite` | Repeats explicit preset/from-to animation indefinitely.                |
+| `linear`          | Linear easing.                                                         |
+| `ease`            | Smoothstep default easing.                                             |
+| `ease-in`         | Cubic ease-in.                                                         |
+| `ease-out`        | Cubic ease-out.                                                        |
+| `ease-in-out`     | Cubic ease-in-out.                                                     |
 
 ### Explicit keyframe prefixes
 
 Prefix tokens turn a Tailwind-like utility into a `from`, `to`, or `exit` style.
 
-| Prefix | Meaning |
-| --- | --- |
+| Prefix   | Meaning                                    |
+| -------- | ------------------------------------------ |
 | `from:*` | Initial style before the animation starts. |
-| `to:*` | Target style for the animation. |
-| `exit:*` | Style used when the component exits/unmounts. |
+| `to:*`   | Target style for the animation.            |
+| `exit:*` | Style used when the component exits.       |
 
 Supported prefixed utilities:
 
-| Utility | Result |
-| --- | --- |
+| Utility                      | Result                                                |
+| ---------------------------- | ----------------------------------------------------- |
 | `opacity-0` to `opacity-100` | `opacity` from `0` to `1`. Values are divided by 100. |
-| `translate-x-20` | `translateX: 20` |
-| `-translate-x-20` | `translateX: -20` |
-| `translate-y-20` | `translateY: 20` |
-| `-translate-y-20` | `translateY: -20` |
-| `scale-90` | `scale: 0.9` |
-| `scale-x-95` | `scaleX: 0.95` |
-| `scale-y-105` | `scaleY: 1.05` |
-| `rotate-45` | `rotate: '45deg'` |
-| `-rotate-45` | `rotate: '-45deg'` |
-| `w-120` | `width: 120` |
-| `h-80` | `height: 80` |
+| `translate-x-20`             | `translateX: 20`                                      |
+| `-translate-x-20`            | `translateX: -20`                                     |
+| `translate-y-20`             | `translateY: 20`                                      |
+| `-translate-y-20`            | `translateY: -20`                                     |
+| `scale-90`                   | `scale: 0.9`                                          |
+| `scale-x-95`                 | `scaleX: 0.95`                                        |
+| `scale-y-105`                | `scaleY: 1.05`                                        |
+| `rotate-45`                  | `rotate: '45deg'`                                     |
+| `-rotate-45`                 | `rotate: '-45deg'`                                    |
+| `w-120`                      | `width: 120`                                          |
+| `h-80`                       | `height: 80`                                          |
 
 Example:
 
 ```tsx
-<Strx.View
-  animate="from:opacity-0 from:-translate-y-20 to:opacity-100 to:translate-y-0 exit:opacity-0 duration-300"
-/>
+<Strx.View animate="from:opacity-0 from:-translate-y-20 to:opacity-100 to:translate-y-0 exit:opacity-0 duration-300" />
 ```
 
 ### Implicit transition tokens
 
 Transition tokens animate changes in the static `style` prop. They compare the previous animatable style snapshot with the next one and animate only changed channels.
 
-| Token | Animated style subset |
-| --- | --- |
-| `transition`, `transition-all` | All supported numeric/color/transform channels. |
-| `transition-colors` | Color style keys such as `backgroundColor`, `borderColor`, `borderTopColor`, etc. |
-| `transition-opacity` | `opacity` only. |
-| `transition-transform` | Transform channels such as `translateX`, `translateY`, `scale`, `rotate`, etc. |
-| `transition-spacing` | `margin*` and `padding*` keys. |
-| `transition-layout` | `width`, `height`, min/max dimensions, and positional keys `top/right/bottom/left`. |
+| Token                          | Animated style subset                                                             |
+| ------------------------------ | --------------------------------------------------------------------------------- |
+| `transition`, `transition-all` | All supported numeric/color/transform channels.                                   |
+| `transition-colors`            | Color style keys such as `backgroundColor`, `borderColor`, `borderTopColor`, etc. |
+| `transition-opacity`           | `opacity` only.                                                                   |
+| `transition-transform`         | Transform channels such as `translateX`, `translateY`, `scale`, `rotate`, etc.    |
+| `transition-spacing`           | `margin*` and `padding*` keys.                                                    |
+| `transition-layout`            | `width`, `height`, min/max dimensions, and positional keys.                       |
 
 Example:
 
 ```tsx
 <Strx.View
   animate="transition-colors duration-250 ease-out"
-  style={{ backgroundColor: active ? '#22c55e' : '#ef4444' }}
+  style={{ backgroundColor: active ? "#22c55e" : "#ef4444" }}
 />
 ```
 
@@ -317,23 +349,23 @@ Example:
 
 Layout tokens are passed to Reanimated's `layout` prop through stable worklet transitions. They animate native layout changes such as size and position changes.
 
-| Token | Behavior |
-| --- | --- |
-| `layout-linear` | 300ms timing layout transition. |
-| `layout-spring` | Spring layout transition with damping 15, stiffness 120, mass 1. |
-| `layout-fade` | 300ms timing layout transition with opacity fade-in. |
-| `layout-spring-stiff` | Stiffer spring layout transition with damping 20, stiffness 180, mass 0.9. |
-| `layout-spring-bouncy` | Bouncier spring layout transition with damping 10, stiffness 105, mass 1. |
+| Token                  | Behavior                                                                   |
+| ---------------------- | -------------------------------------------------------------------------- |
+| `layout-linear`        | 300ms timing layout transition.                                            |
+| `layout-spring`        | Spring layout transition with damping 15, stiffness 120, mass 1.           |
+| `layout-fade`          | 300ms timing layout transition with opacity fade-in.                       |
+| `layout-spring-stiff`  | Stiffer spring layout transition with damping 20, stiffness 180, mass 0.9. |
+| `layout-spring-bouncy` | Bouncier spring layout transition with damping 10, stiffness 105, mass 1.  |
 
 `layout` is never toggled to `undefined`; inactive nodes receive a stable no-op layout worklet to keep the Reanimated native layout tree stable.
 
 ### Component props
 
-| Prop | Component | Meaning |
-| --- | --- | --- |
-| `animate` | `View`, `Image`, `ScrollView`, `TextInput`, custom factory components | Animation token string or animation object/array. |
-| `layoutClip` | `View`, `Image`, `ScrollView`, `TextInput`, custom factory components | When `true`, injects `overflow: 'hidden'` during active layout animation. Default is `false`. |
-| `layoutPropagation` | `View`, `Image`, `ScrollView`, `TextInput`, custom factory components | Use `layoutPropagation="none"` to stop layout demand from bubbling past this boundary. |
+| Prop                | Component                                                             | Meaning                                                                                       |
+| ------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `animate`           | `View`, `Image`, `ScrollView`, `TextInput`, custom factory components | Animation token string or animation object/array.                                             |
+| `layoutClip`        | `View`, `Image`, `ScrollView`, `TextInput`, custom factory components | When `true`, injects `overflow: 'hidden'` during active layout animation. Default is `false`. |
+| `layoutPropagation` | `View`, `Image`, `ScrollView`, `TextInput`, custom factory components | Use `layoutPropagation="none"` to stop layout demand from bubbling past this boundary.        |
 
 ## Preset animations
 
@@ -364,9 +396,7 @@ Common tokens:
 ## Explicit keyframes: from:/to:/exit:
 
 ```tsx
-<Strx.View
-  animate="from:opacity-0 from:translate-y-20 to:opacity-100 to:translate-y-0 exit:opacity-0 duration-300"
->
+<Strx.View animate="from:opacity-0 from:translate-y-20 to:opacity-100 to:translate-y-0 exit:opacity-0 duration-300">
   <Strx.Text>Animated content</Strx.Text>
 </Strx.View>
 ```
@@ -389,7 +419,7 @@ Animate changes in the static `style` prop:
   style={{
     width: open ? 220 : 120,
     opacity: open ? 1 : 0.5,
-    backgroundColor: open ? '#4f46e5' : '#e5e7eb',
+    backgroundColor: open ? "#4f46e5" : "#e5e7eb",
     transform: [{ scale: open ? 1 : 0.92 }],
   }}
 />
@@ -445,10 +475,12 @@ Use `layoutPropagation="none"` to isolate untrusted or independent subtrees:
 ## Production notes
 
 - Use `Strx.LayoutRoot` near the screen or app root.
-- Prefer the namespace API, such as `Strx.View`, `Strx.Text`, `Strx.Pressable`, `Strx.Image`, `Strx.ScrollView`, and `Strx.TextInput`, for animated regions. Alias exports are also available for teams that prefer named imports.
+- Prefer the namespace API, such as `Strx.View`, `Strx.Text`, `Strx.Pressable`, `Strx.Image`, `Strx.ScrollView`, and `Strx.TextInput`, for animated regions.
+- Alias exports are also available for teams that prefer named imports.
 - Keep `react-native-reanimated/plugin` last in Babel config.
 - Run `pod install` for iOS after installing Reanimated.
 - Reset Metro cache after installation or Babel changes.
+- Install [STRX Animation IntelliSense](https://marketplace.visualstudio.com/items?itemName=strx.strx-animation-intellisense) for the best `animate=""` authoring experience in VS Code.
 
 ## Maintainer publishing
 
