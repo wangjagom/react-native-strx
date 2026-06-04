@@ -4,11 +4,14 @@ import {
   type TextInputProps as RNTextInputProps,
 } from 'react-native';
 
-import { createStrxComponent } from './createStrxComponent';
+import {
+  createStrxComponent,
+  type StrxComponentProps,
+} from './createStrxComponent';
 
-export interface CodexTextInputProps extends RNTextInputProps {}
+export type CodexTextInputProps = StrxComponentProps<RNTextInputProps>;
 
 export const TextInput = createStrxComponent<
-  CodexTextInputProps,
+  RNTextInputProps,
   React.ElementRef<typeof RNTextInput>
 >(RNTextInput, { displayName: 'CodexAnimatedTextInput' });

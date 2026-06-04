@@ -71,7 +71,18 @@ npm install github:wangjagom/react-native-strx#v0.1.8
 
 ### Babel
 
-Add the Reanimated plugin as the last plugin in the consuming app's `babel.config.js`:
+Reanimated needs its worklet Babel plugin in the consuming app.
+
+For **Reanimated 4**, use `react-native-worklets/plugin` as the last plugin:
+
+```js
+module.exports = {
+  presets: ["module:@react-native/babel-preset"],
+  plugins: ["react-native-worklets/plugin"],
+};
+```
+
+For **Reanimated 3**, use `react-native-reanimated/plugin` as the last plugin:
 
 ```js
 module.exports = {
@@ -80,7 +91,7 @@ module.exports = {
 };
 ```
 
-If the app already has plugins, keep `react-native-reanimated/plugin` last.
+If the app already has plugins, keep the Reanimated/Worklets plugin last.
 
 ### iOS
 
@@ -145,11 +156,20 @@ It suggests tokens such as:
 - `to:opacity-100`
 - `exit:opacity-0`
 
-The runtime package keeps `animate` flexible and accepts custom string tokens, while the VS Code extension provides the best autocomplete experience for known STRX animation tokens.
+The runtime package keeps `animate` flexible and accepts custom string tokens. TypeScript still provides minimal token hints for common presets, layout tokens, `transition-*`, and `from:/to:/exit:` prefixes, but string-literal IntelliSense is intentionally lightweight. Install the VS Code extension for rich token autocomplete when typing inside `animate=""`.
 
 ## Components
 
 The recommended API is the `Strx` namespace. It keeps animated STRX primitives visually separate from React Native built-ins.
+
+All built-in STRX primitives support `animate`, `layoutClip`, and `layoutPropagation`:
+
+- `Strx.View`
+- `Strx.Text`
+- `Strx.Pressable`
+- `Strx.Image`
+- `Strx.ScrollView`
+- `Strx.TextInput`
 
 ### `Strx.View`
 
@@ -163,18 +183,20 @@ The primary animated container. Use it for preset animations, explicit `from:/to
 
 ### `Strx.Text`
 
-A layout-aware text primitive. It participates in inherited layout transitions from `Strx.View` and `Strx.LayoutGroup`, which helps text move with surrounding animated layout changes.
+A layout-aware text primitive. It supports direct `animate` tokens and also participates in inherited layout transitions from `Strx.View` and `Strx.LayoutGroup`.
 
 ```tsx
-<Strx.Text>Animated layout text</Strx.Text>
+<Strx.Text animate="fade-in from:translate-y-8 to:translate-y-0">
+  Animated text
+</Strx.Text>
 ```
 
 ### `Strx.Pressable`
 
-A layout-aware press target for buttons and touchable rows. Use it when a button should move with a surrounding layout transition.
+A layout-aware press target for buttons and touchable rows. It supports direct `animate` tokens, including press-style scale transitions.
 
 ```tsx
-<Strx.Pressable onPress={onToggle}>
+<Strx.Pressable animate="press-scale transition-all" onPress={onToggle}>
   <Strx.Text>Toggle</Strx.Text>
 </Strx.Pressable>
 ```

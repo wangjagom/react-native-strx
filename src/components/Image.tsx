@@ -1,11 +1,14 @@
 import type React from 'react';
 import { Image as RNImage, type ImageProps as RNImageProps } from 'react-native';
 
-import { createStrxComponent } from './createStrxComponent';
+import {
+  createStrxComponent,
+  type StrxComponentProps,
+} from './createStrxComponent';
 
-export interface CodexImageProps extends RNImageProps {}
+export type CodexImageProps = StrxComponentProps<RNImageProps>;
 
 export const Image = createStrxComponent<
-  CodexImageProps,
+  RNImageProps,
   React.ElementRef<typeof RNImage>
 >(RNImage, { displayName: 'CodexAnimatedImage' });

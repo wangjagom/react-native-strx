@@ -4,11 +4,14 @@ import {
   type ScrollViewProps as RNScrollViewProps,
 } from 'react-native';
 
-import { createStrxComponent } from './createStrxComponent';
+import {
+  createStrxComponent,
+  type StrxComponentProps,
+} from './createStrxComponent';
 
-export interface CodexScrollViewProps extends RNScrollViewProps {}
+export type CodexScrollViewProps = StrxComponentProps<RNScrollViewProps>;
 
 export const ScrollView = createStrxComponent<
-  CodexScrollViewProps,
+  RNScrollViewProps,
   React.ElementRef<typeof RNScrollView>
 >(RNScrollView, { displayName: 'CodexAnimatedScrollView' });
