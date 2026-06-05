@@ -1,5 +1,7 @@
 import { Image } from "./components/Image";
+import { DebugOverlay } from "./components/DebugOverlay";
 import { Pressable } from "./components/Pressable";
+import { Provider } from "./components/Provider";
 import { ScrollView } from "./components/ScrollView";
 import { Text } from "./components/Text";
 import { TextInput } from "./components/TextInput";
@@ -11,8 +13,12 @@ import { StrxLayoutRoot } from "./context/StrxLayoutContext";
 
 export { Image } from "./components/Image";
 export type { CodexImageProps } from "./components/Image";
+export { DebugOverlay } from "./components/DebugOverlay";
+export type { StrxDebugOverlayProps } from "./components/DebugOverlay";
 export { Pressable } from "./components/Pressable";
 export type { CodexPressableProps } from "./components/Pressable";
+export { Provider } from "./components/Provider";
+export type { StrxProviderProps } from "./components/Provider";
 export { ScrollView } from "./components/ScrollView";
 export type { CodexScrollViewProps } from "./components/ScrollView";
 export { Text } from "./components/Text";
@@ -23,16 +29,31 @@ export { Timeline } from "./components/Timeline";
 export type { TimelineProps } from "./components/Timeline";
 export { View } from "./components/View";
 export type { CodexViewProps, LayoutPropagationMode } from "./components/View";
+export type { CodexImageProps as StrxImageProps } from "./components/Image";
+export type { CodexPressableProps as StrxPressableProps } from "./components/Pressable";
+export type { CodexScrollViewProps as StrxScrollViewProps } from "./components/ScrollView";
+export type { CodexTextProps as StrxTextProps } from "./components/Text";
+export type { CodexTextInputProps as StrxTextInputProps } from "./components/TextInput";
+export type { CodexViewProps as StrxViewProps } from "./components/View";
 export { LayoutGroup, useLayoutGroup } from "./context/LayoutGroupContext";
 export { LayoutNodeContext, useLayoutNode } from "./context/LayoutNodeContext";
 export { StrxLayoutRoot, useStrxLayout } from "./context/StrxLayoutContext";
+export { StrxMotionProvider, useStrxMotion } from "./context/StrxMotionContext";
 export type {
+  StrxLayoutDebugSnapshot,
   StrxLayoutContextType,
   StrxLayoutDemand,
   StrxLayoutPropagationMode,
   StrxLayoutTransitionType,
   StrxMeasuredNode,
 } from "./context/StrxLayoutContext";
+export type {
+  StrxEasingName,
+  StrxMotionContextValue,
+  StrxMotionPreset,
+  StrxMotionProviderProps,
+  StrxReduceMotionMode,
+} from "./context/StrxMotionContext";
 export type {
   LayoutNodeContextType,
   LayoutTransitionType,
@@ -52,15 +73,24 @@ export type {
 } from "./core/presets";
 export {
   compileCodexAnimation,
+  estimateCodexAnimationDelay,
   estimateCodexAnimationDuration,
+  reverseCodexAnimation,
   useCodexAnimation,
   useCodexAnimationEngine,
 } from "./core/useCodexAnimation";
 export type {
   CodexAnimationController,
+  CodexCompileOptions,
   CodexAnimationEngine,
   CodexAnimationPlayOptions,
   CodexCompiledAnimation,
+} from "./core/useCodexAnimation";
+export type {
+  CodexAnimationController as StrxAnimationController,
+  CodexAnimationEngine as StrxAnimationEngine,
+  CodexAnimationPlayOptions as StrxAnimationPlayOptions,
+  CodexCompiledAnimation as StrxCompiledAnimation,
 } from "./core/useCodexAnimation";
 export { useTimeline } from "./core/useTimeline";
 export type {
@@ -68,7 +98,11 @@ export type {
   StrxTimelinePlayable,
   UseTimelineOptions,
 } from "./core/useTimeline";
-export { normalizeAnimate } from "./parser/normalize";
+export {
+  clearNormalizeAnimateCache,
+  getNormalizeAnimateCacheSize,
+  normalizeAnimate,
+} from "./parser/normalize";
 export type { StandardAnimConfig } from "./parser/normalize";
 export type {
   AnimateLayoutToken,
@@ -106,6 +140,8 @@ export { Pressable as StrxPressable } from "./components/Pressable";
  */
 export const Strx = Object.freeze({
   View,
+  Provider,
+  DebugOverlay,
   Text,
   Pressable,
   Image,

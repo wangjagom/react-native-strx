@@ -21,6 +21,7 @@ import {
   useStrxLayout,
   type AnimatedRefLike,
 } from '../context/StrxLayoutContext';
+import { useStrxMotion } from '../context/StrxMotionContext';
 import type { AnimateProp, PlaybackMode } from '../types/animate';
 import {
   findStructuralLayoutDemand,
@@ -124,6 +125,7 @@ export function createStrxComponent<Props extends object, RefType = unknown>(
       const layoutGroup = useLayoutGroup();
       const parentNode = useLayoutNode();
       const strxLayout = useStrxLayout();
+      const motion = useStrxMotion();
       const animatedRef = useAnimatedRef<any>();
       const combinedRef = useMemo(
         () =>
@@ -171,10 +173,18 @@ export function createStrxComponent<Props extends object, RefType = unknown>(
         ? getLayoutTransition(effectiveDemand)
         : undefined;
       const activeLayout =
-        localDemandTransition ??
-        parentNode?.inheritedTransition ??
-        layoutGroup?.defaultLayoutTransition ??
-        stableNoOpTransition;
+        motion.isReduceMotionEnabled
+          ? stableNoOpTransition
+          : localDemandTransition ??
+            parentNode?.inheritedTransition ??
+            layoutGroup?.defaultLayoutTransition ??
+            stableNoOpTransition;
+
+      useEffect(() => {
+        if (typeof animate === 'string' && animate.length > 512) {
+          strxLayout?.reportDebugWarning('animate string exceeded 512 characters and was ignored.');
+        }
+      }, [animate, strxLayout]);
 
       useEffect(() => {
         if (!strxLayout) {

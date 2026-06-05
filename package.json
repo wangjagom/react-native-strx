@@ -25,9 +25,13 @@
   "react-native": "src/index.ts",
   "types": "src/types/index.d.ts",
   "files": [
-    "src",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.d.ts",
+    "!src/**/README.md",
     "README.md",
     "SECURITY.md",
+    "images/logo.png",
     "LICENSE"
   ],
   "sideEffects": false,

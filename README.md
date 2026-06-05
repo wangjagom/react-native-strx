@@ -124,11 +124,14 @@ import { Strx } from "react-native-strx";
 
 export default function App() {
   return (
-    <Strx.LayoutRoot>
+    <Strx.Provider
+      motionPreset={{ duration: 260, easing: "ease-out", reduceMotion: "system" }}
+      debug={__DEV__}
+    >
       <Strx.View animate="fade-in layout-spring">
         <Strx.Text>Hello STRX</Strx.Text>
       </Strx.View>
-    </Strx.LayoutRoot>
+    </Strx.Provider>
   );
 }
 ```
@@ -173,6 +176,8 @@ The built-in namespace includes:
 - `Strx.ScrollView`
 - `Strx.TextInput`
 - `Strx.Timeline`
+- `Strx.Provider`
+- `Strx.DebugOverlay`
 - `Strx.LayoutRoot`
 - `Strx.LayoutGroup`
 - `Strx.useTimeline`
@@ -187,6 +192,53 @@ Common STRX props:
 | `interval`          | `number`                                  | `100`        | Millisecond offset used by `playback="stagger"`.                                             |
 | `layoutClip`        | `boolean`                                 | `false`      | Injects `overflow: 'hidden'` while an active layout transition is running.                    |
 | `layoutPropagation` | `auto` or `none`                          | `auto`       | Use `none` to stop layout animation demand from bubbling past this subtree.                   |
+
+### `Strx.Provider`
+
+The recommended app or screen root. It installs global motion defaults, OS Reduce Motion handling, event timeline registry, layout registry, and an optional debug overlay.
+
+```tsx
+<Strx.Provider
+  motionPreset={{
+    duration: 260,
+    easing: "ease-out",
+    reduceMotion: "system",
+  }}
+  debug={__DEV__}
+  debugPosition="bottom-right"
+  debugInitialExpanded={false}
+>
+  <AppScreens />
+</Strx.Provider>
+```
+
+| Prop           | Type                              | Default     | Meaning                                                                 |
+| -------------- | --------------------------------- | ----------- | ----------------------------------------------------------------------- |
+| `motionPreset` | `{ duration?, easing?: StrxEasingName, reduceMotion? }` | `undefined` | Global fallback motion settings used when tokens do not override them. |
+| `reduceMotion` | `system`, `always`, or `never`    | `system`    | Overrides `motionPreset.reduceMotion` for the subtree.                 |
+| `debug`        | `boolean`                         | `false`     | Shows `Strx.DebugOverlay` with aggregate runtime counts.               |
+| `debugPosition` | `top-left`, `top-right`, `bottom-left`, or `bottom-right` | `bottom-right` | Chooses the debug overlay corner. |
+| `debugInitialExpanded` | `boolean` | `false` | Starts the overlay expanded instead of as a compact pill. |
+| `debugShowMotionPreview` | `boolean` | `true` | Shows a tiny visual timing/easing preview. |
+
+`StrxEasingName` autocompletes `linear`, `ease`, `ease-in`, `ease-out`, and `ease-in-out`, while still allowing custom string names for userland easing adapters.
+
+When Reduce Motion is enabled, STRX shortens explicit/style animation duration, removes delay/repeat, and turns layout transitions into stable no-op transitions. This keeps the UI accessible without changing component code.
+
+### `Strx.DebugOverlay`
+
+`Strx.Provider debug` renders this automatically. The overlay starts collapsed so it does not cover the screen; tap the STRX pill to expand the full HUD. You can also mount it manually under a provider:
+
+```tsx
+<Strx.DebugOverlay
+  enabled={__DEV__}
+  position="bottom-left"
+  initialExpanded={false}
+  showMotionPreview
+/>
+```
+
+The expanded HUD shows aggregate counts, the last sanitized STRX event, dev warnings, parser cache size, active motion policy, and a tiny visual timing/easing preview. It intentionally avoids exposing coordinates, node IDs, or user-provided target names.
 
 ### `Strx.View`
 
@@ -282,7 +334,7 @@ A wrapper for entrance choreography. It injects timing into child `animate` prop
 
 ### `Strx.LayoutRoot`
 
-The root provider for event timelines and layout propagation. Use it near the screen or app root when you use `Strx.useTimeline`, `strxId`, or coordinated layout transitions.
+Low-level root provider for event timelines and layout propagation. Most apps should use `Strx.Provider`; use `Strx.LayoutRoot` directly only when you want the registry without global motion settings.
 
 ```tsx
 <Strx.LayoutRoot>
@@ -518,9 +570,9 @@ import { Strx } from "react-native-strx";
 
 function SuccessCard() {
   return (
-    <Strx.LayoutRoot>
+    <Strx.Provider>
       <SuccessCardContent />
-    </Strx.LayoutRoot>
+    </Strx.Provider>
   );
 }
 
@@ -533,6 +585,9 @@ function SuccessCardContent() {
       { target: "title", animate: "fade-in slide-up duration-260" },
       { target: "button", animate: "fade-in slide-up duration-240" },
     ],
+    onComplete: () => {
+      console.log("Timeline finished");
+    },
   });
 
   return (
@@ -542,6 +597,9 @@ function SuccessCardContent() {
       <Strx.Pressable strxId="button" onPress={timeline.play}>
         <Strx.Text>다시 보기</Strx.Text>
       </Strx.Pressable>
+      <Strx.Pressable onPress={timeline.reverse}>
+        <Strx.Text>되감기</Strx.Text>
+      </Strx.Pressable>
     </>
   );
 }
@@ -550,7 +608,8 @@ function SuccessCardContent() {
 Timeline controls:
 
 - `timeline.play()` starts all registered target animations.
-- `timeline.reset()` clears the event-driven animated styles for the targets.
+- `timeline.reverse()` starts the same target animations from each declared `to` frame back to `from`.
+- `timeline.reset()` immediately returns targets to their declared `from` frames.
 - `timeline.stop()` cancels pending frame starts and running animations.
 - `playback="parallel"` starts all targets together.
 - `playback="serial"` starts each target after the previous target's estimated `delay + duration` window.
@@ -564,16 +623,20 @@ Timeline controls:
 | `playback`  | `parallel`, `serial`, or `stagger` | `parallel`  | Controls how target animations are scheduled.                                      |
 | `interval`  | `number`                           | `100`       | Millisecond offset between targets when `playback="stagger"`.                     |
 | `playCount` | `number` or `infinite`             | `undefined` | Number of times each target animation should play.                                |
+| `onComplete` | `() => void`                      | `undefined` | Called once after a finite `play()` or `reverse()` timeline is expected to finish. |
 
 Returned controller:
 
-| Function           | Meaning                                                                    |
-| ------------------ | -------------------------------------------------------------------------- |
-| `timeline.play()`  | Starts all configured target animations.                                   |
-| `timeline.reset()` | Clears event-driven animated styles for all configured targets.            |
-| `timeline.stop()`  | Cancels pending starts and running animations for all configured targets.  |
+| Function             | Meaning                                                                  |
+| -------------------- | ------------------------------------------------------------------------ |
+| `timeline.play()`    | Starts all configured target animations.                                 |
+| `timeline.reverse()` | Starts all configured target animations as declared `to -> from` motion. |
+| `timeline.reset()`   | Immediately returns all configured targets to their declared `from` frames. |
+| `timeline.stop()`    | Cancels pending starts and running animations for all configured targets. |
 
-`Strx.useTimeline` must run under `Strx.LayoutRoot`, because the root owns the target registry.
+`Strx.useTimeline` must run under `Strx.Provider` or `Strx.LayoutRoot`, because the root owns the target registry.
+
+`timeline.reverse()` is a declarative reverse pass. It uses the same playback schedule, interval, and play count as `timeline.play()`, but swaps each target's normalized `from` and `to` frames. It does not scrub an already-running animation from its exact current progress value.
 
 ## Preset animations
 

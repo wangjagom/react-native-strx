@@ -38,6 +38,13 @@ const easingTokens = new Set([
   'ease-in-out',
 ]);
 
+/**
+ * Converts any public `animate` prop value into normalized animation configs.
+ *
+ * Strings are tokenized with a capped cache, arrays are flattened, and objects
+ * are preserved as preset or custom from/to configs. Invalid or oversized
+ * strings return an empty config list instead of throwing in render.
+ */
 export function normalizeAnimate(
   animate: AnimateProp | null | undefined,
 ): StandardAnimConfig[] {
@@ -56,10 +63,22 @@ export function normalizeAnimate(
   return [normalizeAnimateObject(animate as AnimateObject)];
 }
 
+/**
+ * Clears the internal string parse cache.
+ *
+ * This is mainly useful for tests or long-running development sessions that
+ * intentionally exercise many generated animation strings.
+ */
 export function clearNormalizeAnimateCache(): void {
   stringParseCache.clear();
 }
 
+/**
+ * Returns the number of cached string parse entries.
+ *
+ * The cache is capped internally, so this value is a small diagnostic signal
+ * rather than an application state source.
+ */
 export function getNormalizeAnimateCacheSize(): number {
   return stringParseCache.size;
 }

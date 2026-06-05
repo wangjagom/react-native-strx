@@ -26,12 +26,14 @@ export interface TimelineProps
    * How child animations are scheduled.
    *
    * - `parallel`: all child animations start together.
-   * - `serial`: each child waits for the previous child's estimated duration.
-   * - `stagger`: each child starts at `interval` millisecond offsets.
+   * - `serial`: each child waits for the previous child's estimated delay + duration.
+   * - `stagger`: each child starts at `interval` offsets, and previous explicit
+   *   `delay-*` values push later children back.
    */
   playback?: PlaybackMode;
   /**
    * Millisecond offset between children when `playback="stagger"`.
+   * Previous child `delay-*` tokens are also added to later stagger offsets.
    *
    * Invalid or negative values are treated as `0`.
    */

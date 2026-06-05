@@ -54,6 +54,14 @@ export interface StrxLayoutDemand {
   transitionType: StrxLayoutTransitionType;
 }
 
+export interface StrxLayoutDebugSnapshot {
+  nodeCount: number;
+  playableCount: number;
+  influencedCount: number;
+  lastEvent: string | null;
+  warnings: readonly string[];
+}
+
 /**
  * Registry API owned by `Strx.LayoutRoot`.
  *
@@ -77,9 +85,16 @@ export interface StrxLayoutContextType {
   getNode: (nodeId: string) => StrxMeasuredNode | undefined;
   /** Returns whether a node is affected by the most recent layout demand. */
   isNodeInfluenced: (nodeId: string) => boolean;
+  /** Returns aggregate debug counts without exposing IDs or coordinates. */
+  getDebugSnapshot: () => StrxLayoutDebugSnapshot;
+  /** Publishes a sanitized debug event for development overlays. */
+  reportDebugEvent: (event: string) => void;
+  /** Publishes a sanitized development warning for overlays. */
+  reportDebugWarning: (warning: string) => void;
 }
 
 const MAX_REGISTRY_SIZE = 256;
+const MAX_DEBUG_WARNINGS = 4;
 
 const EMPTY_INFLUENCE_SET = Object.freeze(new Set<string>());
 
@@ -97,6 +112,25 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
   const registryRef = useRef(new Map<string, StrxMeasuredNode>());
   const playableRegistryRef = useRef(new Map<string, CodexAnimationController>());
   const influencedNodeIdsRef = useRef<ReadonlySet<string>>(EMPTY_INFLUENCE_SET);
+  const lastDebugEventRef = useRef<string | null>(null);
+  const debugWarningsRef = useRef<string[]>([]);
+
+  const reportDebugEvent = useCallback((event: string) => {
+    lastDebugEventRef.current = sanitizeDebugMessage(event);
+  }, []);
+
+  const reportDebugWarning = useCallback((warning: string) => {
+    const message = sanitizeDebugMessage(warning);
+
+    if (debugWarningsRef.current[debugWarningsRef.current.length - 1] === message) {
+      return;
+    }
+
+    debugWarningsRef.current = [
+      ...debugWarningsRef.current.slice(-(MAX_DEBUG_WARNINGS - 1)),
+      message,
+    ];
+  }, []);
 
   const registerNode = useCallback((node: StrxMeasuredNode) => {
     try {
@@ -114,6 +148,7 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
         }
 
         registry.delete(firstKey);
+        reportDebugWarning('Layout node registry reached capacity; oldest node was evicted.');
       }
 
       registry.set(node.nodeId, createStoredNode(node));
@@ -130,6 +165,7 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
     (strxId: string, controller: CodexAnimationController) => {
       try {
         if (!isSafeRegistryId(strxId)) {
+          reportDebugWarning('Ignored unsafe strxId. Use 1-128 visible characters.');
           return;
         }
 
@@ -137,6 +173,7 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
 
         if (registry.has(strxId)) {
           registry.delete(strxId);
+          reportDebugWarning('Duplicate strxId replaced an existing timeline target.');
         }
 
         while (registry.size >= MAX_REGISTRY_SIZE) {
@@ -147,6 +184,7 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
           }
 
           registry.delete(firstKey);
+          reportDebugWarning('Timeline target registry reached capacity; oldest target was evicted.');
         }
 
         registry.set(strxId, controller);
@@ -154,7 +192,7 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
         playableRegistryRef.current.delete(strxId);
       }
     },
-    [],
+    [reportDebugWarning],
   );
 
   const unregisterPlayable = useCallback((strxId: string) => {
@@ -180,9 +218,21 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
         demand.sourceId,
       );
       influencedNodeIdsRef.current = influencedIds;
+      reportDebugEvent(`layout ${demand.transitionType}`);
     } catch {
       influencedNodeIdsRef.current = EMPTY_INFLUENCE_SET;
+      reportDebugWarning('Layout demand could not be resolved.');
     }
+  }, [reportDebugEvent, reportDebugWarning]);
+
+  const getDebugSnapshot = useCallback<() => StrxLayoutDebugSnapshot>(() => {
+    return {
+      nodeCount: registryRef.current.size,
+      playableCount: playableRegistryRef.current.size,
+      influencedCount: influencedNodeIdsRef.current.size,
+      lastEvent: lastDebugEventRef.current,
+      warnings: debugWarningsRef.current,
+    };
   }, []);
 
   const value = useMemo<StrxLayoutContextType>(
@@ -195,14 +245,20 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
       publishLayoutDemand,
       getNode,
       isNodeInfluenced,
+      getDebugSnapshot,
+      reportDebugEvent,
+      reportDebugWarning,
     }),
     [
+      getDebugSnapshot,
       getNode,
       getPlayable,
       isNodeInfluenced,
       publishLayoutDemand,
       registerPlayable,
       registerNode,
+      reportDebugEvent,
+      reportDebugWarning,
       unregisterPlayable,
       unregisterNode,
     ],
@@ -217,6 +273,20 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
 
 function isSafeRegistryId(value: string): boolean {
   return value.length > 0 && value.length <= 128;
+}
+
+function sanitizeDebugMessage(value: string): string {
+  if (typeof value !== 'string') {
+    return 'Unknown STRX debug event.';
+  }
+
+  const trimmed = value.trim();
+
+  if (trimmed.length === 0) {
+    return 'Unknown STRX debug event.';
+  }
+
+  return trimmed.length > 96 ? `${trimmed.slice(0, 93)}...` : trimmed;
 }
 
 export function useStrxLayout(): StrxLayoutContextType | null {

@@ -35,6 +35,7 @@ import {
   useStrxLayout,
   type AnimatedRefLike,
 } from '../context/StrxLayoutContext';
+import { useStrxMotion } from '../context/StrxMotionContext';
 import type { AnimateProp, AnimateStyle, PlaybackMode } from '../types/animate';
 
 const LAYOUT_LINEAR_TOKEN = 'layout-linear';
@@ -210,6 +211,7 @@ const AnimatedCodexView = forwardRef<
   const layoutGroup = useLayoutGroup();
   const parentNode = useLayoutNode();
   const strxLayout = useStrxLayout();
+  const motion = useStrxMotion();
   const animatedRef = useAnimatedRef<React.ElementRef<typeof RNView>>();
   const combinedRef = useMemo(
     () =>
@@ -258,7 +260,15 @@ const AnimatedCodexView = forwardRef<
     parentNode?.inheritedTransition ??
     layoutGroup?.defaultLayoutTransition ??
     stableNoOpTransition;
-  const activeLayout = reanimatedLayout;
+  const activeLayout = motion.isReduceMotionEnabled
+    ? stableNoOpTransition
+    : reanimatedLayout;
+
+  useEffect(() => {
+    if (typeof animate === 'string' && animate.length > MAX_ANIMATE_STRING_LENGTH) {
+      strxLayout?.reportDebugWarning('animate string exceeded 512 characters and was ignored.');
+    }
+  }, [animate, strxLayout]);
 
   useEffect(() => {
     if (!strxLayout) {

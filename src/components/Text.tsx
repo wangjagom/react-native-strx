@@ -6,6 +6,7 @@ import { useCodexAnimationEngine } from '../core/useCodexAnimation';
 import { useLayoutGroup } from '../context/LayoutGroupContext';
 import { useLayoutNode } from '../context/LayoutNodeContext';
 import { useStrxLayout } from '../context/StrxLayoutContext';
+import { useStrxMotion } from '../context/StrxMotionContext';
 import type { AnimateProp, PlaybackMode } from '../types/animate';
 import {
   getStyleAnimateProp,
@@ -28,9 +29,15 @@ export interface CodexTextProps extends RNTextProps {
    * tokens, animation objects, and arrays.
    */
   animate?: AnimateProp;
-  /** Reserved for API symmetry with view-like STRX components. Text is not clipped automatically. */
+  /**
+   * Accepted for API symmetry. Text is not clipped directly; wrap it in
+   * `Strx.View layoutClip` when content should be clipped during layout motion.
+   */
   layoutClip?: boolean;
-  /** Reserved for API symmetry. Use `layoutPropagation="none"` on parent views to isolate subtrees. */
+  /**
+   * Accepted for API symmetry. Use `layoutPropagation="none"` on a parent
+   * `Strx.View` or custom STRX wrapper to isolate a subtree.
+   */
   layoutPropagation?: LayoutPropagationMode;
   /** Orchestrates array `animate` entries as `parallel`, `serial`, or `stagger`. */
   playback?: PlaybackMode;
@@ -64,6 +71,7 @@ export const Text = forwardRef<React.ElementRef<typeof RNText>, CodexTextProps>(
     const layoutGroup = useLayoutGroup();
     const layoutNode = useLayoutNode();
     const strxLayout = useStrxLayout();
+    const motion = useStrxMotion();
     const inheritedTransition =
       layoutNode?.inheritedTransition ?? layoutGroup?.defaultLayoutTransition;
     const hasActiveLayoutTransition =
@@ -71,10 +79,14 @@ export const Text = forwardRef<React.ElementRef<typeof RNText>, CodexTextProps>(
       layoutGroup?.isInsideGroup === true;
 
     const layout = useMemo(() => {
+      if (motion.isReduceMotionEnabled) {
+        return stableNoOpTransition;
+      }
+
       return hasActiveLayoutTransition
         ? inheritedTransition ?? stableNoOpTransition
         : stableNoOpTransition;
-    }, [hasActiveLayoutTransition, inheritedTransition]);
+    }, [hasActiveLayoutTransition, inheritedTransition, motion.isReduceMotionEnabled]);
     const styleAnimateProp = useMemo(
       () => getStyleAnimateProp(animate),
       [animate],
@@ -86,6 +98,12 @@ export const Text = forwardRef<React.ElementRef<typeof RNText>, CodexTextProps>(
       interval,
     );
     const animatedStyle = animationEngine.animatedStyle;
+
+    useEffect(() => {
+      if (typeof animate === 'string' && animate.length > 512) {
+        strxLayout?.reportDebugWarning('animate string exceeded 512 characters and was ignored.');
+      }
+    }, [animate, strxLayout]);
 
     useEffect(() => {
       if (!strxLayout || !strxId) {
