@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   type StyleProp,
@@ -19,7 +19,7 @@ import { animationPresets } from './presets';
 import type { AnimatableChannel, PresetMotionOptions } from './presets';
 import { normalizeAnimate } from '../parser/normalize';
 import type { StandardAnimConfig } from '../parser/normalize';
-import type { AnimateProp, AnimateStyle } from '../types/animate';
+import type { AnimateProp, AnimateStyle, PlaybackMode } from '../types/animate';
 
 type AnimatableValue = number | string;
 type AnimationDriver = 'timing' | 'spring';
@@ -28,16 +28,17 @@ type StyleMap = Record<string, AnimatableValue>;
 type TransformMap = Partial<Record<TransformKey, AnimatableValue>>;
 type AnimatableStaticStyle = StyleProp<ViewStyle | TextStyle>;
 
-interface AnimationFrame {
+export interface AnimationFrame {
   style: StyleMap;
   transform: TransformMap;
 }
 
-interface AnimationPlan {
+export interface AnimationPlan {
   duration: number;
   delay: number;
   easing: string;
   repeat?: number | 'infinite';
+  playCount?: number | 'infinite';
   driver: AnimationDriver;
   spring: {
     damping: number;
@@ -65,6 +66,70 @@ interface RuntimeConfig {
   damping: number;
   stiffness: number;
   mass: number;
+}
+
+interface PlaybackPhase {
+  offset: number;
+  plan: AnimationPlan;
+}
+
+/**
+ * Compiled STRX animation plan.
+ *
+ * Most app code does not need to create this directly. It is useful for
+ * timeline integrations that want to compile an `animate` value once and play
+ * it later through a controller.
+ */
+export interface CodexCompiledAnimation {
+  /** Normalized animation plan used by the runtime controller. */
+  plan: AnimationPlan;
+}
+
+/**
+ * Options passed when playing a compiled animation through a controller.
+ */
+export interface CodexAnimationPlayOptions {
+  /**
+   * Extra delay, in milliseconds, added before the animation starts.
+   */
+  offset?: number;
+  /**
+   * Number of times to play the animation.
+   *
+   * Use `"infinite"` to repeat until `stop()` is called.
+   */
+  playCount?: number | 'infinite';
+}
+
+/**
+ * Imperative animation controller used internally by STRX event timelines.
+ */
+export interface CodexAnimationController {
+  /**
+   * Plays a compiled animation.
+   */
+  play: (
+    animation: CodexCompiledAnimation,
+    options?: CodexAnimationPlayOptions,
+  ) => void;
+  /**
+   * Clears animated values created by event-driven playback.
+   */
+  reset: () => void;
+  /**
+   * Cancels pending and running animations.
+   */
+  stop: () => void;
+}
+
+/**
+ * Runtime animation engine returned by `useCodexAnimationEngine`.
+ */
+export interface CodexAnimationEngine {
+  /** Animated style that should be merged after the component's static style. */
+  animatedStyle: ReturnType<typeof useAnimatedStyle<ViewStyle>>;
+  /** Imperative controller used by `Strx.useTimeline`. */
+  controller: CodexAnimationController;
 }
 
 const DEFAULT_DURATION = 300;
@@ -176,10 +241,33 @@ const emptyRuntimeTarget = (): RuntimeTarget => ({
   unsetTransformKeys: [],
 });
 
+/**
+ * Returns an animated style for a STRX `animate` declaration.
+ *
+ * This is a lower-level hook exported for custom integrations. Most users
+ * should prefer STRX components or `createStrxComponent`.
+ */
 export function useCodexAnimation(
   animate?: AnimateProp | null,
   style?: AnimatableStaticStyle,
+  playback: PlaybackMode = 'parallel',
+  interval = 100,
 ) {
+  return useCodexAnimationEngine(animate, style, playback, interval).animatedStyle;
+}
+
+/**
+ * Creates the full STRX animation engine for a component.
+ *
+ * The returned `animatedStyle` is merged into the rendered component, while
+ * the returned `controller` is registered when a component has `strxId`.
+ */
+export function useCodexAnimationEngine(
+  animate?: AnimateProp | null,
+  style?: AnimatableStaticStyle,
+  playback: PlaybackMode = 'parallel',
+  interval = 100,
+): CodexAnimationEngine {
   const transitionSpec = useMemo(() => getTransitionSpec(animate), [animate]);
   const explicitAnimate = useMemo(
     () => removeTransitionTokensFromAnimate(animate),
@@ -194,15 +282,28 @@ export function useCodexAnimation(
 
   // 1. 객체의 구조적 동등성을 판별하기 위한 직렬화 키 생성
   const animationKey = useMemo(
-    () => stableSerialize(explicitAnimate),
-    [explicitAnimate],
+    () => stableSerialize({ animate: explicitAnimate, playback, interval }),
+    [explicitAnimate, interval, playback],
   );
+
+  const playbackPlans = useMemo(() => {
+    if (playback === 'parallel' || !Array.isArray(explicitAnimate)) {
+      return null;
+    }
+
+    return createPlaybackPlans(explicitAnimate, playback, interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [animationKey]);
 
   // 2. 직렬화된 키가 변경될 때만 object 파싱을 재수행 (인라인 객체 참조값 변경으로 인한 불필요한 연산 방지)
   const explicitPlan = useMemo(() => {
+    if (playbackPlans) {
+      return null;
+    }
+
     return getCachedAnimationPlan(animationKey, explicitAnimate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [animationKey]);
+  }, [animationKey, playbackPlans]);
 
   const transitionFrame = useMemo(() => {
     const normalizedFrame = normalizeFrame(flattenedStyle);
@@ -262,10 +363,156 @@ export function useCodexAnimation(
     stiffness: 100,
     mass: 1,
   });
+  const scheduledFramesRef = useRef<number[]>([]);
+
+  const stopControllerAnimation = useCallback(() => {
+    for (const frame of scheduledFramesRef.current) {
+      cancelAnimationFrame(frame);
+    }
+
+    scheduledFramesRef.current = [];
+    cancelAnimation(target);
+  }, [target]);
+
+  const resetControllerAnimation = useCallback(() => {
+    stopControllerAnimation();
+    target.value = createUnsetTarget(
+      previousKeysRef.current.styleKeys,
+      previousKeysRef.current.transformKeys,
+    );
+    previousKeysRef.current = {
+      styleKeys: [],
+      transformKeys: [],
+    };
+  }, [stopControllerAnimation, target]);
+
+  const playControllerAnimation = useCallback(
+    (
+      animation: CodexCompiledAnimation,
+      options: CodexAnimationPlayOptions = {},
+    ) => {
+      const plan =
+        options.playCount === undefined
+          ? animation.plan
+          : { ...animation.plan, playCount: options.playCount };
+      const nextKeys = collectPlanKeys(plan);
+      const staleStyleKeys = previousKeysRef.current.styleKeys.filter(
+        key => !nextKeys.styleKeys.includes(key),
+      );
+      const staleTransformKeys = previousKeysRef.current.transformKeys.filter(
+        key => !nextKeys.transformKeys.includes(key),
+      );
+
+      stopControllerAnimation();
+      config.value = createRuntimeConfig(plan, options.offset ?? 0);
+      target.value = createRuntimeTarget(
+        plan.from,
+        staleStyleKeys,
+        staleTransformKeys,
+        false,
+      );
+      previousKeysRef.current = nextKeys;
+
+      const frame = requestAnimationFrame(() => {
+        target.value = createRuntimeTarget(
+          plan.to,
+          staleStyleKeys,
+          staleTransformKeys,
+          true,
+        );
+      });
+
+      scheduledFramesRef.current.push(frame);
+    },
+    [config, stopControllerAnimation, target],
+  );
+
+  const controller = useMemo<CodexAnimationController>(
+    () => ({
+      play: playControllerAnimation,
+      reset: resetControllerAnimation,
+      stop: stopControllerAnimation,
+    }),
+    [playControllerAnimation, resetControllerAnimation, stopControllerAnimation],
+  );
 
   const shouldUseDoubleFrame = explicitPlan !== null;
 
   useLayoutEffect(() => {
+    if (!playbackPlans) {
+      return;
+    }
+
+    cancelAnimation(target);
+
+    if (playbackPlans.length === 0) {
+      target.value = createUnsetTarget(
+        previousKeysRef.current.styleKeys,
+        previousKeysRef.current.transformKeys,
+      );
+      previousKeysRef.current = {
+        styleKeys: [],
+        transformKeys: [],
+      };
+      return;
+    }
+
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const frames: number[] = [];
+    let lastKeys = previousKeysRef.current;
+
+    for (const phase of playbackPlans) {
+      const timer = setTimeout(() => {
+        const nextKeys = collectPlanKeys(phase.plan);
+        const staleStyleKeys = lastKeys.styleKeys.filter(
+          key => !nextKeys.styleKeys.includes(key),
+        );
+        const staleTransformKeys = lastKeys.transformKeys.filter(
+          key => !nextKeys.transformKeys.includes(key),
+        );
+
+        config.value = createRuntimeConfig(phase.plan);
+        target.value = createRuntimeTarget(
+          phase.plan.from,
+          staleStyleKeys,
+          staleTransformKeys,
+          false,
+        );
+        lastKeys = nextKeys;
+        previousKeysRef.current = nextKeys;
+
+        const frame = requestAnimationFrame(() => {
+          target.value = createRuntimeTarget(
+            phase.plan.to,
+            staleStyleKeys,
+            staleTransformKeys,
+            true,
+          );
+        });
+        frames.push(frame);
+      }, phase.offset);
+
+      timers.push(timer);
+    }
+
+    return () => {
+      for (const timer of timers) {
+        clearTimeout(timer);
+      }
+
+      for (const frame of frames) {
+        cancelAnimationFrame(frame);
+      }
+
+      cancelAnimation(target);
+    };
+  }, [config, playbackPlans, target]);
+
+  useLayoutEffect(() => {
+    if (playbackPlans) {
+      return;
+    }
+
     cancelAnimation(target);
 
     if (!plan) {
@@ -309,16 +556,7 @@ export function useCodexAnimation(
       key => !nextKeys.transformKeys.includes(key),
     );
 
-    config.value = {
-      duration: plan.duration,
-      delay: plan.delay,
-      easing: plan.easing,
-      repeat: normalizeRepeat(plan.repeat),
-      driver: plan.driver,
-      damping: plan.spring.damping,
-      stiffness: plan.spring.stiffness,
-      mass: plan.spring.mass,
-    };
+    config.value = createRuntimeConfig(plan);
 
     // 1. 먼저 시작점(from) 스타일을 주입하고 애니메이션 대기 상태(false)로 둡니다.
     target.value = createRuntimeTarget(
@@ -356,9 +594,9 @@ export function useCodexAnimation(
       }
       cancelAnimation(target);
     };
-  }, [config, plan, shouldUseDoubleFrame, target, transitionFrame, transitionSpec]);
+  }, [config, plan, playbackPlans, shouldUseDoubleFrame, target, transitionFrame, transitionSpec]);
 
-  return useAnimatedStyle<ViewStyle>(() => {
+  const animatedStyle = useAnimatedStyle<ViewStyle>(() => {
     const runtimeTarget = target.value;
     const runtimeConfig = config.value;
     const styleResult: Record<string, unknown> = {};
@@ -397,6 +635,44 @@ export function useCodexAnimation(
 
     return styleResult as ViewStyle;
   });
+
+  return {
+    animatedStyle,
+    controller,
+  };
+}
+
+/**
+ * Compiles any `animate` prop value into a reusable animation plan.
+ *
+ * Returns `null` when the value does not contain a runnable explicit
+ * animation.
+ */
+export function compileCodexAnimation(
+  animate?: AnimateProp | null,
+): CodexCompiledAnimation | null {
+  const plan = createAnimationPlan(normalizeAnimate(animate));
+
+  return plan ? { plan } : null;
+}
+
+/**
+ * Estimates the total duration of a compiled animation, including delay and
+ * repeat/play count where applicable.
+ */
+export function estimateCodexAnimationDuration(
+  animation: CodexCompiledAnimation,
+): number {
+  return estimatePlanTotalDuration(animation.plan);
+}
+
+/**
+ * Returns the non-negative delay configured on a compiled animation.
+ */
+export function estimateCodexAnimationDelay(
+  animation: CodexCompiledAnimation,
+): number {
+  return Math.max(0, animation.plan.delay);
 }
 
 function getCachedAnimationPlan(
@@ -436,6 +712,75 @@ function createAnimationPlan(
   }
 
   return plan;
+}
+
+function createPlaybackPlans(
+  entries: readonly AnimateProp[],
+  playback: PlaybackMode,
+  interval: number,
+): PlaybackPhase[] {
+  const phases: PlaybackPhase[] = [];
+  let carry = emptyFrame();
+  let serialOffset = 0;
+  let staggerDelayCarry = 0;
+  const safeInterval = Number.isFinite(interval) && interval > 0 ? interval : 0;
+
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index];
+    const plan = createAnimationPlan(normalizeAnimate(entry));
+
+    if (!plan) {
+      continue;
+    }
+
+    const offset =
+      playback === 'serial'
+        ? serialOffset
+        : staggerDelayCarry + index * safeInterval;
+    const carriedPlan = createCarriedPlan(plan, carry);
+
+    phases.push({
+      offset,
+      plan: carriedPlan,
+    });
+
+    carry = mergeFrame(carry, plan.to);
+
+    if (playback === 'serial') {
+      const duration = estimatePlanTotalDuration(plan);
+
+      if (!Number.isFinite(duration)) {
+        break;
+      }
+
+      serialOffset += duration;
+    } else {
+      staggerDelayCarry += Math.max(0, plan.delay);
+    }
+  }
+
+  return phases;
+}
+
+function createCarriedPlan(
+  plan: AnimationPlan,
+  carry: AnimationFrame,
+): AnimationPlan {
+  return {
+    ...plan,
+    from: mergeFrame(carry, plan.from),
+    to: mergeFrame(carry, plan.to),
+  };
+}
+
+function estimatePlanTotalDuration(plan: AnimationPlan): number {
+  const repeat = normalizeRepeat(getPlanPlayCount(plan));
+
+  if (repeat < 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return Math.max(0, plan.delay) + Math.max(0, plan.duration) * repeat;
 }
 
 function createImplicitTransitionPlan(
@@ -785,7 +1130,7 @@ function createPresetAnimationPlan(
     duration: getDuration(config, preset.options),
     delay: getDelay(config),
     easing: getEasingName(config.easing),
-    repeat: config.repeat,
+    repeat: getConfigPlayCount(config),
     driver: getAnimationDriver(config, preset.options),
     spring: getSpringConfig(config, preset.options),
     from,
@@ -802,7 +1147,7 @@ function createCustomAnimationPlan(
     duration: getDuration(config),
     delay: getDelay(config),
     easing: getEasingName(config.easing),
-    repeat: config.repeat,
+    repeat: getConfigPlayCount(config),
     driver: 'timing',
     spring: getSpringConfig(config),
     from: pair.from,
@@ -973,6 +1318,19 @@ function createRuntimeTarget(
   };
 }
 
+function createRuntimeConfig(plan: AnimationPlan, extraDelay = 0): RuntimeConfig {
+  return {
+    duration: plan.duration,
+    delay: Math.max(0, plan.delay + extraDelay),
+    easing: plan.easing,
+    repeat: normalizeRepeat(getPlanPlayCount(plan)),
+    driver: plan.driver,
+    damping: plan.spring.damping,
+    stiffness: plan.spring.stiffness,
+    mass: plan.spring.mass,
+  };
+}
+
 function createUnsetTarget(
   unsetStyleKeys: string[],
   unsetTransformKeys: TransformKey[],
@@ -1138,6 +1496,18 @@ function normalizeRepeat(repeat: number | 'infinite' | undefined): number {
   return typeof repeat === 'number' && Number.isFinite(repeat) && repeat > 0
     ? repeat
     : 1;
+}
+
+function getConfigPlayCount(
+  config: StandardAnimConfig,
+): number | 'infinite' | undefined {
+  return config.playCount ?? config.repeat;
+}
+
+function getPlanPlayCount(
+  plan: AnimationPlan,
+): number | 'infinite' | undefined {
+  return plan.playCount ?? plan.repeat;
 }
 
 function getEasingName(easing?: string): string {

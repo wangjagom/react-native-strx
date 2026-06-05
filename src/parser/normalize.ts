@@ -11,6 +11,7 @@ export interface PresetAnimConfig {
   delay?: number;
   easing?: string;
   repeat?: number | 'infinite';
+  playCount?: number | 'infinite';
   [key: string]: unknown;
 }
 
@@ -20,6 +21,7 @@ export interface CustomFromToAnimConfig {
   delay?: number;
   easing?: string;
   repeat?: number | 'infinite';
+  playCount?: number | 'infinite';
   from: AnimateStyle;
   to: AnimateStyle;
 }
@@ -78,7 +80,10 @@ function parseAnimateString(input: string): readonly StandardAnimConfig[] {
   forEachAnimationPart(input, (part) => {
     const config = parseAnimationPart(part);
 
-    if (config.type.length > 0) {
+    if (
+      !('type' in config) ||
+      (typeof config.type === 'string' && config.type.length > 0)
+    ) {
       configs.push(config);
     }
   });
@@ -93,14 +98,39 @@ function parseAnimateString(input: string): readonly StandardAnimConfig[] {
   return configs;
 }
 
-function parseAnimationPart(part: string): PresetAnimConfig {
+function parseAnimationPart(part: string): StandardAnimConfig {
   const config: PresetAnimConfig = {
     type: '',
   };
+  const from: AnimateStyle = {};
+  const to: AnimateStyle = {};
+  let hasFrameToken = false;
   let tokenIndex = 0;
 
   forEachToken(part, (token) => {
-    if (tokenIndex === 0) {
+    if (token.startsWith('from:')) {
+      hasFrameToken =
+        applyUtilityToken(from, token.slice('from:'.length)) || hasFrameToken;
+      return;
+    }
+
+    if (token.startsWith('to:')) {
+      hasFrameToken =
+        applyUtilityToken(to, token.slice('to:'.length)) || hasFrameToken;
+      return;
+    }
+
+    if (token.startsWith('exit:')) {
+      applyUtilityToken(to, token.slice('exit:'.length));
+      return;
+    }
+
+    if (isControlToken(token)) {
+      applyToken(config, token);
+      return;
+    }
+
+    if (tokenIndex === 0 && config.type.length === 0) {
       config.type = token;
     } else {
       applyToken(config, token);
@@ -108,6 +138,18 @@ function parseAnimationPart(part: string): PresetAnimConfig {
 
     tokenIndex += 1;
   });
+
+  if (hasFrameToken) {
+    return {
+      duration: config.duration,
+      delay: config.delay,
+      easing: config.easing,
+      repeat: config.repeat,
+      playCount: config.playCount,
+      from,
+      to,
+    };
+  }
 
   return config;
 }
@@ -206,9 +248,145 @@ function applyToken(config: StandardAnimConfig, token: string): void {
     return;
   }
 
+  if (token.startsWith('play-')) {
+    const playCount = parsePlayCountSuffix(token);
+
+    if (playCount !== undefined) {
+      config.playCount = playCount;
+    }
+
+    return;
+  }
+
   if (easingTokens.has(token)) {
     config.easing = token;
   }
+}
+
+function isControlToken(token: string): boolean {
+  return (
+    token.startsWith('duration-') ||
+    token.startsWith('delay-') ||
+    token.startsWith('repeat-') ||
+    token.startsWith('play-') ||
+    easingTokens.has(token)
+  );
+}
+
+function applyUtilityToken(style: AnimateStyle, token: string): boolean {
+  if (token.length === 0) {
+    return false;
+  }
+
+  if (token.startsWith('opacity-')) {
+    const value = parseNumericSuffix(token, 'opacity-');
+
+    if (value !== undefined) {
+      style.opacity = value / 100;
+      return true;
+    }
+  }
+
+  if (token.startsWith('translate-x-')) {
+    const value = parseNumericSuffix(token, 'translate-x-');
+
+    if (value !== undefined) {
+      style.translateX = value;
+      return true;
+    }
+  }
+
+  if (token.startsWith('-translate-x-')) {
+    const value = parseNumericSuffix(token, '-translate-x-');
+
+    if (value !== undefined) {
+      style.translateX = -value;
+      return true;
+    }
+  }
+
+  if (token.startsWith('translate-y-')) {
+    const value = parseNumericSuffix(token, 'translate-y-');
+
+    if (value !== undefined) {
+      style.translateY = value;
+      return true;
+    }
+  }
+
+  if (token.startsWith('-translate-y-')) {
+    const value = parseNumericSuffix(token, '-translate-y-');
+
+    if (value !== undefined) {
+      style.translateY = -value;
+      return true;
+    }
+  }
+
+  if (token.startsWith('scale-x-')) {
+    const value = parseNumericSuffix(token, 'scale-x-');
+
+    if (value !== undefined) {
+      style.scaleX = value / 100;
+      return true;
+    }
+  }
+
+  if (token.startsWith('scale-y-')) {
+    const value = parseNumericSuffix(token, 'scale-y-');
+
+    if (value !== undefined) {
+      style.scaleY = value / 100;
+      return true;
+    }
+  }
+
+  if (token.startsWith('scale-')) {
+    const value = parseNumericSuffix(token, 'scale-');
+
+    if (value !== undefined) {
+      style.scale = value / 100;
+      return true;
+    }
+  }
+
+  if (token.startsWith('rotate-')) {
+    const value = parseNumericSuffix(token, 'rotate-');
+
+    if (value !== undefined) {
+      style.rotate = `${value}deg`;
+      return true;
+    }
+  }
+
+  if (token.startsWith('-rotate-')) {
+    const value = parseNumericSuffix(token, '-rotate-');
+
+    if (value !== undefined) {
+      style.rotate = `${-value}deg`;
+      return true;
+    }
+  }
+
+  if (token.startsWith('w-')) {
+    const value = parseNumericSuffix(token, 'w-');
+
+    if (value !== undefined) {
+      style.width = value;
+      return true;
+    }
+  }
+
+  if (token.startsWith('h-')) {
+    const value = parseNumericSuffix(token, 'h-');
+
+    if (value !== undefined) {
+      style.height = value;
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function normalizeAnimateObject(object: AnimateObject): StandardAnimConfig {
@@ -218,6 +396,7 @@ function normalizeAnimateObject(object: AnimateObject): StandardAnimConfig {
       delay: object.delay,
       easing: object.easing,
       repeat: object.repeat,
+      playCount: object.playCount,
       from: object.from,
       to: object.to,
     };
@@ -257,6 +436,18 @@ function parseRepeatSuffix(token: string): number | 'infinite' | undefined {
   const repeat = Number(value);
 
   return Number.isFinite(repeat) ? repeat : undefined;
+}
+
+function parsePlayCountSuffix(token: string): number | 'infinite' | undefined {
+  const value = token.slice('play-'.length);
+
+  if (value === 'infinite') {
+    return 'infinite';
+  }
+
+  const playCount = Number(value);
+
+  return Number.isInteger(playCount) && playCount > 0 ? playCount : undefined;
 }
 
 function cloneConfigs(

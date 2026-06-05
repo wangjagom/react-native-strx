@@ -162,7 +162,9 @@ The runtime package keeps `animate` flexible and accepts custom string tokens. T
 
 The recommended API is the `Strx` namespace. It keeps animated STRX primitives visually separate from React Native built-ins.
 
-All built-in STRX primitives support `animate`, `layoutClip`, and `layoutPropagation`:
+All STRX primitives keep the original React Native component props and event handlers, then add STRX animation props. For example, `Strx.Pressable` still accepts `onPress`, `onPressIn`, and `onLongPress`; `Strx.TextInput` still accepts `value`, `onChangeText`, `onFocus`, and `onBlur`; `Strx.Image` still accepts `source`, `onLoad`, and `onError`.
+
+The built-in namespace includes:
 
 - `Strx.View`
 - `Strx.Text`
@@ -170,6 +172,21 @@ All built-in STRX primitives support `animate`, `layoutClip`, and `layoutPropaga
 - `Strx.Image`
 - `Strx.ScrollView`
 - `Strx.TextInput`
+- `Strx.Timeline`
+- `Strx.LayoutRoot`
+- `Strx.LayoutGroup`
+- `Strx.useTimeline`
+
+Common STRX props:
+
+| Prop                | Type                                      | Default      | Meaning                                                                                       |
+| ------------------- | ----------------------------------------- | ------------ | --------------------------------------------------------------------------------------------- |
+| `animate`           | `AnimateProp`                             | `undefined`  | Animation token string, animation object, or array.                                           |
+| `strxId`            | `string`                                  | `undefined`  | Registers the component as an event-playable target for `Strx.useTimeline`.                   |
+| `playback`          | `parallel`, `serial`, or `stagger`        | `parallel`   | Orchestrates array `animate` entries.                                                         |
+| `interval`          | `number`                                  | `100`        | Millisecond offset used by `playback="stagger"`.                                             |
+| `layoutClip`        | `boolean`                                 | `false`      | Injects `overflow: 'hidden'` while an active layout transition is running.                    |
+| `layoutPropagation` | `auto` or `none`                          | `auto`       | Use `none` to stop layout animation demand from bubbling past this subtree.                   |
 
 ### `Strx.View`
 
@@ -193,10 +210,16 @@ A layout-aware text primitive. It supports direct `animate` tokens and also part
 
 ### `Strx.Pressable`
 
-A layout-aware press target for buttons and touchable rows. It supports direct `animate` tokens, including press-style scale transitions.
+A layout-aware press target for buttons and touchable rows. It supports direct `animate` tokens and implicit transitions for style changes caused by pressed, selected, or disabled state.
 
 ```tsx
-<Strx.Pressable animate="press-scale transition-all" onPress={onToggle}>
+<Strx.Pressable
+  animate="transition-transform duration-150"
+  onPress={onToggle}
+  style={({ pressed }) => ({
+    transform: [{ scale: pressed ? 0.96 : 1 }],
+  })}
+>
   <Strx.Text>Toggle</Strx.Text>
 </Strx.Pressable>
 ```
@@ -236,9 +259,61 @@ An animated input primitive for focus, validation, and color/spacing transitions
 />
 ```
 
+### `Strx.Timeline`
+
+A wrapper for entrance choreography. It injects timing into child `animate` props without changing the child components themselves.
+
+```tsx
+<Strx.Timeline playback="stagger" interval={80} playCount={1}>
+  <Strx.View animate="fade-in slide-up" />
+  <Strx.View animate="fade-in slide-up" />
+  <Strx.View animate="fade-in slide-up" />
+</Strx.Timeline>
+```
+
+`Strx.Timeline` props:
+
+| Prop        | Type                               | Default     | Meaning                                                                                 |
+| ----------- | ---------------------------------- | ----------- | --------------------------------------------------------------------------------------- |
+| `playback`  | `parallel`, `serial`, or `stagger` | `parallel`  | Controls how child animations are scheduled.                                            |
+| `interval`  | `number`                           | `100`       | Millisecond offset between children when `playback="stagger"`.                         |
+| `playCount` | `number` or `infinite`             | `undefined` | Repeats the whole child choreography a fixed number of total plays, or indefinitely.    |
+| `children`  | `ReactNode`                        | required    | Child elements whose `animate` props should be orchestrated.                            |
+
+### `Strx.LayoutRoot`
+
+The root provider for event timelines and layout propagation. Use it near the screen or app root when you use `Strx.useTimeline`, `strxId`, or coordinated layout transitions.
+
+```tsx
+<Strx.LayoutRoot>
+  <ScreenContent />
+</Strx.LayoutRoot>
+```
+
+### `Strx.LayoutGroup`
+
+A provider that gives descendants a shared default layout transition. Use it when nearby components should animate size and position changes as one coordinated region.
+
+```tsx
+<Strx.LayoutGroup transition="spring" duration={420} damping={16}>
+  <Strx.View animate="layout-spring" />
+  <Strx.View animate="layout-spring" />
+</Strx.LayoutGroup>
+```
+
+`Strx.LayoutGroup` props:
+
+| Prop         | Type                 | Default              | Meaning                                                |
+| ------------ | -------------------- | -------------------- | ------------------------------------------------------ |
+| `id`         | `string`             | `undefined`          | Optional identifier for debugging or coordination.     |
+| `transition` | `linear` or `spring` | `linear`             | Default layout transition inherited by descendants.    |
+| `duration`   | `number`             | `300` or `400`       | Transition duration in milliseconds.                   |
+| `damping`    | `number`             | `15`                 | Spring damping when `transition="spring"`.             |
+| `children`   | `ReactNode`          | required             | Descendant STRX nodes that share the transition.       |
+
 ### `createStrxComponent`
 
-Use `createStrxComponent` to adapt your own component to STRX. The wrapped component receives `animate`, `layoutClip`, and `layoutPropagation` while preserving its original props.
+Use `createStrxComponent` to adapt your own component to STRX. The wrapped component receives `animate`, `layoutClip`, `layoutPropagation`, `playback`, `interval`, and `strxId` while preserving its original props and style type when possible.
 
 ```tsx
 import { createStrxComponent } from "react-native-strx";
@@ -260,7 +335,7 @@ Security and stability notes:
 
 ## Token Reference
 
-`animate` is a whitespace-separated token string. Tokens can be combined in one string.
+`animate` accepts token strings, comma-separated preset groups, arrays, and object configs.
 
 The recommended import style is the namespace API, which keeps STRX components visually distinct from React Native built-ins:
 
@@ -275,6 +350,45 @@ Alias exports are also available: `StrxView`, `StrxText`, `StrxPressable`, `Strx
 ```tsx
 <Strx.View animate="fade-in layout-spring transition-all duration-300 ease-out" />
 ```
+
+### Composition rules
+
+Use spaces to combine one preset with timing, layout, transition, and keyframe tokens:
+
+```tsx
+<Strx.View animate="fade-in layout-spring duration-300 ease-out" />
+```
+
+Use commas when you want multiple presets to participate in one animation plan:
+
+```tsx
+<Strx.View animate="fade-in, slide-up, scale-in duration-400" />
+```
+
+You can also pass an array. Array entries are normalized in declaration order and then merged into a single plan:
+
+```tsx
+<Strx.View
+  animate={[
+    'fade-in duration-250',
+    'slide-up duration-300 delay-100',
+    { from: { scale: 0.96 }, to: { scale: 1 }, duration: 300 },
+  ]}
+/>
+```
+
+Most composition runs in parallel. Use `delay-*` when you want a staged sequence. If two entries animate the same style or transform channel, the later entry wins for that channel.
+
+For array entries on a single component, use `playback` when you want STRX to orchestrate the entries for you:
+
+```tsx
+<Strx.View
+  playback="serial"
+  animate={['fade-in duration-200', 'slide-up duration-300']}
+/>
+```
+
+`playback="parallel"` starts array entries together. `playback="serial"` starts the next entry after the previous entry's own `delay-*` and duration finish. `playback="stagger"` starts entries at `interval` millisecond offsets, and previous entries' explicit `delay-*` values push later stagger entries back as well.
 
 ### Preset tokens
 
@@ -306,6 +420,8 @@ Timing tokens configure preset, `from:/to:`, `exit:`, and `transition-*` animati
 | `delay-100`       | Delays animation by `100` milliseconds. Any finite number is accepted. |
 | `repeat-2`        | Repeats explicit preset/from-to animation 2 times.                     |
 | `repeat-infinite` | Repeats explicit preset/from-to animation indefinitely.                |
+| `play-3`          | Plays the full animation 3 total times, then stops.                    |
+| `play-infinite`   | Plays the full animation indefinitely.                                 |
 | `linear`          | Linear easing.                                                         |
 | `ease`            | Smoothstep default easing.                                             |
 | `ease-in`         | Cubic ease-in.                                                         |
@@ -386,8 +502,78 @@ Layout tokens are passed to Reanimated's `layout` prop through stable worklet tr
 | Prop                | Component                                                             | Meaning                                                                                       |
 | ------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `animate`           | All STRX primitives and custom factory components                     | Animation token string or animation object/array.                                             |
+| `strxId`            | All STRX primitives and custom factory components                     | Registers the component as an event-playable target for `Strx.useTimeline`.                   |
+| `playback`          | All STRX primitives and custom factory components                     | Orchestrates array `animate` entries as `parallel`, `serial`, or `stagger`. Default is `parallel`. |
+| `interval`          | All STRX primitives and custom factory components                     | Millisecond offset used by `playback="stagger"`. Default is `100`.                           |
 | `layoutClip`        | All STRX primitives and custom factory components                     | When `true`, injects `overflow: 'hidden'` during active layout animation. Default is `false`. |
 | `layoutPropagation` | All STRX primitives and custom factory components                     | Use `layoutPropagation="none"` to stop layout demand from bubbling past this boundary.        |
+| `playCount`         | `Strx.Timeline`                                                       | Repeats the whole child choreography cycle a fixed number of total plays, or `infinite`.      |
+
+## Event timelines
+
+Use `Strx.useTimeline` when an animation should run from an event instead of immediately from render. Targets are registered with `strxId`, and `timeline.play()` drives their Reanimated shared values directly without calling React state setters.
+
+```tsx
+import { Strx } from "react-native-strx";
+
+function SuccessCard() {
+  return (
+    <Strx.LayoutRoot>
+      <SuccessCardContent />
+    </Strx.LayoutRoot>
+  );
+}
+
+function SuccessCardContent() {
+  const timeline = Strx.useTimeline({
+    playback: "stagger",
+    interval: 80,
+    playables: [
+      { target: "coin", animate: "scale-in fade-in duration-280 delay-300" },
+      { target: "title", animate: "fade-in slide-up duration-260" },
+      { target: "button", animate: "fade-in slide-up duration-240" },
+    ],
+  });
+
+  return (
+    <>
+      <Strx.View strxId="coin" />
+      <Strx.Text strxId="title">송금 완료</Strx.Text>
+      <Strx.Pressable strxId="button" onPress={timeline.play}>
+        <Strx.Text>다시 보기</Strx.Text>
+      </Strx.Pressable>
+    </>
+  );
+}
+```
+
+Timeline controls:
+
+- `timeline.play()` starts all registered target animations.
+- `timeline.reset()` clears the event-driven animated styles for the targets.
+- `timeline.stop()` cancels pending frame starts and running animations.
+- `playback="parallel"` starts all targets together.
+- `playback="serial"` starts each target after the previous target's estimated `delay + duration` window.
+- `playback="stagger"` starts targets at `interval` millisecond offsets, with previous targets' explicit `delay-*` values added to later offsets.
+
+`Strx.useTimeline` options:
+
+| Option      | Type                               | Default     | Meaning                                                                            |
+| ----------- | ---------------------------------- | ----------- | ---------------------------------------------------------------------------------- |
+| `playables` | `{ target: string; animate: AnimateProp }[]` | required    | Target animations controlled by this timeline. `target` must match a component `strxId`. |
+| `playback`  | `parallel`, `serial`, or `stagger` | `parallel`  | Controls how target animations are scheduled.                                      |
+| `interval`  | `number`                           | `100`       | Millisecond offset between targets when `playback="stagger"`.                     |
+| `playCount` | `number` or `infinite`             | `undefined` | Number of times each target animation should play.                                |
+
+Returned controller:
+
+| Function           | Meaning                                                                    |
+| ------------------ | -------------------------------------------------------------------------- |
+| `timeline.play()`  | Starts all configured target animations.                                   |
+| `timeline.reset()` | Clears event-driven animated styles for all configured targets.            |
+| `timeline.stop()`  | Cancels pending starts and running animations for all configured targets.  |
+
+`Strx.useTimeline` must run under `Strx.LayoutRoot`, because the root owns the target registry.
 
 ## Preset animations
 
@@ -414,6 +600,7 @@ Common tokens:
 - `delay-100`
 - `ease`, `ease-in`, `ease-out`, `ease-in-out`, `linear`
 - `repeat-2`, `repeat-infinite`
+- `play-3`, `play-infinite`
 
 ## Explicit keyframes: from:/to:/exit:
 
