@@ -10,7 +10,7 @@ import React, {
 import type { ImageStyle, StyleProp, TextStyle, ViewStyle } from 'react-native';
 import Animated, { useAnimatedRef } from 'react-native-reanimated';
 
-import { useCodexAnimation } from '../core/useCodexAnimation';
+import { useCodexAnimationEngine } from '../core/useCodexAnimation';
 import { useLayoutGroup } from '../context/LayoutGroupContext';
 import {
   LayoutNodeContext,
@@ -21,7 +21,8 @@ import {
   useStrxLayout,
   type AnimatedRefLike,
 } from '../context/StrxLayoutContext';
-import type { AnimateProp } from '../types/animate';
+import { useStrxMotion } from '../context/StrxMotionContext';
+import type { AnimateProp, PlaybackMode } from '../types/animate';
 import {
   findStructuralLayoutDemand,
   getExitAnimation,
@@ -35,16 +36,43 @@ import {
   type LayoutPropagationMode,
 } from './View';
 
+/**
+ * Style shapes supported by generated STRX components.
+ */
 export type StrxAnimatedStyle = StyleProp<ViewStyle | TextStyle | ImageStyle>;
 
+/**
+ * Options for `createStrxComponent`.
+ */
 export interface StrxComponentOptions {
+  /**
+   * Display name shown in React DevTools.
+   *
+   * If omitted, STRX derives a name from the wrapped component.
+   */
   displayName?: string;
 }
 
+/**
+ * Props added to a component returned by `createStrxComponent`.
+ *
+ * The returned component keeps the original component props, preserves its
+ * original `style` type when possible, and adds STRX animation props.
+ */
 export type StrxComponentProps<Props extends object> = Omit<Props, 'style'> & {
+  /** Animation declaration for this component. */
   animate?: AnimateProp;
+  /** Clips overflowing children while an active layout transition is running. */
   layoutClip?: boolean;
+  /** Controls whether child layout animation demand bubbles past this node. */
   layoutPropagation?: LayoutPropagationMode;
+  /** Orchestrates array `animate` entries. */
+  playback?: PlaybackMode;
+  /** Millisecond gap used by `playback="stagger"`. */
+  interval?: number;
+  /** Event timeline target ID used by `Strx.useTimeline`. */
+  strxId?: string;
+  /** Original component style prop, or a STRX-compatible animated style. */
   style?: Props extends { style?: infer Style } ? Style : StrxAnimatedStyle;
 };
 
@@ -53,11 +81,21 @@ interface InternalStrxProps {
   children?: ReactNode;
   layoutClip?: boolean;
   layoutPropagation?: LayoutPropagationMode;
+  playback?: PlaybackMode;
+  interval?: number;
+  strxId?: string;
   onLayout?: unknown;
   style?: StrxAnimatedStyle;
   [key: string]: unknown;
 }
 
+/**
+ * Wraps a React Native-compatible component with STRX animation behavior.
+ *
+ * Use this when your app or design system has a custom primitive, such as
+ * `SafeAreaView` or a themed container, and you want it to accept `animate`,
+ * `layoutClip`, `layoutPropagation`, `playback`, `interval`, and `strxId`.
+ */
 export function createStrxComponent<Props extends object, RefType = unknown>(
   BaseComponent: ComponentType<Props>,
   options: StrxComponentOptions = {},
@@ -77,6 +115,9 @@ export function createStrxComponent<Props extends object, RefType = unknown>(
         layoutClip = false,
         layoutPropagation = 'auto',
         onLayout,
+        playback = 'parallel',
+        interval = 100,
+        strxId,
         style,
         ...props
       } = rawProps as InternalStrxProps;
@@ -84,6 +125,7 @@ export function createStrxComponent<Props extends object, RefType = unknown>(
       const layoutGroup = useLayoutGroup();
       const parentNode = useLayoutNode();
       const strxLayout = useStrxLayout();
+      const motion = useStrxMotion();
       const animatedRef = useAnimatedRef<any>();
       const combinedRef = useMemo(
         () =>
@@ -109,7 +151,13 @@ export function createStrxComponent<Props extends object, RefType = unknown>(
         () => getExitAnimation(exitTokenState),
         [exitTokenState],
       );
-      const animatedStyle = useCodexAnimation(styleAnimateProp, style);
+      const animationEngine = useCodexAnimationEngine(
+        styleAnimateProp,
+        style,
+        playback,
+        interval,
+      );
+      const animatedStyle = animationEngine.animatedStyle;
       const structuralChildDemand = useMemo(
         () => findStructuralLayoutDemand(children),
         [children],
@@ -125,10 +173,18 @@ export function createStrxComponent<Props extends object, RefType = unknown>(
         ? getLayoutTransition(effectiveDemand)
         : undefined;
       const activeLayout =
-        localDemandTransition ??
-        parentNode?.inheritedTransition ??
-        layoutGroup?.defaultLayoutTransition ??
-        stableNoOpTransition;
+        motion.isReduceMotionEnabled
+          ? stableNoOpTransition
+          : localDemandTransition ??
+            parentNode?.inheritedTransition ??
+            layoutGroup?.defaultLayoutTransition ??
+            stableNoOpTransition;
+
+      useEffect(() => {
+        if (typeof animate === 'string' && animate.length > 512) {
+          strxLayout?.reportDebugWarning('animate string exceeded 512 characters and was ignored.');
+        }
+      }, [animate, strxLayout]);
 
       useEffect(() => {
         if (!strxLayout) {
@@ -160,6 +216,18 @@ export function createStrxComponent<Props extends object, RefType = unknown>(
         parentNode?.parentId,
         strxLayout,
       ]);
+
+      useEffect(() => {
+        if (!strxLayout || !strxId) {
+          return;
+        }
+
+        strxLayout.registerPlayable(strxId, animationEngine.controller);
+
+        return () => {
+          strxLayout.unregisterPlayable(strxId);
+        };
+      }, [animationEngine.controller, strxId, strxLayout]);
 
       const mergedStyle = useMemo(() => {
         if (!hasActiveLayoutTransition || !layoutClip) {

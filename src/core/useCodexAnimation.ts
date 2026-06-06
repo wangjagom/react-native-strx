@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   type StyleProp,
@@ -17,9 +17,10 @@ import {
 
 import { animationPresets } from './presets';
 import type { AnimatableChannel, PresetMotionOptions } from './presets';
+import { useStrxMotion, type StrxMotionContextValue } from '../context/StrxMotionContext';
 import { normalizeAnimate } from '../parser/normalize';
 import type { StandardAnimConfig } from '../parser/normalize';
-import type { AnimateProp, AnimateStyle } from '../types/animate';
+import type { AnimateProp, AnimateStyle, PlaybackMode } from '../types/animate';
 
 type AnimatableValue = number | string;
 type AnimationDriver = 'timing' | 'spring';
@@ -28,16 +29,29 @@ type StyleMap = Record<string, AnimatableValue>;
 type TransformMap = Partial<Record<TransformKey, AnimatableValue>>;
 type AnimatableStaticStyle = StyleProp<ViewStyle | TextStyle>;
 
-interface AnimationFrame {
+export interface CodexCompileOptions {
+  duration?: number;
+  easing?: string;
+  reduceMotionEnabled?: boolean;
+}
+
+interface MotionRuntimeOptions {
+  duration?: number;
+  easing?: string;
+  reduceMotionEnabled: boolean;
+}
+
+export interface AnimationFrame {
   style: StyleMap;
   transform: TransformMap;
 }
 
-interface AnimationPlan {
+export interface AnimationPlan {
   duration: number;
   delay: number;
   easing: string;
   repeat?: number | 'infinite';
+  playCount?: number | 'infinite';
   driver: AnimationDriver;
   spring: {
     damping: number;
@@ -65,6 +79,81 @@ interface RuntimeConfig {
   damping: number;
   stiffness: number;
   mass: number;
+}
+
+interface PlaybackPhase {
+  offset: number;
+  plan: AnimationPlan;
+}
+
+/**
+ * Compiled STRX animation plan.
+ *
+ * Most app code does not need to create this directly. It is useful for
+ * timeline integrations that want to compile an `animate` value once and play
+ * it later through a controller.
+ */
+export interface CodexCompiledAnimation {
+  /** Normalized animation plan used by the runtime controller. */
+  plan: AnimationPlan;
+}
+
+/**
+ * Options passed when playing a compiled animation through a controller.
+ */
+export interface CodexAnimationPlayOptions {
+  /**
+   * Extra delay, in milliseconds, added before the animation starts.
+   */
+  offset?: number;
+  /**
+   * Number of times to play the animation.
+   *
+   * Use `"infinite"` to repeat until `stop()` is called.
+   */
+  playCount?: number | 'infinite';
+}
+
+/**
+ * Imperative animation controller used internally by STRX event timelines.
+ */
+export interface CodexAnimationController {
+  /**
+   * Plays a compiled animation.
+   */
+  play: (
+    animation: CodexCompiledAnimation,
+    options?: CodexAnimationPlayOptions,
+  ) => void;
+  /**
+   * Plays a compiled animation from its declared `to` frame back to `from`.
+   *
+   * This is a declarative reverse pass, not a scrub of the current in-flight
+   * progress value.
+   */
+  reverse: (
+    animation: CodexCompiledAnimation,
+    options?: CodexAnimationPlayOptions,
+  ) => void;
+  /**
+   * Clears animated values created by event-driven playback, or immediately
+   * applies a compiled animation's declared `from` frame when provided.
+   */
+  reset: (animation?: CodexCompiledAnimation) => void;
+  /**
+   * Cancels pending and running animations.
+   */
+  stop: () => void;
+}
+
+/**
+ * Runtime animation engine returned by `useCodexAnimationEngine`.
+ */
+export interface CodexAnimationEngine {
+  /** Animated style that should be merged after the component's static style. */
+  animatedStyle: ReturnType<typeof useAnimatedStyle<ViewStyle>>;
+  /** Imperative controller used by `Strx.useTimeline`. */
+  controller: CodexAnimationController;
 }
 
 const DEFAULT_DURATION = 300;
@@ -163,6 +252,10 @@ const DISABLED_TRANSITION_SPEC: TransitionSpec = Object.freeze({
   easing: DEFAULT_EASING,
 });
 
+const DEFAULT_MOTION_OPTIONS: MotionRuntimeOptions = Object.freeze({
+  reduceMotionEnabled: false,
+});
+
 const emptyFrame = (): AnimationFrame => ({
   style: {},
   transform: {},
@@ -176,11 +269,39 @@ const emptyRuntimeTarget = (): RuntimeTarget => ({
   unsetTransformKeys: [],
 });
 
+/**
+ * Returns an animated style for a STRX `animate` declaration.
+ *
+ * This is a lower-level hook exported for custom integrations. Most users
+ * should prefer STRX components or `createStrxComponent`.
+ */
 export function useCodexAnimation(
   animate?: AnimateProp | null,
   style?: AnimatableStaticStyle,
+  playback: PlaybackMode = 'parallel',
+  interval = 100,
 ) {
-  const transitionSpec = useMemo(() => getTransitionSpec(animate), [animate]);
+  return useCodexAnimationEngine(animate, style, playback, interval).animatedStyle;
+}
+
+/**
+ * Creates the full STRX animation engine for a component.
+ *
+ * The returned `animatedStyle` is merged into the rendered component, while
+ * the returned `controller` is registered when a component has `strxId`.
+ */
+export function useCodexAnimationEngine(
+  animate?: AnimateProp | null,
+  style?: AnimatableStaticStyle,
+  playback: PlaybackMode = 'parallel',
+  interval = 100,
+): CodexAnimationEngine {
+  const motion = useStrxMotion();
+  const motionOptions = useMemo(() => createMotionRuntimeOptions(motion), [motion]);
+  const transitionSpec = useMemo(
+    () => getTransitionSpec(animate, motionOptions),
+    [animate, motionOptions],
+  );
   const explicitAnimate = useMemo(
     () => removeTransitionTokensFromAnimate(animate),
     [animate],
@@ -194,15 +315,28 @@ export function useCodexAnimation(
 
   // 1. 객체의 구조적 동등성을 판별하기 위한 직렬화 키 생성
   const animationKey = useMemo(
-    () => stableSerialize(explicitAnimate),
-    [explicitAnimate],
+    () => stableSerialize({ animate: explicitAnimate, playback, interval, motionOptions }),
+    [explicitAnimate, interval, motionOptions, playback],
   );
+
+  const playbackPlans = useMemo(() => {
+    if (playback === 'parallel' || !Array.isArray(explicitAnimate)) {
+      return null;
+    }
+
+    return createPlaybackPlans(explicitAnimate, playback, interval, motionOptions);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [animationKey]);
 
   // 2. 직렬화된 키가 변경될 때만 object 파싱을 재수행 (인라인 객체 참조값 변경으로 인한 불필요한 연산 방지)
   const explicitPlan = useMemo(() => {
-    return getCachedAnimationPlan(animationKey, explicitAnimate);
+    if (playbackPlans) {
+      return null;
+    }
+
+    return getCachedAnimationPlan(animationKey, explicitAnimate, motionOptions);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [animationKey]);
+  }, [animationKey, playbackPlans]);
 
   const transitionFrame = useMemo(() => {
     const normalizedFrame = normalizeFrame(flattenedStyle);
@@ -262,10 +396,196 @@ export function useCodexAnimation(
     stiffness: 100,
     mass: 1,
   });
+  const scheduledFramesRef = useRef<number[]>([]);
+
+  const stopControllerAnimation = useCallback(() => {
+    for (const frame of scheduledFramesRef.current) {
+      cancelAnimationFrame(frame);
+    }
+
+    scheduledFramesRef.current = [];
+    cancelAnimation(target);
+  }, [target]);
+
+  const resetControllerAnimation = useCallback(
+    (animation?: CodexCompiledAnimation) => {
+      stopControllerAnimation();
+
+      if (!animation) {
+        target.value = createUnsetTarget(
+          previousKeysRef.current.styleKeys,
+          previousKeysRef.current.transformKeys,
+        );
+        previousKeysRef.current = {
+          styleKeys: [],
+          transformKeys: [],
+        };
+        return;
+      }
+
+      const plan = animation.plan;
+      const nextKeys = collectPlanKeys(plan);
+      const staleStyleKeys = previousKeysRef.current.styleKeys.filter(
+        key => !nextKeys.styleKeys.includes(key),
+      );
+      const staleTransformKeys = previousKeysRef.current.transformKeys.filter(
+        key => !nextKeys.transformKeys.includes(key),
+      );
+
+      target.value = createRuntimeTarget(
+        plan.from,
+        staleStyleKeys,
+        staleTransformKeys,
+        false,
+      );
+      previousKeysRef.current = nextKeys;
+    },
+    [stopControllerAnimation, target],
+  );
+
+  const playControllerAnimation = useCallback(
+    (
+      animation: CodexCompiledAnimation,
+      options: CodexAnimationPlayOptions = {},
+    ) => {
+      const plan =
+        options.playCount === undefined
+          ? animation.plan
+          : { ...animation.plan, playCount: options.playCount };
+      const nextKeys = collectPlanKeys(plan);
+      const staleStyleKeys = previousKeysRef.current.styleKeys.filter(
+        key => !nextKeys.styleKeys.includes(key),
+      );
+      const staleTransformKeys = previousKeysRef.current.transformKeys.filter(
+        key => !nextKeys.transformKeys.includes(key),
+      );
+
+      stopControllerAnimation();
+      config.value = createRuntimeConfig(plan, options.offset ?? 0);
+      target.value = createRuntimeTarget(
+        plan.from,
+        staleStyleKeys,
+        staleTransformKeys,
+        false,
+      );
+      previousKeysRef.current = nextKeys;
+
+      const frame = requestAnimationFrame(() => {
+        target.value = createRuntimeTarget(
+          plan.to,
+          staleStyleKeys,
+          staleTransformKeys,
+          true,
+        );
+      });
+
+      scheduledFramesRef.current.push(frame);
+    },
+    [config, stopControllerAnimation, target],
+  );
+
+  const reverseControllerAnimation = useCallback(
+    (
+      animation: CodexCompiledAnimation,
+      options: CodexAnimationPlayOptions = {},
+    ) => {
+      playControllerAnimation(reverseCodexAnimation(animation), options);
+    },
+    [playControllerAnimation],
+  );
+
+  const controller = useMemo<CodexAnimationController>(
+    () => ({
+      play: playControllerAnimation,
+      reverse: reverseControllerAnimation,
+      reset: resetControllerAnimation,
+      stop: stopControllerAnimation,
+    }),
+    [
+      playControllerAnimation,
+      resetControllerAnimation,
+      reverseControllerAnimation,
+      stopControllerAnimation,
+    ],
+  );
 
   const shouldUseDoubleFrame = explicitPlan !== null;
 
   useLayoutEffect(() => {
+    if (!playbackPlans) {
+      return;
+    }
+
+    cancelAnimation(target);
+
+    if (playbackPlans.length === 0) {
+      target.value = createUnsetTarget(
+        previousKeysRef.current.styleKeys,
+        previousKeysRef.current.transformKeys,
+      );
+      previousKeysRef.current = {
+        styleKeys: [],
+        transformKeys: [],
+      };
+      return;
+    }
+
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const frames: number[] = [];
+    let lastKeys = previousKeysRef.current;
+
+    for (const phase of playbackPlans) {
+      const timer = setTimeout(() => {
+        const nextKeys = collectPlanKeys(phase.plan);
+        const staleStyleKeys = lastKeys.styleKeys.filter(
+          key => !nextKeys.styleKeys.includes(key),
+        );
+        const staleTransformKeys = lastKeys.transformKeys.filter(
+          key => !nextKeys.transformKeys.includes(key),
+        );
+
+        config.value = createRuntimeConfig(phase.plan);
+        target.value = createRuntimeTarget(
+          phase.plan.from,
+          staleStyleKeys,
+          staleTransformKeys,
+          false,
+        );
+        lastKeys = nextKeys;
+        previousKeysRef.current = nextKeys;
+
+        const frame = requestAnimationFrame(() => {
+          target.value = createRuntimeTarget(
+            phase.plan.to,
+            staleStyleKeys,
+            staleTransformKeys,
+            true,
+          );
+        });
+        frames.push(frame);
+      }, phase.offset);
+
+      timers.push(timer);
+    }
+
+    return () => {
+      for (const timer of timers) {
+        clearTimeout(timer);
+      }
+
+      for (const frame of frames) {
+        cancelAnimationFrame(frame);
+      }
+
+      cancelAnimation(target);
+    };
+  }, [config, playbackPlans, target]);
+
+  useLayoutEffect(() => {
+    if (playbackPlans) {
+      return;
+    }
+
     cancelAnimation(target);
 
     if (!plan) {
@@ -309,16 +629,7 @@ export function useCodexAnimation(
       key => !nextKeys.transformKeys.includes(key),
     );
 
-    config.value = {
-      duration: plan.duration,
-      delay: plan.delay,
-      easing: plan.easing,
-      repeat: normalizeRepeat(plan.repeat),
-      driver: plan.driver,
-      damping: plan.spring.damping,
-      stiffness: plan.spring.stiffness,
-      mass: plan.spring.mass,
-    };
+    config.value = createRuntimeConfig(plan);
 
     // 1. 먼저 시작점(from) 스타일을 주입하고 애니메이션 대기 상태(false)로 둡니다.
     target.value = createRuntimeTarget(
@@ -356,9 +667,9 @@ export function useCodexAnimation(
       }
       cancelAnimation(target);
     };
-  }, [config, plan, shouldUseDoubleFrame, target, transitionFrame, transitionSpec]);
+  }, [config, plan, playbackPlans, shouldUseDoubleFrame, target, transitionFrame, transitionSpec]);
 
-  return useAnimatedStyle<ViewStyle>(() => {
+  const animatedStyle = useAnimatedStyle<ViewStyle>(() => {
     const runtimeTarget = target.value;
     const runtimeConfig = config.value;
     const styleResult: Record<string, unknown> = {};
@@ -397,18 +708,79 @@ export function useCodexAnimation(
 
     return styleResult as ViewStyle;
   });
+
+  return {
+    animatedStyle,
+    controller,
+  };
+}
+
+/**
+ * Compiles any `animate` prop value into a reusable animation plan.
+ *
+ * Returns `null` when the value does not contain a runnable explicit
+ * animation.
+ */
+export function compileCodexAnimation(
+  animate?: AnimateProp | null,
+  options: CodexCompileOptions = {},
+): CodexCompiledAnimation | null {
+  const plan = createAnimationPlan(
+    normalizeAnimate(animate),
+    normalizeCompileOptions(options),
+  );
+
+  return plan ? { plan } : null;
+}
+
+/**
+ * Creates a reversed compiled animation without reparsing the original input.
+ *
+ * Timing, easing, driver, spring, and play-count metadata are preserved while
+ * the runtime frames are swapped from `to -> from`.
+ */
+export function reverseCodexAnimation(
+  animation: CodexCompiledAnimation,
+): CodexCompiledAnimation {
+  return {
+    plan: {
+      ...animation.plan,
+      from: animation.plan.to,
+      to: animation.plan.from,
+    },
+  };
+}
+
+/**
+ * Estimates the total duration of a compiled animation, including delay and
+ * repeat/play count where applicable.
+ */
+export function estimateCodexAnimationDuration(
+  animation: CodexCompiledAnimation,
+): number {
+  return estimatePlanTotalDuration(animation.plan);
+}
+
+/**
+ * Returns the non-negative delay configured on a compiled animation.
+ */
+export function estimateCodexAnimationDelay(
+  animation: CodexCompiledAnimation,
+): number {
+  return Math.max(0, animation.plan.delay);
 }
 
 function getCachedAnimationPlan(
   animationKey: string,
   animate?: AnimateProp | null,
+  motionOptions: MotionRuntimeOptions = DEFAULT_MOTION_OPTIONS,
 ): AnimationPlan | null {
   if (PLAN_CACHE.has(animationKey)) {
     return PLAN_CACHE.get(animationKey) ?? null;
   }
 
   const configs = normalizeAnimate(animate);
-  const plan = createAnimationPlan(configs);
+  const plan = createAnimationPlan(configs, motionOptions);
   setCappedMapValue(PLAN_CACHE, animationKey, plan, PLAN_CACHE_LIMIT);
 
   return plan;
@@ -416,6 +788,7 @@ function getCachedAnimationPlan(
 
 function createAnimationPlan(
   configs: StandardAnimConfig[],
+  motionOptions: MotionRuntimeOptions = DEFAULT_MOTION_OPTIONS,
 ): AnimationPlan | null {
   if (configs.length === 0) {
     return null;
@@ -425,8 +798,8 @@ function createAnimationPlan(
 
   for (const config of configs) {
     const nextPlan = isCustomConfig(config)
-      ? createCustomAnimationPlan(config)
-      : createPresetAnimationPlan(config);
+      ? createCustomAnimationPlan(config, motionOptions)
+      : createPresetAnimationPlan(config, motionOptions);
 
     if (!nextPlan) {
       continue;
@@ -436,6 +809,76 @@ function createAnimationPlan(
   }
 
   return plan;
+}
+
+function createPlaybackPlans(
+  entries: readonly AnimateProp[],
+  playback: PlaybackMode,
+  interval: number,
+  motionOptions: MotionRuntimeOptions = DEFAULT_MOTION_OPTIONS,
+): PlaybackPhase[] {
+  const phases: PlaybackPhase[] = [];
+  let carry = emptyFrame();
+  let serialOffset = 0;
+  let staggerDelayCarry = 0;
+  const safeInterval = Number.isFinite(interval) && interval > 0 ? interval : 0;
+
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index];
+    const plan = createAnimationPlan(normalizeAnimate(entry), motionOptions);
+
+    if (!plan) {
+      continue;
+    }
+
+    const offset =
+      playback === 'serial'
+        ? serialOffset
+        : staggerDelayCarry + index * safeInterval;
+    const carriedPlan = createCarriedPlan(plan, carry);
+
+    phases.push({
+      offset,
+      plan: carriedPlan,
+    });
+
+    carry = mergeFrame(carry, plan.to);
+
+    if (playback === 'serial') {
+      const duration = estimatePlanTotalDuration(plan);
+
+      if (!Number.isFinite(duration)) {
+        break;
+      }
+
+      serialOffset += duration;
+    } else {
+      staggerDelayCarry += Math.max(0, plan.delay);
+    }
+  }
+
+  return phases;
+}
+
+function createCarriedPlan(
+  plan: AnimationPlan,
+  carry: AnimationFrame,
+): AnimationPlan {
+  return {
+    ...plan,
+    from: mergeFrame(carry, plan.from),
+    to: mergeFrame(carry, plan.to),
+  };
+}
+
+function estimatePlanTotalDuration(plan: AnimationPlan): number {
+  const repeat = normalizeRepeat(getPlanPlayCount(plan));
+
+  if (repeat < 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return Math.max(0, plan.delay) + Math.max(0, plan.duration) * repeat;
 }
 
 function createImplicitTransitionPlan(
@@ -566,21 +1009,25 @@ function flattenAnimatableStyle(style?: AnimatableStaticStyle): AnimateStyle {
   return flattened ?? {};
 }
 
-function getTransitionSpec(animate?: AnimateProp | null): TransitionSpec {
+function getTransitionSpec(
+  animate?: AnimateProp | null,
+  motionOptions: MotionRuntimeOptions = DEFAULT_MOTION_OPTIONS,
+): TransitionSpec {
   if (typeof animate !== 'string' || animate.length > 512) {
     return DISABLED_TRANSITION_SPEC;
   }
 
-  const cached = TRANSITION_SPEC_CACHE.get(animate);
+  const cacheKey = stableSerialize({ animate, motionOptions });
+  const cached = TRANSITION_SPEC_CACHE.get(cacheKey);
 
   if (cached) {
     return cached;
   }
 
-  const spec = parseTransitionSpec(animate);
+  const spec = parseTransitionSpec(animate, motionOptions);
   setCappedMapValue(
     TRANSITION_SPEC_CACHE,
-    animate,
+    cacheKey,
     spec,
     TRANSITION_CACHE_LIMIT,
   );
@@ -588,12 +1035,15 @@ function getTransitionSpec(animate?: AnimateProp | null): TransitionSpec {
   return spec;
 }
 
-function parseTransitionSpec(animate: string): TransitionSpec {
+function parseTransitionSpec(
+  animate: string,
+  motionOptions: MotionRuntimeOptions = DEFAULT_MOTION_OPTIONS,
+): TransitionSpec {
   let enabled = false;
   let kind: TransitionKind = 'all';
-  let duration = DEFAULT_DURATION;
+  let duration = motionOptions.duration ?? DEFAULT_DURATION;
   let delay = DEFAULT_DELAY;
-  let easing = DEFAULT_EASING;
+  let easing = motionOptions.easing ?? DEFAULT_EASING;
 
   forEachToken(animate, token => {
     if (token === 'transition' || token === 'transition-all') {
@@ -663,8 +1113,8 @@ function parseTransitionSpec(animate: string): TransitionSpec {
   return Object.freeze({
     enabled,
     kind,
-    duration,
-    delay,
+    duration: motionOptions.reduceMotionEnabled ? 0 : duration,
+    delay: motionOptions.reduceMotionEnabled ? 0 : delay,
     easing,
   });
 }
@@ -749,6 +1199,7 @@ function setCappedMapValue<Key, Value>(
 
 function createPresetAnimationPlan(
   config: StandardAnimConfig,
+  motionOptions: MotionRuntimeOptions = DEFAULT_MOTION_OPTIONS,
 ): AnimationPlan | null {
   if (!('type' in config) || typeof config.type !== 'string') {
     return null;
@@ -782,10 +1233,10 @@ function createPresetAnimationPlan(
   }
 
   return {
-    duration: getDuration(config, preset.options),
-    delay: getDelay(config),
-    easing: getEasingName(config.easing),
-    repeat: config.repeat,
+    duration: getDuration(config, preset.options, motionOptions),
+    delay: getDelay(config, motionOptions),
+    easing: getEasingName(config.easing, motionOptions),
+    repeat: getConfigPlayCount(config, motionOptions),
     driver: getAnimationDriver(config, preset.options),
     spring: getSpringConfig(config, preset.options),
     from,
@@ -795,14 +1246,15 @@ function createPresetAnimationPlan(
 
 function createCustomAnimationPlan(
   config: Extract<StandardAnimConfig, { from: AnimateStyle; to: AnimateStyle }>,
+  motionOptions: MotionRuntimeOptions = DEFAULT_MOTION_OPTIONS,
 ): AnimationPlan {
   const pair = completeFramePair(config.from, config.to);
 
   return {
-    duration: getDuration(config),
-    delay: getDelay(config),
-    easing: getEasingName(config.easing),
-    repeat: config.repeat,
+    duration: getDuration(config, undefined, motionOptions),
+    delay: getDelay(config, motionOptions),
+    easing: getEasingName(config.easing, motionOptions),
+    repeat: getConfigPlayCount(config, motionOptions),
     driver: 'timing',
     spring: getSpringConfig(config),
     from: pair.from,
@@ -973,6 +1425,19 @@ function createRuntimeTarget(
   };
 }
 
+function createRuntimeConfig(plan: AnimationPlan, extraDelay = 0): RuntimeConfig {
+  return {
+    duration: plan.duration,
+    delay: Math.max(0, plan.delay + extraDelay),
+    easing: plan.easing,
+    repeat: normalizeRepeat(getPlanPlayCount(plan)),
+    driver: plan.driver,
+    damping: plan.spring.damping,
+    stiffness: plan.spring.stiffness,
+    mass: plan.spring.mass,
+  };
+}
+
 function createUnsetTarget(
   unsetStyleKeys: string[],
   unsetTransformKeys: TransformKey[],
@@ -1097,14 +1562,26 @@ function getAnimationDriver(
 function getDuration(
   config?: Partial<StandardAnimConfig>,
   presetOptions?: PresetMotionOptions,
+  motionOptions: MotionRuntimeOptions = DEFAULT_MOTION_OPTIONS,
 ): number {
+  if (motionOptions.reduceMotionEnabled) {
+    return 0;
+  }
+
   return getNumericValue(
     config?.duration,
-    presetOptions?.duration ?? DEFAULT_DURATION,
+    motionOptions.duration ?? presetOptions?.duration ?? DEFAULT_DURATION,
   );
 }
 
-function getDelay(config?: Partial<StandardAnimConfig>): number {
+function getDelay(
+  config?: Partial<StandardAnimConfig>,
+  motionOptions: MotionRuntimeOptions = DEFAULT_MOTION_OPTIONS,
+): number {
+  if (motionOptions.reduceMotionEnabled) {
+    return 0;
+  }
+
   return getNumericValue(config?.delay, DEFAULT_DELAY);
 }
 
@@ -1140,14 +1617,69 @@ function normalizeRepeat(repeat: number | 'infinite' | undefined): number {
     : 1;
 }
 
-function getEasingName(easing?: string): string {
+function getConfigPlayCount(
+  config: StandardAnimConfig,
+  motionOptions: MotionRuntimeOptions = DEFAULT_MOTION_OPTIONS,
+): number | 'infinite' | undefined {
+  if (motionOptions.reduceMotionEnabled) {
+    return 1;
+  }
+
+  return config.playCount ?? config.repeat;
+}
+
+function getPlanPlayCount(
+  plan: AnimationPlan,
+): number | 'infinite' | undefined {
+  return plan.playCount ?? plan.repeat;
+}
+
+function getEasingName(
+  easing?: string,
+  motionOptions: MotionRuntimeOptions = DEFAULT_MOTION_OPTIONS,
+): string {
+  const fallback = motionOptions.easing ?? DEFAULT_EASING;
+
   return easing === 'linear' ||
     easing === 'ease' ||
     easing === 'ease-in' ||
     easing === 'ease-out' ||
     easing === 'ease-in-out'
     ? easing
-    : DEFAULT_EASING;
+    : fallback;
+}
+
+function createMotionRuntimeOptions(
+  motion: StrxMotionContextValue,
+): MotionRuntimeOptions {
+  return normalizeCompileOptions({
+    duration: motion.duration,
+    easing: motion.easing,
+    reduceMotionEnabled: motion.isReduceMotionEnabled,
+  });
+}
+
+function normalizeCompileOptions(
+  options: CodexCompileOptions,
+): MotionRuntimeOptions {
+  const duration =
+    typeof options.duration === 'number' &&
+    Number.isFinite(options.duration) &&
+    options.duration >= 0
+      ? options.duration
+      : undefined;
+  const easing =
+    typeof options.easing === 'string' &&
+    options.easing.length > 0 &&
+    options.easing.length <= 64
+      ? options.easing
+      : undefined;
+
+  return {
+    ...(duration === undefined ? null : { duration }),
+    ...(easing === undefined ? null : { easing }),
+    reduceMotionEnabled: options.reduceMotionEnabled === true,
+  };
 }
 
 function neutralStyleValue(key: string): AnimatableValue {

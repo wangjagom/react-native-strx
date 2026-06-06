@@ -1,34 +1,59 @@
 import { Image } from "./components/Image";
+import { DebugOverlay } from "./components/DebugOverlay";
 import { Pressable } from "./components/Pressable";
+import { Provider } from "./components/Provider";
 import { ScrollView } from "./components/ScrollView";
 import { Text } from "./components/Text";
 import { TextInput } from "./components/TextInput";
+import { Timeline } from "./components/Timeline";
 import { View } from "./components/View";
+import { useTimeline } from "./core/useTimeline";
 import { LayoutGroup } from "./context/LayoutGroupContext";
 import { StrxLayoutRoot } from "./context/StrxLayoutContext";
 
 export { Image } from "./components/Image";
 export type { CodexImageProps } from "./components/Image";
+export { DebugOverlay } from "./components/DebugOverlay";
+export type { StrxDebugOverlayProps } from "./components/DebugOverlay";
 export { Pressable } from "./components/Pressable";
 export type { CodexPressableProps } from "./components/Pressable";
+export { Provider } from "./components/Provider";
+export type { StrxProviderProps } from "./components/Provider";
 export { ScrollView } from "./components/ScrollView";
 export type { CodexScrollViewProps } from "./components/ScrollView";
 export { Text } from "./components/Text";
 export type { CodexTextProps } from "./components/Text";
 export { TextInput } from "./components/TextInput";
 export type { CodexTextInputProps } from "./components/TextInput";
+export { Timeline } from "./components/Timeline";
+export type { TimelineProps } from "./components/Timeline";
 export { View } from "./components/View";
 export type { CodexViewProps, LayoutPropagationMode } from "./components/View";
+export type { CodexImageProps as StrxImageProps } from "./components/Image";
+export type { CodexPressableProps as StrxPressableProps } from "./components/Pressable";
+export type { CodexScrollViewProps as StrxScrollViewProps } from "./components/ScrollView";
+export type { CodexTextProps as StrxTextProps } from "./components/Text";
+export type { CodexTextInputProps as StrxTextInputProps } from "./components/TextInput";
+export type { CodexViewProps as StrxViewProps } from "./components/View";
 export { LayoutGroup, useLayoutGroup } from "./context/LayoutGroupContext";
 export { LayoutNodeContext, useLayoutNode } from "./context/LayoutNodeContext";
 export { StrxLayoutRoot, useStrxLayout } from "./context/StrxLayoutContext";
+export { StrxMotionProvider, useStrxMotion } from "./context/StrxMotionContext";
 export type {
+  StrxLayoutDebugSnapshot,
   StrxLayoutContextType,
   StrxLayoutDemand,
   StrxLayoutPropagationMode,
   StrxLayoutTransitionType,
   StrxMeasuredNode,
 } from "./context/StrxLayoutContext";
+export type {
+  StrxEasingName,
+  StrxMotionContextValue,
+  StrxMotionPreset,
+  StrxMotionProviderProps,
+  StrxReduceMotionMode,
+} from "./context/StrxMotionContext";
 export type {
   LayoutNodeContextType,
   LayoutTransitionType,
@@ -46,8 +71,38 @@ export type {
   CodexAnimationPreset,
   PresetMotionOptions,
 } from "./core/presets";
-export { useCodexAnimation } from "./core/useCodexAnimation";
-export { normalizeAnimate } from "./parser/normalize";
+export {
+  compileCodexAnimation,
+  estimateCodexAnimationDelay,
+  estimateCodexAnimationDuration,
+  reverseCodexAnimation,
+  useCodexAnimation,
+  useCodexAnimationEngine,
+} from "./core/useCodexAnimation";
+export type {
+  CodexAnimationController,
+  CodexCompileOptions,
+  CodexAnimationEngine,
+  CodexAnimationPlayOptions,
+  CodexCompiledAnimation,
+} from "./core/useCodexAnimation";
+export type {
+  CodexAnimationController as StrxAnimationController,
+  CodexAnimationEngine as StrxAnimationEngine,
+  CodexAnimationPlayOptions as StrxAnimationPlayOptions,
+  CodexCompiledAnimation as StrxCompiledAnimation,
+} from "./core/useCodexAnimation";
+export { useTimeline } from "./core/useTimeline";
+export type {
+  StrxTimelineController,
+  StrxTimelinePlayable,
+  UseTimelineOptions,
+} from "./core/useTimeline";
+export {
+  clearNormalizeAnimateCache,
+  getNormalizeAnimateCacheSize,
+  normalizeAnimate,
+} from "./parser/normalize";
 export type { StandardAnimConfig } from "./parser/normalize";
 export type {
   AnimateLayoutToken,
@@ -56,6 +111,7 @@ export type {
   AnimateProp,
   AnimateToken,
   AnimateValue,
+  PlaybackMode,
 } from "./types/animate";
 
 export { createStrxComponent } from "./components/createStrxComponent";
@@ -66,17 +122,33 @@ export type {
 export { Image as StrxImage } from "./components/Image";
 export { ScrollView as StrxScrollView } from "./components/ScrollView";
 export { TextInput as StrxTextInput } from "./components/TextInput";
+export { Timeline as StrxTimeline } from "./components/Timeline";
 export { View as StrxView } from "./components/View";
 export { Text as StrxText } from "./components/Text";
 export { Pressable as StrxPressable } from "./components/Pressable";
 
+/**
+ * Namespace API for STRX primitives.
+ *
+ * This is the recommended import style:
+ *
+ * ```tsx
+ * import { Strx } from "react-native-strx";
+ *
+ * <Strx.View animate="fade-in layout-spring" />
+ * ```
+ */
 export const Strx = Object.freeze({
   View,
+  Provider,
+  DebugOverlay,
   Text,
   Pressable,
   Image,
   ScrollView,
   TextInput,
+  Timeline,
   LayoutRoot: StrxLayoutRoot,
   LayoutGroup,
+  useTimeline,
 });

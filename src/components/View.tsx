@@ -23,7 +23,7 @@ import Animated, {
   type LayoutAnimationsValues,
 } from 'react-native-reanimated';
 
-import { useCodexAnimation } from '../core/useCodexAnimation';
+import { useCodexAnimationEngine } from '../core/useCodexAnimation';
 import { useLayoutGroup } from '../context/LayoutGroupContext';
 import {
   LayoutNodeContext,
@@ -35,7 +35,8 @@ import {
   useStrxLayout,
   type AnimatedRefLike,
 } from '../context/StrxLayoutContext';
-import type { AnimateProp, AnimateStyle } from '../types/animate';
+import { useStrxMotion } from '../context/StrxMotionContext';
+import type { AnimateProp, AnimateStyle, PlaybackMode } from '../types/animate';
 
 const LAYOUT_LINEAR_TOKEN = 'layout-linear';
 const LAYOUT_SPRING_TOKEN = 'layout-spring';
@@ -122,14 +123,64 @@ const FROM_TO_NEUTRAL_VALUES = Object.freeze({
   borderLeftColor: 'transparent',
 });
 
+/**
+ * Controls how layout transition demand travels through the STRX layout tree.
+ *
+ * - `auto`: lets child layout animation demand bubble to nearby ancestors.
+ * - `none`: treats this node as a boundary so independent subtrees do not
+ *   influence outer layout transitions.
+ */
 export type LayoutPropagationMode = 'auto' | 'none';
 
+/**
+ * Props for `Strx.View`.
+ *
+ * `Strx.View` keeps the normal React Native `View` API, including props such
+ * as `style`, `children`, `onLayout`, and accessibility props, and adds STRX
+ * animation props for declarative entrance, exit, style, and layout motion.
+ */
 export interface CodexViewProps extends RNViewProps {
+  /**
+   * Animation declaration for this view.
+   *
+   * Accepts preset tokens, `from:/to:` keyframes, `transition-*`, `layout-*`,
+   * animation objects, or arrays.
+   */
   animate?: AnimateProp;
+  /**
+   * Clips overflowing children while a layout transition is active.
+   *
+   * Default is `false` so text/content is not accidentally cut off.
+   */
   layoutClip?: boolean;
+  /**
+   * Controls whether child layout animation demand can bubble to ancestors.
+   *
+   * Use `"none"` to isolate untrusted or independent subtrees.
+   */
   layoutPropagation?: LayoutPropagationMode;
+  /**
+   * Orchestrates array `animate` entries as `parallel`, `serial`, or `stagger`.
+   */
+  playback?: PlaybackMode;
+  /** Millisecond gap used by `playback="stagger"`. Default is `100`. */
+  interval?: number;
+  /**
+   * Registers this view as an event-playable target for `Strx.useTimeline`.
+   *
+   * Must be unique within the nearest `Strx.LayoutRoot`.
+   */
+  strxId?: string;
 }
 
+/**
+ * Animated STRX container component.
+ *
+ * Use this as the default wrapper for animated cards, rows, panels, and layout
+ * regions. It supports all React Native `View` props plus STRX props such as
+ * `animate`, `layoutClip`, `layoutPropagation`, `playback`, `interval`, and
+ * `strxId`.
+ */
 export const View = forwardRef<React.ElementRef<typeof RNView>, CodexViewProps>(
   function CodexAnimatedView(props, ref) {
     return <AnimatedCodexView {...props} ref={ref} />;
@@ -148,6 +199,9 @@ const AnimatedCodexView = forwardRef<
     layoutClip = false,
     layoutPropagation = 'auto',
     onLayout,
+    playback = 'parallel',
+    interval = 100,
+    strxId,
     style,
     ...props
   },
@@ -157,6 +211,7 @@ const AnimatedCodexView = forwardRef<
   const layoutGroup = useLayoutGroup();
   const parentNode = useLayoutNode();
   const strxLayout = useStrxLayout();
+  const motion = useStrxMotion();
   const animatedRef = useAnimatedRef<React.ElementRef<typeof RNView>>();
   const combinedRef = useMemo(
     () =>
@@ -179,7 +234,13 @@ const AnimatedCodexView = forwardRef<
     () => getExitAnimation(exitTokenState),
     [exitTokenState],
   );
-  const animatedStyle = useCodexAnimation(styleAnimateProp, style);
+  const animationEngine = useCodexAnimationEngine(
+    styleAnimateProp,
+    style,
+    playback,
+    interval,
+  );
+  const animatedStyle = animationEngine.animatedStyle;
   const structuralChildDemand = useMemo(
     () => findStructuralLayoutDemand(children),
     [children],
@@ -199,7 +260,15 @@ const AnimatedCodexView = forwardRef<
     parentNode?.inheritedTransition ??
     layoutGroup?.defaultLayoutTransition ??
     stableNoOpTransition;
-  const activeLayout = reanimatedLayout;
+  const activeLayout = motion.isReduceMotionEnabled
+    ? stableNoOpTransition
+    : reanimatedLayout;
+
+  useEffect(() => {
+    if (typeof animate === 'string' && animate.length > MAX_ANIMATE_STRING_LENGTH) {
+      strxLayout?.reportDebugWarning('animate string exceeded 512 characters and was ignored.');
+    }
+  }, [animate, strxLayout]);
 
   useEffect(() => {
     if (!strxLayout) {
@@ -231,6 +300,18 @@ const AnimatedCodexView = forwardRef<
     parentNode?.parentId,
     strxLayout,
   ]);
+
+  useEffect(() => {
+    if (!strxLayout || !strxId) {
+      return;
+    }
+
+    strxLayout.registerPlayable(strxId, animationEngine.controller);
+
+    return () => {
+      strxLayout.unregisterPlayable(strxId);
+    };
+  }, [animationEngine.controller, strxId, strxLayout]);
 
   const mergedStyle = useMemo(() => {
     if (!hasActiveLayoutTransition || !layoutClip) {
@@ -280,6 +361,7 @@ interface PrefixParseState {
   delay?: number;
   easing?: string;
   repeat?: number | 'infinite';
+  playCount?: number | 'infinite';
   plainTokens: string;
 }
 
@@ -701,9 +783,10 @@ function parseStyleAnimateProp(animate: string): AnimateProp | undefined {
       to: Object.freeze({ ...state.to }),
       ...(state.duration === undefined ? null : { duration: state.duration }),
       ...(state.delay === undefined ? null : { delay: state.delay }),
-      ...(state.easing === undefined ? null : { easing: state.easing }),
-      ...(state.repeat === undefined ? null : { repeat: state.repeat }),
-    };
+    ...(state.easing === undefined ? null : { easing: state.easing }),
+    ...(state.repeat === undefined ? null : { repeat: state.repeat }),
+    ...(state.playCount === undefined ? null : { playCount: state.playCount }),
+  };
 
     return Object.freeze(result) as AnimateProp;
   } catch {
@@ -971,6 +1054,16 @@ function readTimingToken(state: PrefixParseState, token: string): void {
     return;
   }
 
+  if (token === 'play-infinite') {
+    state.playCount = 'infinite';
+    return;
+  }
+
+  if (token.startsWith('play-')) {
+    state.playCount = parsePlayCountSuffix(token);
+    return;
+  }
+
   if (
     token === 'linear' ||
     token === 'ease' ||
@@ -1163,6 +1256,18 @@ function parseNumericSuffix(token: string, prefix: string): number | undefined {
   }
 
   return parseUnsignedNumber(token.slice(prefix.length));
+}
+
+function parsePlayCountSuffix(token: string): number | 'infinite' | undefined {
+  if (token === 'play-infinite') {
+    return 'infinite';
+  }
+
+  const value = parseNumericSuffix(token, 'play-');
+
+  return value !== undefined && Number.isInteger(value) && value > 0
+    ? value
+    : undefined;
 }
 
 function parseUnsignedNumber(input: string): number | undefined {
