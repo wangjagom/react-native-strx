@@ -42,11 +42,9 @@ export { StrxMotionProvider, useStrxMotion } from './context/StrxMotionContext';
 export type {
   StrxLayoutDebugSnapshot,
   StrxLayoutContextType,
-  StrxLayoutDemand,
-  StrxLayoutPropagationMode,
-  StrxLayoutTransitionType,
-  StrxMeasuredNode,
 } from './context/StrxLayoutContext';
+export type { LayoutPropagationMode as StrxLayoutPropagationMode } from './core/layout';
+export type { LayoutTransitionType as StrxLayoutTransitionType } from './context/LayoutNodeContext';
 export type {
   StrxEasingName,
   StrxMotionContextValue,
@@ -62,7 +60,6 @@ export type {
   LayoutGroupContextValue,
   LayoutGroupProps,
   LayoutGroupTransition,
-  LayoutTransitionBuilder,
 } from './context/LayoutGroupContext';
 export { animationPresets, definePreset } from './core/presets';
 export type {

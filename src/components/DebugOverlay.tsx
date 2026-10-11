@@ -29,18 +29,14 @@ export interface StrxDebugOverlayProps {
 }
 
 interface DebugSnapshot {
-  nodeCount: number;
   playableCount: number;
-  influencedCount: number;
   normalizeCacheSize: number;
   lastEvent: string | null;
   warnings: readonly string[];
 }
 
 const EMPTY_SNAPSHOT: DebugSnapshot = Object.freeze({
-  nodeCount: 0,
   playableCount: 0,
-  influencedCount: 0,
   normalizeCacheSize: 0,
   lastEvent: null,
   warnings: Object.freeze([]),
@@ -121,9 +117,7 @@ export function DebugOverlay({
     const update = () => {
       const layoutSnapshot = layout?.getDebugSnapshot?.() ?? EMPTY_SNAPSHOT;
       setSnapshot({
-        nodeCount: layoutSnapshot.nodeCount,
         playableCount: layoutSnapshot.playableCount,
-        influencedCount: layoutSnapshot.influencedCount,
         normalizeCacheSize: getNormalizeAnimateCacheSize(),
         lastEvent: layoutSnapshot.lastEvent,
         warnings: layoutSnapshot.warnings,
@@ -317,9 +311,7 @@ export function DebugOverlay({
           </RNView>
 
           <RNView style={styles.grid}>
-            <Metric label="nodes" value={snapshot.nodeCount} />
             <Metric label="targets" value={snapshot.playableCount} />
-            <Metric label="influenced" value={snapshot.influencedCount} />
             <Metric label="cache" value={snapshot.normalizeCacheSize} />
           </RNView>
 

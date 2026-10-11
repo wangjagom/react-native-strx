@@ -67,6 +67,8 @@ export interface MotionSpec {
   exit?: MotionExit;
   transition?: MotionTransition;
   layout?: LayoutTransitionType;
+  /** Timing tokens from the group that declared `layout`. */
+  layoutTiming?: MotionTiming;
   /** Tokens that could not be understood. Reported once in development. */
   invalidTokens: readonly string[];
 }
@@ -137,6 +139,7 @@ function buildStringSpec(input: string): MotionSpec {
   let exit: MotionExit | undefined;
   let transition: MotionTransition | undefined;
   let layout: LayoutTransitionType | undefined;
+  let layoutTiming: MotionTiming | undefined;
 
   for (const part of input.split(',')) {
     const tokens = part.split(/\s+/).filter(token => token.length > 0);
@@ -176,7 +179,13 @@ function buildStringSpec(input: string): MotionSpec {
       const layoutType = LAYOUT_TOKENS.get(token);
 
       if (layoutType) {
-        layout = mergeLayoutTransition(layout, layoutType);
+        const merged = mergeLayoutTransition(layout, layoutType);
+
+        if (merged !== layout) {
+          layout = merged;
+          layoutTiming = timing;
+        }
+
         continue;
       }
 
@@ -226,7 +235,7 @@ function buildStringSpec(input: string): MotionSpec {
     groups,
     ...(exit ? { exit } : null),
     ...(transition ? { transition } : null),
-    ...(layout ? { layout } : null),
+    ...(layout ? { layout, layoutTiming: layoutTiming ?? {} } : null),
     invalidTokens,
   };
 }
@@ -342,20 +351,27 @@ function mergeSpecs(specs: readonly MotionSpec[]): MotionSpec {
   let exit: MotionExit | undefined;
   let transition: MotionTransition | undefined;
   let layout: LayoutTransitionType | undefined;
+  let layoutTiming: MotionTiming | undefined;
 
   for (const spec of specs) {
     groups.push(...spec.groups);
     invalidTokens.push(...spec.invalidTokens);
     exit = spec.exit ?? exit;
     transition = spec.transition ?? transition;
-    layout = mergeLayoutTransition(layout, spec.layout);
+
+    const merged = mergeLayoutTransition(layout, spec.layout);
+
+    if (merged !== layout) {
+      layout = merged;
+      layoutTiming = spec.layoutTiming;
+    }
   }
 
   return {
     groups,
     ...(exit ? { exit } : null),
     ...(transition ? { transition } : null),
-    ...(layout ? { layout } : null),
+    ...(layout ? { layout, layoutTiming: layoutTiming ?? {} } : null),
     invalidTokens,
   };
 }

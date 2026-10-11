@@ -177,8 +177,8 @@ Common STRX props:
 | `strxId`            | `string`                                  | `undefined`  | Registers the component as an event-playable target for `Strx.useTimeline`.                   |
 | `playback`          | `parallel`, `serial`, or `stagger`        | `parallel`   | Orchestrates array `animate` entries.                                                         |
 | `interval`          | `number`                                  | `100`        | Millisecond offset used by `playback="stagger"`.                                             |
-| `layoutClip`        | `boolean`                                 | `false`      | Injects `overflow: 'hidden'` while an active layout transition is running.                    |
-| `layoutPropagation` | `auto` or `none`                          | `auto`       | Use `none` to stop layout animation demand from bubbling past this subtree.                   |
+| `layoutClip`        | `boolean`                                 | `false`      | Injects `overflow: 'hidden'` while a layout transition applies to this node.                  |
+| `layoutPropagation` | `auto` or `none`                          | `auto`       | `none` ignores layout transitions inherited from ancestors (see Layout transitions).          |
 
 ### `Strx.Provider`
 
@@ -321,7 +321,7 @@ A wrapper for entrance choreography. It injects timing into child `animate` prop
 
 ### `Strx.LayoutRoot`
 
-Low-level root provider for event timelines and layout propagation. Most apps should use `Strx.Provider`; use `Strx.LayoutRoot` directly only when you want the registry without global motion settings.
+Low-level root provider for the event timeline registry (`strxId` + `Strx.useTimeline`). Most apps should use `Strx.Provider`, which includes it; use `Strx.LayoutRoot` directly only when you want the registry without global motion settings.
 
 ```tsx
 <Strx.LayoutRoot>
@@ -331,12 +331,13 @@ Low-level root provider for event timelines and layout propagation. Most apps sh
 
 ### `Strx.LayoutGroup`
 
-A provider that gives descendants a shared default layout transition. Use it when nearby components should animate size and position changes as one coordinated region.
+A provider that gives every STRX descendant a shared layout transition. Use it when nearby components should animate size and position changes as one coordinated region, without adding a `layout-*` token to each of them. The nearest group wins over transitions inherited from STRX ancestors outside it.
 
 ```tsx
-<Strx.LayoutGroup transition="spring" duration={420} damping={16}>
-  <Strx.View animate="layout-spring" />
-  <Strx.View animate="layout-spring" />
+<Strx.LayoutGroup transition="spring" damping={16}>
+  {items.map(item => (
+    <Strx.View key={item.id} animate="exit:opacity-0" />
+  ))}
 </Strx.LayoutGroup>
 ```
 
@@ -346,7 +347,7 @@ A provider that gives descendants a shared default layout transition. Use it whe
 | ------------ | -------------------- | -------------------- | ------------------------------------------------------ |
 | `id`         | `string`             | `undefined`          | Optional identifier for debugging or coordination.     |
 | `transition` | `linear` or `spring` | `linear`             | Default layout transition inherited by descendants.    |
-| `duration`   | `number`             | `300` or `400`       | Transition duration in milliseconds.                   |
+| `duration`   | `number`             | `300`                | Duration in milliseconds for `transition="linear"`.    |
 | `damping`    | `number`             | `15`                 | Spring damping when `transition="spring"`.             |
 | `children`   | `ReactNode`          | required             | Descendant STRX nodes that share the transition.       |
 
@@ -557,13 +558,13 @@ Layout tokens are passed to Reanimated's `layout` prop through stable worklet tr
 
 | Token                  | Behavior                                                                   |
 | ---------------------- | -------------------------------------------------------------------------- |
-| `layout-linear`        | 300ms timing layout transition.                                            |
+| `layout-linear`        | Timing layout transition (300ms, or `duration-*` / provider duration).     |
 | `layout-spring`        | Spring layout transition with damping 15, stiffness 120, mass 1.           |
-| `layout-fade`          | 300ms timing layout transition with opacity fade-in.                       |
+| `layout-fade`          | Timing layout transition with an opacity fade-in.                          |
 | `layout-spring-stiff`  | Stiffer spring layout transition with damping 20, stiffness 180, mass 0.9. |
 | `layout-spring-bouncy` | Bouncier spring layout transition with damping 10, stiffness 105, mass 1.  |
 
-`layout` is never toggled to `undefined`; inactive nodes receive a stable no-op layout worklet to keep the Reanimated native layout tree stable.
+Components without a layout transition get no Reanimated `layout` prop at all, so they carry no layout-animation cost. Once a component has had a layout transition, it keeps a no-op transition instead of toggling the prop back off.
 
 ### Component props
 
@@ -732,6 +733,15 @@ Supported transition tokens:
 </Strx.View>
 ```
 
+A STRX component animates its size and position changes when:
+
+1. it has its own `layout-*` token, or
+2. it inherits one: from the nearest STRX ancestor that has a layout transition, or from the nearest `Strx.LayoutGroup`.
+
+Inheritance only flows **down**. A child with a `layout-*` token does not make its parent animate; when content appearing inside a container should also resize the container smoothly, put the token on the container (as above) or wrap the region in `Strx.LayoutGroup`.
+
+`duration-*` tokens in the same group set the duration of `layout-linear` and `layout-fade`; otherwise `Strx.Provider`'s `motionPreset.duration` or 300ms is used. Springs use their own parameters.
+
 Supported layout tokens:
 
 - `layout-linear`
@@ -742,19 +752,38 @@ Supported layout tokens:
 
 ## Layout isolation
 
-Use `layoutPropagation="none"` to isolate untrusted or independent subtrees:
+Use `layoutPropagation="none"` to stop inherited layout transitions at a component. It then only uses its own `layout-*` token, and its descendants only inherit that:
 
 ```tsx
-<Strx.View layoutPropagation="none">
-  <Strx.View animate="layout-spring">
-    <Strx.Text>This layout demand stays inside this boundary.</Strx.Text>
+<Strx.View animate="layout-spring">
+  <Strx.View layoutPropagation="none">
+    <Strx.Text>Layout changes here are not animated.</Strx.Text>
   </Strx.View>
 </Strx.View>
 ```
 
+## Long lists
+
+For long scrolling lists, prefer Reanimated's `Animated.FlatList` with `itemLayoutAnimation` over a `layout-*` token on every row. Rows can still use STRX for entrance and exit animations:
+
+```tsx
+import Animated, { LinearTransition } from "react-native-reanimated";
+
+<Animated.FlatList
+  data={items}
+  keyExtractor={item => item.id}
+  itemLayoutAnimation={LinearTransition}
+  renderItem={({ item }) => (
+    <Strx.View animate="fade-in exit:opacity-0">
+      <Row item={item} />
+    </Strx.View>
+  )}
+/>;
+```
+
 ## Clipping
 
-`layoutClip` is opt-in. By default, STRX does not inject `overflow: 'hidden'` so text is not clipped unexpectedly.
+`layoutClip` is opt-in. By default, STRX does not inject `overflow: 'hidden'` so text is not clipped unexpectedly. It only applies while the component has a layout transition (its own or inherited).
 
 ```tsx
 <Strx.View animate="layout-spring" layoutClip>
@@ -764,7 +793,7 @@ Use `layoutPropagation="none"` to isolate untrusted or independent subtrees:
 
 ## Production notes
 
-- Use `Strx.LayoutRoot` near the screen or app root.
+- Use `Strx.Provider` (or `Strx.LayoutRoot`) near the app root when using `strxId` and `Strx.useTimeline`.
 - Prefer the namespace API, such as `Strx.View`, `Strx.Text`, `Strx.Pressable`, `Strx.Image`, `Strx.ScrollView`, and `Strx.TextInput`, for animated regions.
 - Alias exports are also available for teams that prefer named imports.
 - Keep `react-native-worklets/plugin` last in your Babel plugins.

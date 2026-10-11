@@ -40,6 +40,7 @@ describe('parseAnimate', () => {
         timing: { duration: 250, easing: 'ease-in' },
       },
       layout: 'spring',
+      layoutTiming: { duration: 250, easing: 'ease-in' },
       invalidTokens: [],
     });
   });

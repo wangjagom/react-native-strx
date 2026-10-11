@@ -1,7 +1,5 @@
 import React, {
   forwardRef,
-  useEffect,
-  useId,
   useMemo,
   type ComponentType,
   type ReactNode,
@@ -10,30 +8,11 @@ import React, {
 import type { ImageStyle, StyleProp, TextStyle, ViewStyle } from 'react-native';
 import Animated, { useAnimatedRef } from 'react-native-reanimated';
 
-import { useCodexAnimationEngine } from '../core/useCodexAnimation';
-import { useLayoutGroup } from '../context/LayoutGroupContext';
-import {
-  LayoutNodeContext,
-  noopRegisterLayoutDemand,
-  useLayoutNode,
-} from '../context/LayoutNodeContext';
-import {
-  useStrxLayout,
-  type AnimatedRefLike,
-} from '../context/StrxLayoutContext';
-import { useStrxMotion } from '../context/StrxMotionContext';
+import { LayoutNodeContext } from '../context/LayoutNodeContext';
+import type { LayoutPropagationMode } from '../core/layout';
 import type { AnimateProp, PlaybackMode } from '../types/animate';
-import {
-  findStructuralLayoutDemand,
-  getExitAnimation,
-  getExitTokenState,
-  getLayoutTokenState,
-  getLayoutTransition,
-  LAYOUT_CLIP_STYLE,
-  mergeRefs,
-  stableNoOpTransition,
-  type LayoutPropagationMode,
-} from './View';
+import { mergeRefs } from '../utils/refs';
+import { LAYOUT_CLIP_STYLE, useStrxMotionProps } from './useStrxMotionProps';
 
 /**
  * Style shapes supported by generated STRX components.
@@ -61,9 +40,12 @@ export interface StrxComponentOptions {
 export type StrxComponentProps<Props extends object> = Omit<Props, 'style'> & {
   /** Animation declaration for this component. */
   animate?: AnimateProp;
-  /** Clips overflowing children while an active layout transition is running. */
+  /** Clips overflowing children while a layout transition applies to this node. */
   layoutClip?: boolean;
-  /** Controls whether child layout animation demand bubbles past this node. */
+  /**
+   * `none` ignores layout transitions inherited from ancestors; descendants
+   * then only inherit this node's own `layout-*` transition.
+   */
   layoutPropagation?: LayoutPropagationMode;
   /** Orchestrates array `animate` entries. */
   playback?: PlaybackMode;
@@ -83,7 +65,6 @@ interface InternalStrxProps {
   playback?: PlaybackMode;
   interval?: number;
   strxId?: string;
-  onLayout?: unknown;
   style?: StrxAnimatedStyle;
   [key: string]: unknown;
 }
@@ -111,135 +92,44 @@ export function createStrxComponent<Props extends object, RefType = unknown>(
       const {
         animate,
         children,
-        layoutClip = false,
-        layoutPropagation = 'auto',
-        onLayout,
-        playback = 'parallel',
-        interval = 100,
+        layoutClip,
+        layoutPropagation,
+        playback,
+        interval,
         strxId,
         style,
         ...props
       } = rawProps as InternalStrxProps;
-      const nodeId = useId();
-      const layoutGroup = useLayoutGroup();
-      const parentNode = useLayoutNode();
-      const strxLayout = useStrxLayout();
-      const motion = useStrxMotion();
       const animatedRef = useAnimatedRef<any>();
       const combinedRef = useMemo(
         () => mergeRefs<RefType>(animatedRef as unknown as Ref<RefType>, ref),
         [animatedRef, ref],
       );
-      const layoutTokenState = useMemo(
-        () => getLayoutTokenState(animate),
-        [animate],
-      );
-      const exitTokenState = useMemo(
-        () => getExitTokenState(animate),
-        [animate],
-      );
-      const exitingAnimation = useMemo(
-        () => getExitAnimation(exitTokenState),
-        [exitTokenState],
-      );
-      const animationEngine = useCodexAnimationEngine(
+      const motion = useStrxMotionProps({
         animate,
         style,
         playback,
         interval,
-      );
-      const animatedStyle = animationEngine.animatedStyle;
-      const structuralChildDemand = useMemo(
-        () => findStructuralLayoutDemand(children),
-        [children],
-      );
-      const effectiveDemand =
-        layoutTokenState.explicitTransitionType ?? structuralChildDemand;
-      const hasInheritedLayoutTransition =
-        parentNode?.isInsideActiveReflowZone === true ||
-        layoutGroup?.isInsideGroup === true;
-      const hasActiveLayoutTransition =
-        effectiveDemand !== null || hasInheritedLayoutTransition;
-      const localDemandTransition = effectiveDemand
-        ? getLayoutTransition(effectiveDemand)
-        : undefined;
-      const activeLayout = motion.isReduceMotionEnabled
-        ? stableNoOpTransition
-        : (localDemandTransition ??
-          parentNode?.inheritedTransition ??
-          layoutGroup?.defaultLayoutTransition ??
-          stableNoOpTransition);
-
-      useEffect(() => {
-        if (!strxLayout) {
-          return;
-        }
-
-        strxLayout.registerNode({
-          nodeId,
-          parentId: parentNode?.parentId ?? null,
-          layoutPropagation,
-          animatedRef: animatedRef as AnimatedRefLike,
-        });
-
-        if (effectiveDemand) {
-          strxLayout.publishLayoutDemand({
-            sourceId: nodeId,
-            transitionType: effectiveDemand,
-          });
-        }
-
-        return () => {
-          strxLayout.unregisterNode(nodeId);
-        };
-      }, [
-        animatedRef,
-        effectiveDemand,
+        strxId,
+        layoutClip,
         layoutPropagation,
-        nodeId,
-        parentNode?.parentId,
-        strxLayout,
-      ]);
-
-      useEffect(() => {
-        if (!strxLayout || !strxId) {
-          return;
-        }
-
-        strxLayout.registerPlayable(strxId, animationEngine.controller);
-
-        return () => {
-          strxLayout.unregisterPlayable(strxId);
-        };
-      }, [animationEngine.controller, strxId, strxLayout]);
-
-      const mergedStyle = useMemo(() => {
-        if (!hasActiveLayoutTransition || !layoutClip) {
-          return [style, animatedStyle];
-        }
-
-        return [style, LAYOUT_CLIP_STYLE, animatedStyle];
-      }, [animatedStyle, hasActiveLayoutTransition, layoutClip, style]);
-
-      const nodeContextValue = useMemo(
-        () => ({
-          parentId: nodeId,
-          registerLayoutDemand: noopRegisterLayoutDemand,
-          isInsideActiveReflowZone: true,
-          inheritedTransition: activeLayout,
-        }),
-        [activeLayout, nodeId],
+      });
+      const mergedStyle = useMemo(
+        () =>
+          motion.clip
+            ? [style, LAYOUT_CLIP_STYLE, motion.animatedStyle]
+            : [style, motion.animatedStyle],
+        [motion.animatedStyle, motion.clip, style],
       );
 
       return (
-        <LayoutNodeContext.Provider value={nodeContextValue}>
+        <LayoutNodeContext.Provider value={motion.nodeContextValue}>
           <AnimatedComponent
             {...props}
             ref={combinedRef}
             collapsable={false}
-            layout={activeLayout}
-            exiting={exitingAnimation}
-            onLayout={onLayout}
+            layout={motion.layout}
+            exiting={motion.exiting}
             style={mergedStyle}
           >
             {children}

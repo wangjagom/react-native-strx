@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useMemo } from 'react';
+import React, { forwardRef, useMemo } from 'react';
 import {
   Pressable as RNPressable,
   type PressableProps as RNPressableProps,
@@ -6,13 +6,9 @@ import {
 } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { useCodexAnimationEngine } from '../core/useCodexAnimation';
-import { useLayoutGroup } from '../context/LayoutGroupContext';
-import { useLayoutNode } from '../context/LayoutNodeContext';
-import { useStrxLayout } from '../context/StrxLayoutContext';
-import { useStrxMotion } from '../context/StrxMotionContext';
+import type { LayoutPropagationMode } from '../core/layout';
 import type { AnimateProp, PlaybackMode } from '../types/animate';
-import { stableNoOpTransition, type LayoutPropagationMode } from './View';
+import { useStrxMotionProps } from './useStrxMotionProps';
 
 const AnimatedPressable = Animated.createAnimatedComponent(RNPressable);
 
@@ -64,57 +60,22 @@ export const Pressable = forwardRef<
     animate,
     layoutClip: _layoutClip,
     layoutPropagation: _layoutPropagation,
-    playback = 'parallel',
-    interval = 100,
+    playback,
+    interval,
     strxId,
     style,
     ...props
   },
   ref,
 ) {
-  const layoutGroup = useLayoutGroup();
-  const layoutNode = useLayoutNode();
-  const strxLayout = useStrxLayout();
-  const motion = useStrxMotion();
-  const inheritedTransition =
-    layoutNode?.inheritedTransition ?? layoutGroup?.defaultLayoutTransition;
-  const hasActiveLayoutTransition =
-    layoutNode?.isInsideActiveReflowZone === true ||
-    layoutGroup?.isInsideGroup === true;
-
-  const layout = useMemo(() => {
-    if (motion.isReduceMotionEnabled) {
-      return stableNoOpTransition;
-    }
-
-    return hasActiveLayoutTransition
-      ? (inheritedTransition ?? stableNoOpTransition)
-      : stableNoOpTransition;
-  }, [
-    hasActiveLayoutTransition,
-    inheritedTransition,
-    motion.isReduceMotionEnabled,
-  ]);
-  const staticStyle = typeof style === 'function' ? undefined : style;
-  const animationEngine = useCodexAnimationEngine(
+  const motion = useStrxMotionProps({
     animate,
-    staticStyle,
+    style: typeof style === 'function' ? undefined : style,
     playback,
     interval,
-  );
-  const animatedStyle = animationEngine.animatedStyle;
-
-  useEffect(() => {
-    if (!strxLayout || !strxId) {
-      return;
-    }
-
-    strxLayout.registerPlayable(strxId, animationEngine.controller);
-
-    return () => {
-      strxLayout.unregisterPlayable(strxId);
-    };
-  }, [animationEngine.controller, strxId, strxLayout]);
+    strxId,
+  });
+  const { animatedStyle } = motion;
   const mergedStyle = useMemo(() => {
     if (typeof style === 'function') {
       return (state: PressableStateCallbackType) => [
@@ -130,10 +91,11 @@ export const Pressable = forwardRef<
     <AnimatedPressable
       {...props}
       ref={ref}
-      layout={layout}
+      layout={motion.layout}
+      exiting={motion.exiting}
       style={mergedStyle}
     />
   );
 });
 
-Pressable.displayName = 'CodexAnimatedPressable';
+Pressable.displayName = 'Strx.Pressable';

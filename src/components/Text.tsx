@@ -1,14 +1,10 @@
-import React, { forwardRef, useEffect, useMemo } from 'react';
+import React, { forwardRef } from 'react';
 import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { useCodexAnimationEngine } from '../core/useCodexAnimation';
-import { useLayoutGroup } from '../context/LayoutGroupContext';
-import { useLayoutNode } from '../context/LayoutNodeContext';
-import { useStrxLayout } from '../context/StrxLayoutContext';
-import { useStrxMotion } from '../context/StrxMotionContext';
+import type { LayoutPropagationMode } from '../core/layout';
 import type { AnimateProp, PlaybackMode } from '../types/animate';
-import { stableNoOpTransition, type LayoutPropagationMode } from './View';
+import { useStrxMotionProps } from './useStrxMotionProps';
 
 /**
  * Props for `Strx.Text`.
@@ -56,66 +52,32 @@ export const Text = forwardRef<React.ElementRef<typeof RNText>, CodexTextProps>(
       animate,
       layoutClip: _layoutClip,
       layoutPropagation: _layoutPropagation,
-      playback = 'parallel',
-      interval = 100,
+      playback,
+      interval,
       strxId,
       style,
       ...props
     },
     ref,
   ) {
-    const layoutGroup = useLayoutGroup();
-    const layoutNode = useLayoutNode();
-    const strxLayout = useStrxLayout();
-    const motion = useStrxMotion();
-    const inheritedTransition =
-      layoutNode?.inheritedTransition ?? layoutGroup?.defaultLayoutTransition;
-    const hasActiveLayoutTransition =
-      layoutNode?.isInsideActiveReflowZone === true ||
-      layoutGroup?.isInsideGroup === true;
-
-    const layout = useMemo(() => {
-      if (motion.isReduceMotionEnabled) {
-        return stableNoOpTransition;
-      }
-
-      return hasActiveLayoutTransition
-        ? (inheritedTransition ?? stableNoOpTransition)
-        : stableNoOpTransition;
-    }, [
-      hasActiveLayoutTransition,
-      inheritedTransition,
-      motion.isReduceMotionEnabled,
-    ]);
-    const animationEngine = useCodexAnimationEngine(
+    const motion = useStrxMotionProps({
       animate,
       style,
       playback,
       interval,
-    );
-    const animatedStyle = animationEngine.animatedStyle;
-
-    useEffect(() => {
-      if (!strxLayout || !strxId) {
-        return;
-      }
-
-      strxLayout.registerPlayable(strxId, animationEngine.controller);
-
-      return () => {
-        strxLayout.unregisterPlayable(strxId);
-      };
-    }, [animationEngine.controller, strxId, strxLayout]);
+      strxId,
+    });
 
     return (
       <Animated.Text
         {...props}
         ref={ref}
-        layout={layout}
-        style={[style, animatedStyle]}
+        layout={motion.layout}
+        exiting={motion.exiting}
+        style={[style, motion.animatedStyle]}
       />
     );
   },
 );
 
-Text.displayName = 'CodexAnimatedText';
+Text.displayName = 'Strx.Text';
