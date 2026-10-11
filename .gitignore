@@ -25,5 +25,3 @@ pnpm-debug.log*
 
 # package managers
 .pnpm-store/
-example/
-StrxExampleApp/

@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "STRX Example",
+    "slug": "react-native-strx-example",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "dev.strx.example"
+    },
+    "android": {
+      "package": "dev.strx.example"
+    }
+  }
+}
