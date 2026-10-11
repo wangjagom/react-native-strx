@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import type { AnimateProp, PlaybackMode } from '../types/animate';
-import { useStrxLayout } from '../context/StrxLayoutContext';
+import { useTimelineRegistry } from '../context/TimelineRegistry';
 import { useStrxMotion } from '../context/StrxMotionContext';
 import {
-  compileCodexAnimation,
-  estimateCodexAnimationDelay,
-  estimateCodexAnimationDuration,
-  type CodexCompiledAnimation,
-} from './useCodexAnimation';
+  compileAnimation,
+  estimateAnimationDelay,
+  estimateAnimationDuration,
+  type StrxCompiledAnimation,
+} from './engine';
 
 /**
  * A single event-playable animation target for `Strx.useTimeline`.
@@ -18,7 +18,7 @@ export interface StrxTimelinePlayable {
    * Target component ID.
    *
    * This must match the `strxId` prop on a STRX component inside the nearest
-   * `Strx.LayoutRoot`.
+   * `Strx.TimelineRoot`.
    */
   target: string;
   /**
@@ -60,8 +60,9 @@ export interface UseTimelineOptions {
    */
   playables: readonly StrxTimelinePlayable[];
   /**
-   * Called once after a finite `play()` or `reverse()` timeline is expected to finish.
-   * Infinite timelines do not call this callback.
+   * Called once after every target of a finite `play()` or `reverse()` has
+   * finished. Not called for infinite timelines, or when the run is stopped,
+   * reset, or replaced by another `play()`/`reverse()` first.
    */
   onComplete?: () => void;
 }
@@ -92,7 +93,7 @@ export interface StrxTimelineController {
 
 interface CompiledTimelinePlayable {
   target: string;
-  animation: CodexCompiledAnimation;
+  animation: StrxCompiledAnimation;
   offset: number;
 }
 
@@ -101,7 +102,7 @@ const DEFAULT_TIMELINE_INTERVAL = 100;
 /**
  * Creates an event-driven animation controller.
  *
- * `useTimeline` must run under `Strx.LayoutRoot`, because the root owns the
+ * `useTimeline` must run under `Strx.TimelineRoot`, because the root owns the
  * registry that connects `playables[].target` to component `strxId` values.
  */
 export function useTimeline({
@@ -111,123 +112,110 @@ export function useTimeline({
   playables,
   onComplete,
 }: UseTimelineOptions): StrxTimelineController {
-  const strxLayout = useStrxLayout();
+  const strxLayout = useTimelineRegistry();
   const motion = useStrxMotion();
-  const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const compiledPlayables = useMemo(
-    () => compileTimelinePlayables(playables, playback, interval, {
-      duration: motion.duration,
-      easing: motion.easing,
-      reduceMotionEnabled: motion.isReduceMotionEnabled,
-    }),
-    [interval, motion.duration, motion.easing, motion.isReduceMotionEnabled, playback, playables],
+    () =>
+      compileTimelinePlayables(playables, playback, interval, {
+        duration: motion.duration,
+        easing: motion.easing,
+        reduceMotionEnabled: motion.isReduceMotionEnabled,
+      }),
+    [
+      interval,
+      motion.duration,
+      motion.easing,
+      motion.isReduceMotionEnabled,
+      playback,
+      playables,
+    ],
   );
 
-  const clearCompleteTimer = useCallback(() => {
-    if (completeTimerRef.current !== null) {
-      clearTimeout(completeTimerRef.current);
-      completeTimerRef.current = null;
-    }
-  }, []);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  // Each play/reverse starts a new run; callbacks from older runs are ignored.
+  const runIdRef = useRef(0);
 
-  const scheduleComplete = useCallback(() => {
-    clearCompleteTimer();
-
-    if (!onComplete || playCount === 'infinite') {
-      return;
-    }
-
-    const duration = getTimelineTotalDuration(compiledPlayables, playCount);
-
-    if (!Number.isFinite(duration)) {
-      return;
-    }
-
-    completeTimerRef.current = setTimeout(() => {
-      completeTimerRef.current = null;
-      onComplete();
-    }, duration);
-  }, [clearCompleteTimer, compiledPlayables, onComplete, playCount]);
-
-  const play = useCallback(() => {
-    if (!strxLayout) {
-      return;
-    }
-
-    clearCompleteTimer();
-    strxLayout.reportDebugEvent(`timeline play ${playback}`);
-
-    for (const playable of compiledPlayables) {
-      const controller = strxLayout.getPlayable(playable.target);
-
-      if (!controller) {
-        strxLayout.reportDebugWarning('Timeline target was not registered. Check strxId.');
-        continue;
+  const start = useCallback(
+    (direction: 'play' | 'reverse') => {
+      if (!strxLayout) {
+        return;
       }
 
-      controller.play(playable.animation, {
-        offset: playable.offset,
-        playCount,
+      runIdRef.current += 1;
+      const runId = runIdRef.current;
+      strxLayout.reportDebugEvent(`timeline ${direction} ${playback}`);
+
+      const controllers = compiledPlayables.flatMap(playable => {
+        const controller = strxLayout.getPlayable(playable.target);
+
+        if (!controller) {
+          strxLayout.reportDebugWarning(
+            'Timeline target was not registered. Check strxId.',
+          );
+          return [];
+        }
+
+        return [{ controller, playable }];
       });
-    }
+      let pending = controllers.length;
+      const onFinish =
+        playCount === 'infinite'
+          ? undefined
+          : () => {
+              pending -= 1;
 
-    scheduleComplete();
-  }, [clearCompleteTimer, compiledPlayables, playCount, playback, scheduleComplete, strxLayout]);
+              if (pending === 0 && runIdRef.current === runId) {
+                onCompleteRef.current?.();
+              }
+            };
 
-  const reverse = useCallback(() => {
-    if (!strxLayout) {
-      return;
-    }
-
-    clearCompleteTimer();
-    strxLayout.reportDebugEvent(`timeline reverse ${playback}`);
-
-    for (const playable of compiledPlayables) {
-      const controller = strxLayout.getPlayable(playable.target);
-
-      if (!controller) {
-        strxLayout.reportDebugWarning('Timeline target was not registered. Check strxId.');
-        continue;
+      for (const { controller, playable } of controllers) {
+        controller[direction](playable.animation, {
+          offset: playable.offset,
+          playCount,
+          onFinish,
+        });
       }
+    },
+    [compiledPlayables, playCount, playback, strxLayout],
+  );
 
-      controller.reverse(playable.animation, {
-        offset: playable.offset,
-        playCount,
-      });
-    }
-
-    scheduleComplete();
-  }, [clearCompleteTimer, compiledPlayables, playCount, playback, scheduleComplete, strxLayout]);
+  const play = useCallback(() => start('play'), [start]);
+  const reverse = useCallback(() => start('reverse'), [start]);
 
   const reset = useCallback(() => {
     if (!strxLayout) {
       return;
     }
 
-    clearCompleteTimer();
+    runIdRef.current += 1;
     strxLayout.reportDebugEvent('timeline reset');
 
     for (const playable of compiledPlayables) {
       strxLayout.getPlayable(playable.target)?.reset(playable.animation);
     }
-  }, [clearCompleteTimer, compiledPlayables, strxLayout]);
+  }, [compiledPlayables, strxLayout]);
 
   const stop = useCallback(() => {
     if (!strxLayout) {
       return;
     }
 
-    clearCompleteTimer();
+    runIdRef.current += 1;
     strxLayout.reportDebugEvent('timeline stop');
 
     for (const playable of compiledPlayables) {
       strxLayout.getPlayable(playable.target)?.stop();
     }
-  }, [clearCompleteTimer, compiledPlayables, strxLayout]);
+  }, [compiledPlayables, strxLayout]);
 
-  useEffect(() => {
-    return clearCompleteTimer;
-  }, [clearCompleteTimer]);
+  useEffect(
+    () => () => {
+      runIdRef.current += 1;
+    },
+    [],
+  );
 
   return useMemo(
     () => ({
@@ -258,7 +246,7 @@ function compileTimelinePlayables(
       continue;
     }
 
-    const animation = compileCodexAnimation(playable.animate, compileOptions);
+    const animation = compileAnimation(playable.animate, compileOptions);
 
     if (!animation) {
       continue;
@@ -278,7 +266,7 @@ function compileTimelinePlayables(
     });
 
     if (playback === 'serial') {
-      const duration = estimateCodexAnimationDuration(animation);
+      const duration = estimateAnimationDuration(animation);
 
       if (!Number.isFinite(duration)) {
         break;
@@ -286,48 +274,11 @@ function compileTimelinePlayables(
 
       serialOffset += duration;
     } else if (playback === 'stagger') {
-      staggerDelayCarry += estimateCodexAnimationDelay(animation);
+      staggerDelayCarry += estimateAnimationDelay(animation);
     }
   }
 
   return compiled;
-}
-
-function getTimelineTotalDuration(
-  playables: readonly CompiledTimelinePlayable[],
-  playCount: number | 'infinite' | undefined,
-): number {
-  let total = 0;
-
-  for (const playable of playables) {
-    const duration = getAnimationDuration(playable.animation, playCount);
-
-    if (!Number.isFinite(duration)) {
-      return Infinity;
-    }
-
-    total = Math.max(total, playable.offset + duration);
-  }
-
-  return total;
-}
-
-function getAnimationDuration(
-  animation: CodexCompiledAnimation,
-  playCount: number | 'infinite' | undefined,
-): number {
-  if (playCount === undefined) {
-    return estimateCodexAnimationDuration(animation);
-  }
-
-  if (playCount === 'infinite') {
-    return Infinity;
-  }
-
-  const count = Number.isFinite(playCount) && playCount > 0 ? playCount : 1;
-
-  return Math.max(0, animation.plan.delay) +
-    Math.max(0, animation.plan.duration) * count;
 }
 
 function isSafeTarget(target: string): boolean {

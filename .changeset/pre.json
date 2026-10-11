@@ -1,0 +1,14 @@
+{
+  "mode": "pre",
+  "tag": "beta",
+  "initialVersions": {
+    "react-native-strx": "0.1.15"
+  },
+  "changesets": [
+    "phase-0-tooling",
+    "phase-1-parser",
+    "phase-2-engine",
+    "phase-3-layout",
+    "phase-4-api"
+  ]
+}

@@ -7,10 +7,15 @@ import React, {
   type ReactNode,
 } from 'react';
 
-import { animationPresets } from '../core/presets';
+import { getPreset } from '../core/presets';
 import { normalizeAnimate, type StandardAnimConfig } from '../parser/normalize';
-import type { AnimateObject, AnimateProp, PlaybackMode } from '../types/animate';
-import { View, type CodexViewProps } from './View';
+import { parseUnsignedNumber } from '../parser/tokens';
+import type {
+  AnimateObject,
+  AnimateProp,
+  PlaybackMode,
+} from '../types/animate';
+import { View, type StrxViewProps } from './View';
 
 /**
  * Props for `Strx.Timeline`.
@@ -20,8 +25,10 @@ import { View, type CodexViewProps } from './View';
  * several child components should appear together, one after another, or with a
  * staggered delay.
  */
-export interface TimelineProps
-  extends Omit<CodexViewProps, 'animate' | 'children' | 'playback' | 'interval'> {
+export interface StrxTimelineProps extends Omit<
+  StrxViewProps,
+  'animate' | 'children' | 'playback' | 'interval'
+> {
   /**
    * How child animations are scheduled.
    *
@@ -74,14 +81,15 @@ export function Timeline({
   playCount,
   children,
   ...props
-}: TimelineProps) {
+}: StrxTimelineProps) {
   const orchestratedChildren = useMemo(() => {
     const childList = Children.toArray(children);
     const childOffsets: number[] = [];
     const childDurations: number[] = [];
     let serialOffset = 0;
     let staggerDelayCarry = 0;
-    const safeInterval = Number.isFinite(interval) && interval > 0 ? interval : 0;
+    const safeInterval =
+      Number.isFinite(interval) && interval > 0 ? interval : 0;
 
     for (let index = 0; index < childList.length; index += 1) {
       const child = childList[index];
@@ -111,7 +119,10 @@ export function Timeline({
       }
     }
 
-    const cycleDuration = getTimelineCycleDuration(childOffsets, childDurations);
+    const cycleDuration = getTimelineCycleDuration(
+      childOffsets,
+      childDurations,
+    );
 
     return childList.map((child, index) => {
       if (!isValidElement<TimelineChildProps>(child)) {
@@ -120,11 +131,7 @@ export function Timeline({
 
       const animate = child.props.animate;
       const offset = childOffsets[index] ?? 0;
-      const nextAnimate = createTimelineAnimate(
-        animate,
-        offset,
-        playCount,
-      );
+      const nextAnimate = createTimelineAnimate(animate, offset, playCount);
       const playbackProps =
         typeof playCount === 'number' && playCount > 1
           ? { playback: 'stagger' as PlaybackMode, interval: cycleDuration }
@@ -140,7 +147,7 @@ export function Timeline({
   return <View {...props}>{orchestratedChildren}</View>;
 }
 
-Timeline.displayName = 'StrxTimeline';
+Timeline.displayName = 'Strx.Timeline';
 
 function createTimelineAnimate(
   animate: AnimateProp | undefined,
@@ -202,22 +209,57 @@ function applyTimelineControls(
   return animate;
 }
 
+/**
+ * Adds timeline controls to every comma-separated group of a token string.
+ *
+ * The delay offset is added to a group's own `delay-*` value instead of
+ * replacing it, matching how object entries are offset.
+ */
 function appendControlTokens(
   animate: string,
   delayOffset: number,
   playCount: number | 'infinite' | undefined,
 ): string {
-  let result = animate;
+  return animate
+    .split(',')
+    .map(part => {
+      const tokens = part.split(/\s+/).filter(token => token.length > 0);
 
-  if (delayOffset > 0) {
-    result = `${result} delay-${Math.round(delayOffset)}`;
-  }
+      if (tokens.length === 0) {
+        return '';
+      }
 
-  if (playCount !== undefined) {
-    result = `${result} ${playCount === 'infinite' ? 'play-infinite' : `play-${playCount}`}`;
-  }
+      let ownDelay = 0;
+      const kept =
+        delayOffset > 0
+          ? tokens.filter(token => {
+              const delay = token.startsWith('delay-')
+                ? parseUnsignedNumber(token.slice('delay-'.length))
+                : undefined;
 
-  return result;
+              if (delay === undefined) {
+                return true;
+              }
+
+              ownDelay = delay;
+              return false;
+            })
+          : tokens;
+
+      if (delayOffset > 0) {
+        kept.push(`delay-${Math.round(ownDelay + delayOffset)}`);
+      }
+
+      if (playCount !== undefined) {
+        kept.push(
+          playCount === 'infinite' ? 'play-infinite' : `play-${playCount}`,
+        );
+      }
+
+      return kept.join(' ');
+    })
+    .filter(part => part.length > 0)
+    .join(', ');
 }
 
 function estimateAnimateDuration(
@@ -234,7 +276,8 @@ function estimateAnimateDuration(
   for (const config of configs) {
     const duration = getConfigDuration(config);
     const delay = getNumberValue(config.delay);
-    const playCount = timelinePlayCount ?? config.playCount ?? config.repeat ?? 1;
+    const playCount =
+      timelinePlayCount ?? config.playCount ?? config.repeat ?? 1;
 
     if (playCount === 'infinite') {
       return Number.POSITIVE_INFINITY;
@@ -285,7 +328,9 @@ function getConfigDuration(config: StandardAnimConfig): number {
   }
 
   if ('type' in config && typeof config.type === 'string') {
-    return animationPresets[config.type]?.options.duration ?? DEFAULT_TIMELINE_DURATION;
+    return (
+      getPreset(config.type)?.options.duration ?? DEFAULT_TIMELINE_DURATION
+    );
   }
 
   return DEFAULT_TIMELINE_DURATION;

@@ -1,5 +1,8 @@
 import type React from 'react';
-import { Image as RNImage, type ImageProps as RNImageProps } from 'react-native';
+import {
+  Image as RNImage,
+  type ImageProps as RNImageProps,
+} from 'react-native';
 
 import {
   createStrxComponent,
@@ -12,7 +15,7 @@ import {
  * Includes the normal React Native `Image` props, such as `source`,
  * `resizeMode`, `onLoad`, `onError`, and `style`, plus STRX animation props.
  */
-export type CodexImageProps = StrxComponentProps<RNImageProps>;
+export type StrxImageProps = StrxComponentProps<RNImageProps>;
 
 /**
  * Animated STRX image component.
@@ -24,4 +27,4 @@ export type CodexImageProps = StrxComponentProps<RNImageProps>;
 export const Image = createStrxComponent<
   RNImageProps,
   React.ElementRef<typeof RNImage>
->(RNImage, { displayName: 'CodexAnimatedImage' });
+>(RNImage, { displayName: 'Strx.Image' });

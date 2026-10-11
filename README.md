@@ -11,6 +11,8 @@
 </p>
 
 <p align="center">
+  <a href="https://wangjagom.github.io/react-native-strx/">Documentation</a>
+  ·
   <a href="https://www.npmjs.com/package/react-native-strx">npm</a>
   ·
   <a href="https://github.com/wangjagom/react-native-strx">GitHub</a>
@@ -28,21 +30,19 @@ Tailwind-style declarative animations and layout transitions for React Native Re
 
 It supports preset animations, explicit `from:/to:/exit:` keyframes, implicit `transition-*` style transitions, and Reanimated layout transitions.
 
+> Full documentation with live previews: **[wangjagom.github.io/react-native-strx](https://wangjagom.github.io/react-native-strx/)**. Upgrading from 0.1.x? See [MIGRATION.md](./MIGRATION.md).
+
 ## Installation
 
 ### From npm
 
 ```sh
-npm install react-native-strx react-native-reanimated
+npm install react-native-strx react-native-reanimated react-native-worklets
 ```
+
+For Expo apps, prefer `npx expo install react-native-reanimated react-native-worklets` so the versions match your SDK.
 
 > Recommended: install [STRX Animation IntelliSense](https://marketplace.visualstudio.com/items?itemName=strx.strx-animation-intellisense) for Tailwind-style autocomplete inside `animate=""`.
-
-If your Reanimated version requires Worklets as a separate package, also install:
-
-```sh
-npm install react-native-worklets
-```
 
 ### From GitHub
 
@@ -55,25 +55,25 @@ npm install github:wangjagom/react-native-strx
 or with a release tag:
 
 ```sh
-npm install github:wangjagom/react-native-strx#v0.1.11
+npm install github:wangjagom/react-native-strx#v1.0.0-beta.0
 ```
 
 ### Peer dependencies
 
 `react-native-strx` expects these packages to be installed by the consuming app:
 
-- `react` >= 18
-- `react-native` >= 0.74
-- `react-native-reanimated` >= 3
-- `react-native-worklets` when required by your Reanimated version
+- `react` >= 19
+- `react-native` >= 0.78 with the New Architecture
+- `react-native-reanimated` >= 4.1
+- `react-native-worklets` >= 0.5
+
+Reanimated 3 is no longer supported; use `react-native-strx@0.1.x` with Reanimated 3.
 
 ## Required app setup
 
 ### Babel
 
-Reanimated needs its worklet Babel plugin in the consuming app.
-
-For **Reanimated 4**, use `react-native-worklets/plugin` as the last plugin:
+Reanimated needs its worklet Babel plugin in the consuming app. Use `react-native-worklets/plugin` as the last plugin (Expo's `babel-preset-expo` already includes it):
 
 ```js
 module.exports = {
@@ -82,16 +82,7 @@ module.exports = {
 };
 ```
 
-For **Reanimated 3**, use `react-native-reanimated/plugin` as the last plugin:
-
-```js
-module.exports = {
-  presets: ["module:@react-native/babel-preset"],
-  plugins: ["react-native-reanimated/plugin"],
-};
-```
-
-If the app already has plugins, keep the Reanimated/Worklets plugin last.
+If the app already has plugins, keep the Worklets plugin last.
 
 ### iOS
 
@@ -126,7 +117,6 @@ export default function App() {
   return (
     <Strx.Provider
       motionPreset={{ duration: 260, easing: "ease-out", reduceMotion: "system" }}
-      debug={__DEV__}
     >
       <Strx.View animate="fade-in layout-spring">
         <Strx.Text>Hello STRX</Strx.Text>
@@ -177,8 +167,7 @@ The built-in namespace includes:
 - `Strx.TextInput`
 - `Strx.Timeline`
 - `Strx.Provider`
-- `Strx.DebugOverlay`
-- `Strx.LayoutRoot`
+- `Strx.TimelineRoot`
 - `Strx.LayoutGroup`
 - `Strx.useTimeline`
 
@@ -190,12 +179,12 @@ Common STRX props:
 | `strxId`            | `string`                                  | `undefined`  | Registers the component as an event-playable target for `Strx.useTimeline`.                   |
 | `playback`          | `parallel`, `serial`, or `stagger`        | `parallel`   | Orchestrates array `animate` entries.                                                         |
 | `interval`          | `number`                                  | `100`        | Millisecond offset used by `playback="stagger"`.                                             |
-| `layoutClip`        | `boolean`                                 | `false`      | Injects `overflow: 'hidden'` while an active layout transition is running.                    |
-| `layoutPropagation` | `auto` or `none`                          | `auto`       | Use `none` to stop layout animation demand from bubbling past this subtree.                   |
+| `layoutClip`        | `boolean`                                 | `false`      | Injects `overflow: 'hidden'` while a layout transition applies to this node.                  |
+| `layoutPropagation` | `auto` or `none`                          | `auto`       | `none` ignores layout transitions inherited from ancestors (see Layout transitions).          |
 
 ### `Strx.Provider`
 
-The recommended app or screen root. It installs global motion defaults, OS Reduce Motion handling, event timeline registry, layout registry, and an optional debug overlay.
+The recommended app or screen root. It installs global motion defaults, OS Reduce Motion handling, and the event timeline registry.
 
 ```tsx
 <Strx.Provider
@@ -204,9 +193,6 @@ The recommended app or screen root. It installs global motion defaults, OS Reduc
     easing: "ease-out",
     reduceMotion: "system",
   }}
-  debug={__DEV__}
-  debugPosition="bottom-right"
-  debugInitialExpanded={false}
 >
   <AppScreens />
 </Strx.Provider>
@@ -216,29 +202,32 @@ The recommended app or screen root. It installs global motion defaults, OS Reduc
 | -------------- | --------------------------------- | ----------- | ----------------------------------------------------------------------- |
 | `motionPreset` | `{ duration?, easing?: StrxEasingName, reduceMotion? }` | `undefined` | Global fallback motion settings used when tokens do not override them. |
 | `reduceMotion` | `system`, `always`, or `never`    | `system`    | Overrides `motionPreset.reduceMotion` for the subtree.                 |
-| `debug`        | `boolean`                         | `false`     | Shows `Strx.DebugOverlay` with aggregate runtime counts.               |
-| `debugPosition` | `top-left`, `top-right`, `bottom-left`, or `bottom-right` | `bottom-right` | Chooses the debug overlay corner. |
-| `debugInitialExpanded` | `boolean` | `false` | Starts the overlay expanded instead of as a compact pill. |
-| `debugShowMotionPreview` | `boolean` | `true` | Shows a tiny visual timing/easing preview. |
 
 `StrxEasingName` autocompletes `linear`, `ease`, `ease-in`, `ease-out`, and `ease-in-out`, while still allowing custom string names for userland easing adapters.
 
 When Reduce Motion is enabled, STRX shortens explicit/style animation duration, removes delay/repeat, and turns layout transitions into stable no-op transitions. This keeps the UI accessible without changing component code.
 
-### `Strx.DebugOverlay`
+### Debug overlay
 
-`Strx.Provider debug` renders this automatically. The overlay starts collapsed so it does not cover the screen; tap the STRX pill to expand the full HUD. You can also mount it manually under a provider:
+The development overlay lives in a separate entry point so it never ships in the main bundle. Render it inside `Strx.Provider`:
 
 ```tsx
-<Strx.DebugOverlay
-  enabled={__DEV__}
-  position="bottom-left"
-  initialExpanded={false}
-  showMotionPreview
-/>
+import { StrxDebugOverlay } from "react-native-strx/debug";
+
+<Strx.Provider>
+  <AppScreens />
+  {__DEV__ && <StrxDebugOverlay position="bottom-left" />}
+</Strx.Provider>;
 ```
 
-The expanded HUD shows aggregate counts, the last sanitized STRX event, dev warnings, parser cache size, active motion policy, and a tiny visual timing/easing preview. It intentionally avoids exposing coordinates, node IDs, or user-provided target names.
+| Prop                | Type                                                       | Default        | Meaning                                       |
+| ------------------- | ---------------------------------------------------------- | -------------- | --------------------------------------------- |
+| `enabled`           | `boolean`                                                  | `true`         | Renders nothing and stops polling when false. |
+| `position`          | `top-left`, `top-right`, `bottom-left`, or `bottom-right` | `bottom-right` | Screen corner.                                |
+| `initialExpanded`   | `boolean`                                                  | `false`        | Starts expanded instead of as a compact pill. |
+| `showMotionPreview` | `boolean`                                                  | `true`         | Shows a small easing/timing preview.          |
+
+The expanded HUD shows the number of timeline targets, the latest timeline event, recent dev warnings, the parser cache size, the active motion policy, and an easing preview.
 
 ### `Strx.View`
 
@@ -282,7 +271,7 @@ An animated image primitive for image entrance, fade, scale, and layout transiti
 
 ```tsx
 <Strx.Image
-  animate="fade-in scale-in layout-linear"
+  animate="fade-in, scale-in layout-linear"
   source={{ uri: avatarUrl }}
   style={{ width: 72, height: 72, borderRadius: 36 }}
 />
@@ -317,9 +306,9 @@ A wrapper for entrance choreography. It injects timing into child `animate` prop
 
 ```tsx
 <Strx.Timeline playback="stagger" interval={80} playCount={1}>
-  <Strx.View animate="fade-in slide-up" />
-  <Strx.View animate="fade-in slide-up" />
-  <Strx.View animate="fade-in slide-up" />
+  <Strx.View animate="fade-in from:translate-y-12" />
+  <Strx.View animate="fade-in from:translate-y-12" />
+  <Strx.View animate="fade-in from:translate-y-12" />
 </Strx.Timeline>
 ```
 
@@ -332,24 +321,25 @@ A wrapper for entrance choreography. It injects timing into child `animate` prop
 | `playCount` | `number` or `infinite`             | `undefined` | Repeats the whole child choreography a fixed number of total plays, or indefinitely.    |
 | `children`  | `ReactNode`                        | required    | Child elements whose `animate` props should be orchestrated.                            |
 
-### `Strx.LayoutRoot`
+### `Strx.TimelineRoot`
 
-Low-level root provider for event timelines and layout propagation. Most apps should use `Strx.Provider`; use `Strx.LayoutRoot` directly only when you want the registry without global motion settings.
+Low-level root provider for the event timeline registry (`strxId` + `Strx.useTimeline`). Most apps should use `Strx.Provider`, which includes it; use `Strx.TimelineRoot` directly only when you want the registry without global motion settings.
 
 ```tsx
-<Strx.LayoutRoot>
+<Strx.TimelineRoot>
   <ScreenContent />
-</Strx.LayoutRoot>
+</Strx.TimelineRoot>
 ```
 
 ### `Strx.LayoutGroup`
 
-A provider that gives descendants a shared default layout transition. Use it when nearby components should animate size and position changes as one coordinated region.
+A provider that gives every STRX descendant a shared layout transition. Use it when nearby components should animate size and position changes as one coordinated region, without adding a `layout-*` token to each of them. The nearest group wins over transitions inherited from STRX ancestors outside it.
 
 ```tsx
-<Strx.LayoutGroup transition="spring" duration={420} damping={16}>
-  <Strx.View animate="layout-spring" />
-  <Strx.View animate="layout-spring" />
+<Strx.LayoutGroup transition="spring" damping={16}>
+  {items.map(item => (
+    <Strx.View key={item.id} animate="exit:opacity-0" />
+  ))}
 </Strx.LayoutGroup>
 ```
 
@@ -359,7 +349,7 @@ A provider that gives descendants a shared default layout transition. Use it whe
 | ------------ | -------------------- | -------------------- | ------------------------------------------------------ |
 | `id`         | `string`             | `undefined`          | Optional identifier for debugging or coordination.     |
 | `transition` | `linear` or `spring` | `linear`             | Default layout transition inherited by descendants.    |
-| `duration`   | `number`             | `300` or `400`       | Transition duration in milliseconds.                   |
+| `duration`   | `number`             | `300`                | Duration in milliseconds for `transition="linear"`.    |
 | `damping`    | `number`             | `15`                 | Spring damping when `transition="spring"`.             |
 | `children`   | `ReactNode`          | required             | Descendant STRX nodes that share the transition.       |
 
@@ -397,7 +387,7 @@ import { Strx } from "react-native-strx";
 <Strx.View animate="fade-in" />;
 ```
 
-Alias exports are also available: `StrxView`, `StrxText`, `StrxPressable`, `StrxImage`, `StrxScrollView`, and `StrxTextInput`. The plain component exports remain for backward compatibility.
+Named exports are also available for teams that prefer them: `StrxView`, `StrxText`, `StrxPressable`, `StrxImage`, `StrxScrollView`, `StrxTextInput`, `StrxTimeline`, `StrxProvider`, `StrxLayoutGroup`, and `StrxTimelineRoot`. Components are not exported under React Native's own names (`View`, `Text`, ...) to avoid shadowing them.
 
 ```tsx
 <Strx.View animate="fade-in layout-spring transition-all duration-300 ease-out" />
@@ -405,11 +395,22 @@ Alias exports are also available: `StrxView`, `StrxText`, `StrxPressable`, `Strx
 
 ### Composition rules
 
-Use spaces to combine one preset with timing, layout, transition, and keyframe tokens:
+Use spaces to combine one preset with timing, layout, transition, and keyframe tokens. Token order inside a group does not matter:
 
 ```tsx
 <Strx.View animate="fade-in layout-spring duration-300 ease-out" />
 ```
+
+Each comma-separated part is a **group**. Timing tokens (`duration-*`, `delay-*`, easing, ...) apply to the preset, keyframes, `exit:`, and `transition-*` tokens in their own group.
+
+A group may combine a preset with `from:/to:` keyframes. Keyframes override the preset per channel:
+
+```tsx
+// fade-in, but slide from 8px below instead of the default
+<Strx.View animate="fade-in from:translate-y-8" />
+```
+
+Only one preset is allowed per group. Unknown or invalid tokens are ignored and reported once with a `console.warn` in development builds, including a suggestion when a close match exists (for example `fade-inn` → `fade-in`).
 
 Use commas when you want multiple presets to participate in one animation plan:
 
@@ -446,39 +447,63 @@ For array entries on a single component, use `playback` when you want STRX to or
 
 Preset tokens create an explicit animation plan with predefined `from` and `to` values.
 
-The `Default motion` values below are STRX preset defaults, not Reanimated defaults. They were chosen as opinionated starter timings for each motion family, and you can override them with tokens such as `duration-500`, `ease-out`, `linear`, or object configs.
+The `Default motion` values below are STRX preset defaults, not Reanimated defaults. Override them with tokens such as `duration-500`, `ease-out`, `linear`, or object configs.
 
-| Token         | Starts from                      | Animates to                 | Default motion                             |
-| ------------- | -------------------------------- | --------------------------- | ------------------------------------------ |
-| `fade-in`     | `opacity: 0`                     | `opacity: 1`                | timing, 300ms                              |
-| `fade-out`    | `opacity: 1`                     | `opacity: 0`                | timing, 250ms                              |
-| `slide-up`    | `translateY: 24`                 | `translateY: 0`             | timing, 320ms                              |
-| `slide-down`  | `translateY: -24`                | `translateY: 0`             | timing, 320ms                              |
-| `slide-left`  | `translateX: 24`                 | `translateX: 0`             | timing, 320ms                              |
-| `slide-right` | `translateX: -24`                | `translateX: 0`             | timing, 320ms                              |
-| `scale-in`    | `scale: 0.92`                    | `scale: 1`                  | timing, 260ms                              |
-| `scale-up`    | `scale: 0.92`                    | `scale: 1`                  | timing, 260ms                              |
-| `scale-down`  | `scale: 1.08`                    | `scale: 1`                  | timing, 260ms                              |
-| `scale-out`   | `scale: 1`                       | `scale: 0.92`               | timing, 220ms                              |
-| `bounce`      | `translateY: -16`, `scale: 0.96` | `translateY: 0`, `scale: 1` | spring, damping 8, stiffness 180, mass 0.9 |
+Register your own presets with `definePreset` at module scope, before components using them render:
+
+```tsx
+import { definePreset } from "react-native-strx";
+
+definePreset("pop-in", {
+  initial: { opacity: 0, scale: 0.8 },
+  target: { opacity: 1, scale: 1 },
+  options: { driver: "spring", damping: 12, stiffness: 200 },
+});
+
+<Strx.View animate="pop-in" />;
+```
+
+<!-- generated:presets -->
+
+| Token | Starts from | Animates to | Default motion |
+| --- | --- | --- | --- |
+| `fade-in` | `opacity: 0` | `opacity: 1` | timing, 300ms |
+| `fade-out` | `opacity: 1` | `opacity: 0` | timing, 250ms |
+| `slide-up` | `translateY: 24` | `translateY: 0` | timing, 320ms |
+| `slide-down` | `translateY: -24` | `translateY: 0` | timing, 320ms |
+| `slide-left` | `translateX: 24` | `translateX: 0` | timing, 320ms |
+| `slide-right` | `translateX: -24` | `translateX: 0` | timing, 320ms |
+| `scale-up` | `scale: 0.92` | `scale: 1` | timing, 260ms |
+| `scale-in` | `scale: 0.92` | `scale: 1` | timing, 260ms |
+| `scale-down` | `scale: 1.08` | `scale: 1` | timing, 260ms |
+| `scale-out` | `scale: 1` | `scale: 0.92` | timing, 220ms |
+| `bounce` | `translateY: -16`, `scale: 0.96` | `translateY: 0`, `scale: 1` | spring, damping 8, stiffness 180, mass 0.9 |
+
+<!-- /generated:presets -->
 
 ### Timing tokens
 
 Timing tokens configure preset, `from:/to:`, `exit:`, and `transition-*` animations.
 
-| Token             | Meaning                                                                |
-| ----------------- | ---------------------------------------------------------------------- |
-| `duration-300`    | Sets duration to `300` milliseconds. Any finite number is accepted.    |
-| `delay-100`       | Delays animation by `100` milliseconds. Any finite number is accepted. |
-| `repeat-2`        | Repeats explicit preset/from-to animation 2 times.                     |
-| `repeat-infinite` | Repeats explicit preset/from-to animation indefinitely.                |
-| `play-3`          | Plays the full animation 3 total times, then stops.                    |
-| `play-infinite`   | Plays the full animation indefinitely.                                 |
-| `linear`          | Linear easing.                                                         |
-| `ease`            | Smoothstep default easing.                                             |
-| `ease-in`         | Cubic ease-in.                                                         |
-| `ease-out`        | Cubic ease-out.                                                        |
-| `ease-in-out`     | Cubic ease-in-out.                                                     |
+<!-- generated:timing -->
+
+| Token | Meaning |
+| --- | --- |
+| `duration-300` | Duration in milliseconds. Precedence: token or object → preset default → `Strx.Provider` duration → 300ms. |
+| `delay-100` | Delay in milliseconds before the animation starts. |
+| `play-3`, `play-infinite` | Total number of plays. Positive integers only. |
+| `repeat-3`, `repeat-infinite` | Same as `play-*`; kept for compatibility. |
+| `linear` | Linear easing. |
+| `ease` | Smoothstep easing. |
+| `ease-in` | Cubic ease-in. |
+| `ease-out` | Cubic ease-out. Default when no easing is set. |
+| `ease-in-out` | Cubic ease-in-out. |
+| `spring` | Uses the spring driver for numeric channels. |
+| `damping-12`, `stiffness-180`, `mass-1` | Spring parameters. Defaults: damping 10, stiffness 100, mass 1. |
+
+Numbers are unsigned decimals such as `300` or `0.5`. Without an easing token, animations use `ease-out` or the provider's easing.
+
+<!-- /generated:timing -->
 
 ### Explicit keyframe prefixes
 
@@ -492,20 +517,21 @@ Prefix tokens turn a Tailwind-like utility into a `from`, `to`, or `exit` style.
 
 Supported prefixed utilities:
 
-| Utility                      | Result                                                |
-| ---------------------------- | ----------------------------------------------------- |
-| `opacity-0` to `opacity-100` | `opacity` from `0` to `1`. Values are divided by 100. |
-| `translate-x-20`             | `translateX: 20`                                      |
-| `-translate-x-20`            | `translateX: -20`                                     |
-| `translate-y-20`             | `translateY: 20`                                      |
-| `-translate-y-20`            | `translateY: -20`                                     |
-| `scale-90`                   | `scale: 0.9`                                          |
-| `scale-x-95`                 | `scaleX: 0.95`                                        |
-| `scale-y-105`                | `scaleY: 1.05`                                        |
-| `rotate-45`                  | `rotate: '45deg'`                                     |
-| `-rotate-45`                 | `rotate: '-45deg'`                                    |
-| `w-120`                      | `width: 120`                                          |
-| `h-80`                       | `height: 80`                                          |
+<!-- generated:utilities -->
+
+| Utility | Result | Negative form |
+| --- | --- | --- |
+| `opacity-50` | `opacity: 0.5` | — |
+| `translate-x-20` | `translateX: 20` | `-translate-x-20` |
+| `translate-y-20` | `translateY: 20` | `-translate-y-20` |
+| `scale-x-95` | `scaleX: 0.95` | — |
+| `scale-y-105` | `scaleY: 1.05` | — |
+| `scale-90` | `scale: 0.9` | — |
+| `rotate-45` | `rotate: '45deg'` | `-rotate-45` |
+| `w-120` | `width: 120` | — |
+| `h-80` | `height: 80` | — |
+
+<!-- /generated:utilities -->
 
 Example:
 
@@ -517,14 +543,18 @@ Example:
 
 Transition tokens animate changes in the static `style` prop. They compare the previous animatable style snapshot with the next one and animate only changed channels.
 
-| Token                          | Animated style subset                                                             |
-| ------------------------------ | --------------------------------------------------------------------------------- |
-| `transition`, `transition-all` | All supported numeric/color/transform channels.                                   |
-| `transition-colors`            | Color style keys such as `backgroundColor`, `borderColor`, `borderTopColor`, etc. |
-| `transition-opacity`           | `opacity` only.                                                                   |
-| `transition-transform`         | Transform channels such as `translateX`, `translateY`, `scale`, `rotate`, etc.    |
-| `transition-spacing`           | `margin*` and `padding*` keys.                                                    |
-| `transition-layout`            | `width`, `height`, min/max dimensions, and positional keys.                       |
+<!-- generated:transitions -->
+
+| Token | Animated style subset |
+| --- | --- |
+| `transition`, `transition-all` | All supported numeric, color, and transform channels. |
+| `transition-colors` | Color keys such as `backgroundColor` and `borderColor`. |
+| `transition-opacity` | `opacity` only. |
+| `transition-transform` | Transform channels such as `translateX`, `scale`, and `rotate`. |
+| `transition-spacing` | `margin*` and `padding*` keys. |
+| `transition-layout` | `width`, `height`, min/max sizes, and `top`/`right`/`bottom`/`left`. |
+
+<!-- /generated:transitions -->
 
 Example:
 
@@ -537,17 +567,21 @@ Example:
 
 ### Layout tokens
 
-Layout tokens are passed to Reanimated's `layout` prop through stable worklet transitions. They animate native layout changes such as size and position changes.
+Layout tokens are passed to Reanimated's `layout` prop. They animate native size and position changes. See [Layout transitions](#layout-transitions) for inheritance rules.
 
-| Token                  | Behavior                                                                   |
-| ---------------------- | -------------------------------------------------------------------------- |
-| `layout-linear`        | 300ms timing layout transition.                                            |
-| `layout-spring`        | Spring layout transition with damping 15, stiffness 120, mass 1.           |
-| `layout-fade`          | 300ms timing layout transition with opacity fade-in.                       |
-| `layout-spring-stiff`  | Stiffer spring layout transition with damping 20, stiffness 180, mass 0.9. |
-| `layout-spring-bouncy` | Bouncier spring layout transition with damping 10, stiffness 105, mass 1.  |
+<!-- generated:layout -->
 
-`layout` is never toggled to `undefined`; inactive nodes receive a stable no-op layout worklet to keep the Reanimated native layout tree stable.
+| Token | Behavior | Motion |
+| --- | --- | --- |
+| `layout-linear` | Timing transition. | 300ms, or `duration-*` / provider duration |
+| `layout-spring` | Spring transition. | damping 15, stiffness 120, mass 1 |
+| `layout-fade` | Timing transition that also fades the view in. | 300ms, or `duration-*` / provider duration |
+| `layout-spring-stiff` | Stiffer spring transition. | damping 20, stiffness 180, mass 0.9 |
+| `layout-spring-bouncy` | Bouncier spring transition. | damping 10, stiffness 105, mass 1 |
+
+<!-- /generated:layout -->
+
+Components without a layout transition get no Reanimated `layout` prop at all, so they carry no layout-animation cost. Once a component has had a layout transition, it keeps a no-op transition instead of toggling the prop back off.
 
 ### Component props
 
@@ -557,8 +591,8 @@ Layout tokens are passed to Reanimated's `layout` prop through stable worklet tr
 | `strxId`            | All STRX primitives and custom factory components                     | Registers the component as an event-playable target for `Strx.useTimeline`.                   |
 | `playback`          | All STRX primitives and custom factory components                     | Orchestrates array `animate` entries as `parallel`, `serial`, or `stagger`. Default is `parallel`. |
 | `interval`          | All STRX primitives and custom factory components                     | Millisecond offset used by `playback="stagger"`. Default is `100`.                           |
-| `layoutClip`        | All STRX primitives and custom factory components                     | When `true`, injects `overflow: 'hidden'` during active layout animation. Default is `false`. |
-| `layoutPropagation` | All STRX primitives and custom factory components                     | Use `layoutPropagation="none"` to stop layout demand from bubbling past this boundary.        |
+| `layoutClip`        | All STRX primitives and custom factory components                     | When `true`, injects `overflow: 'hidden'` while a layout transition applies. Default is `false`. |
+| `layoutPropagation` | All STRX primitives and custom factory components                     | `none` ignores layout transitions inherited from ancestors. Default is `auto`.                |
 | `playCount`         | `Strx.Timeline`                                                       | Repeats the whole child choreography cycle a fixed number of total plays, or `infinite`.      |
 
 ## Event timelines
@@ -581,9 +615,9 @@ function SuccessCardContent() {
     playback: "stagger",
     interval: 80,
     playables: [
-      { target: "coin", animate: "scale-in fade-in duration-280 delay-300" },
-      { target: "title", animate: "fade-in slide-up duration-260" },
-      { target: "button", animate: "fade-in slide-up duration-240" },
+      { target: "coin", animate: "scale-in from:opacity-0 duration-280 delay-300" },
+      { target: "title", animate: "fade-in from:translate-y-12 duration-260" },
+      { target: "button", animate: "fade-in from:translate-y-12 duration-240" },
     ],
     onComplete: () => {
       console.log("Timeline finished");
@@ -608,9 +642,9 @@ function SuccessCardContent() {
 Timeline controls:
 
 - `timeline.play()` starts all registered target animations.
-- `timeline.reverse()` starts the same target animations from each declared `to` frame back to `from`.
+- `timeline.reverse()` plays targets back toward their `from` frames, continuing from the current position when the animation was already played or is in flight.
 - `timeline.reset()` immediately returns targets to their declared `from` frames.
-- `timeline.stop()` cancels pending frame starts and running animations.
+- `timeline.stop()` cancels pending starts and freezes running animations where they are.
 - `playback="parallel"` starts all targets together.
 - `playback="serial"` starts each target after the previous target's estimated `delay + duration` window.
 - `playback="stagger"` starts targets at `interval` millisecond offsets, with previous targets' explicit `delay-*` values added to later offsets.
@@ -623,20 +657,20 @@ Timeline controls:
 | `playback`  | `parallel`, `serial`, or `stagger` | `parallel`  | Controls how target animations are scheduled.                                      |
 | `interval`  | `number`                           | `100`       | Millisecond offset between targets when `playback="stagger"`.                     |
 | `playCount` | `number` or `infinite`             | `undefined` | Number of times each target animation should play.                                |
-| `onComplete` | `() => void`                      | `undefined` | Called once after a finite `play()` or `reverse()` timeline is expected to finish. |
+| `onComplete` | `() => void`                      | `undefined` | Called once after every target of a finite `play()` or `reverse()` actually finishes. Not called if the run is stopped, reset, or replaced. |
 
 Returned controller:
 
 | Function             | Meaning                                                                  |
 | -------------------- | ------------------------------------------------------------------------ |
 | `timeline.play()`    | Starts all configured target animations.                                 |
-| `timeline.reverse()` | Starts all configured target animations as declared `to -> from` motion. |
+| `timeline.reverse()` | Plays all configured targets back toward `from`, from their current position. |
 | `timeline.reset()`   | Immediately returns all configured targets to their declared `from` frames. |
-| `timeline.stop()`    | Cancels pending starts and running animations for all configured targets. |
+| `timeline.stop()`    | Cancels pending starts and freezes running animations in place.          |
 
-`Strx.useTimeline` must run under `Strx.Provider` or `Strx.LayoutRoot`, because the root owns the target registry.
+`Strx.useTimeline` must run under `Strx.Provider` or `Strx.TimelineRoot`, because the root owns the target registry.
 
-`timeline.reverse()` is a declarative reverse pass. It uses the same playback schedule, interval, and play count as `timeline.play()`, but swaps each target's normalized `from` and `to` frames. It does not scrub an already-running animation from its exact current progress value.
+`timeline.reverse()` uses the same playback schedule, interval, and play count as `timeline.play()`. If a target is currently showing this timeline's animation, it reverses from its current position; otherwise it plays the full `to -> from` pass.
 
 ## Preset animations
 
@@ -646,24 +680,7 @@ Returned controller:
 </Strx.View>
 ```
 
-Common tokens:
-
-- `fade-in`
-- `fade-out`
-- `slide-up`
-- `slide-down`
-- `slide-left`
-- `slide-right`
-- `scale-in`
-- `scale-out`
-- `scale-up`
-- `scale-down`
-- `bounce`
-- `duration-300`
-- `delay-100`
-- `ease`, `ease-in`, `ease-out`, `ease-in-out`, `linear`
-- `repeat-2`, `repeat-infinite`
-- `play-3`, `play-infinite`
+See [Preset tokens](#preset-tokens) for every preset and its default motion.
 
 ## Explicit keyframes: from:/to:/exit:
 
@@ -673,13 +690,7 @@ Common tokens:
 </Strx.View>
 ```
 
-Supported utility examples:
-
-- `from:opacity-0`, `to:opacity-100`, `exit:opacity-0`
-- `from:translate-y-20`, `from:-translate-y-20`, `to:translate-y-0`
-- `from:translate-x-20`, `to:translate-x-0`
-- `from:scale-90`, `to:scale-100`
-- `from:rotate-45`, `to:rotate-0`
+See [Explicit keyframe prefixes](#explicit-keyframe-prefixes) for every utility.
 
 ## Implicit style transitions
 
@@ -697,14 +708,9 @@ Animate changes in the static `style` prop:
 />
 ```
 
-Supported transition tokens:
+Transitions start from the values currently on screen, so changing the style again mid-transition continues smoothly instead of jumping. Style changes never replay a component's entrance animation.
 
-- `transition`, `transition-all`
-- `transition-colors`
-- `transition-opacity`
-- `transition-transform`
-- `transition-spacing`
-- `transition-layout`
+See [Implicit transition tokens](#implicit-transition-tokens) for every token.
 
 ## Layout transitions
 
@@ -713,6 +719,17 @@ Supported transition tokens:
   {open && <Strx.Text>Expanded content</Strx.Text>}
 </Strx.View>
 ```
+
+A STRX component animates its size and position changes when:
+
+1. it has its own `layout-*` token, or
+2. it inherits one: from the nearest STRX ancestor that has a layout transition, or from the nearest `Strx.LayoutGroup`.
+
+Inheritance only flows **down**. A child with a `layout-*` token does not make its parent animate; when content appearing inside a container should also resize the container smoothly, put the token on the container (as above) or wrap the region in `Strx.LayoutGroup`.
+
+`duration-*` tokens in the same group set the duration of `layout-linear` and `layout-fade`; otherwise `Strx.Provider`'s `motionPreset.duration` or 300ms is used. Springs use their own parameters.
+
+See [Layout tokens](#layout-tokens) for every token.
 
 Supported layout tokens:
 
@@ -724,19 +741,38 @@ Supported layout tokens:
 
 ## Layout isolation
 
-Use `layoutPropagation="none"` to isolate untrusted or independent subtrees:
+Use `layoutPropagation="none"` to stop inherited layout transitions at a component. It then only uses its own `layout-*` token, and its descendants only inherit that:
 
 ```tsx
-<Strx.View layoutPropagation="none">
-  <Strx.View animate="layout-spring">
-    <Strx.Text>This layout demand stays inside this boundary.</Strx.Text>
+<Strx.View animate="layout-spring">
+  <Strx.View layoutPropagation="none">
+    <Strx.Text>Layout changes here are not animated.</Strx.Text>
   </Strx.View>
 </Strx.View>
 ```
 
+## Long lists
+
+For long scrolling lists, prefer Reanimated's `Animated.FlatList` with `itemLayoutAnimation` over a `layout-*` token on every row. Rows can still use STRX for entrance and exit animations:
+
+```tsx
+import Animated, { LinearTransition } from "react-native-reanimated";
+
+<Animated.FlatList
+  data={items}
+  keyExtractor={item => item.id}
+  itemLayoutAnimation={LinearTransition}
+  renderItem={({ item }) => (
+    <Strx.View animate="fade-in exit:opacity-0">
+      <Row item={item} />
+    </Strx.View>
+  )}
+/>;
+```
+
 ## Clipping
 
-`layoutClip` is opt-in. By default, STRX does not inject `overflow: 'hidden'` so text is not clipped unexpectedly.
+`layoutClip` is opt-in. By default, STRX does not inject `overflow: 'hidden'` so text is not clipped unexpectedly. It only applies while the component has a layout transition (its own or inherited).
 
 ```tsx
 <Strx.View animate="layout-spring" layoutClip>
@@ -746,10 +782,10 @@ Use `layoutPropagation="none"` to isolate untrusted or independent subtrees:
 
 ## Production notes
 
-- Use `Strx.LayoutRoot` near the screen or app root.
+- Use `Strx.Provider` (or `Strx.TimelineRoot`) near the app root when using `strxId` and `Strx.useTimeline`.
 - Prefer the namespace API, such as `Strx.View`, `Strx.Text`, `Strx.Pressable`, `Strx.Image`, `Strx.ScrollView`, and `Strx.TextInput`, for animated regions.
-- Alias exports are also available for teams that prefer named imports.
-- Keep `react-native-worklets/plugin` last for Reanimated 4, or `react-native-reanimated/plugin` last for Reanimated 3.
+- Named `Strx*` exports are also available for teams that prefer named imports.
+- Keep `react-native-worklets/plugin` last in your Babel plugins.
 - Run `pod install` for iOS after installing Reanimated.
 - Reset Metro cache after installation or Babel changes.
 - Install [STRX Animation IntelliSense](https://marketplace.visualstudio.com/items?itemName=strx.strx-animation-intellisense) for the best `animate=""` authoring experience in VS Code.

@@ -16,7 +16,7 @@ import {
  * `contentContainerStyle`, `horizontal`, `onScroll`, and refresh props, plus
  * STRX animation props.
  */
-export type CodexScrollViewProps = StrxComponentProps<RNScrollViewProps>;
+export type StrxScrollViewProps = StrxComponentProps<RNScrollViewProps>;
 
 /**
  * Animated STRX scroll container.
@@ -27,4 +27,4 @@ export type CodexScrollViewProps = StrxComponentProps<RNScrollViewProps>;
 export const ScrollView = createStrxComponent<
   RNScrollViewProps,
   React.ElementRef<typeof RNScrollView>
->(RNScrollView, { displayName: 'CodexAnimatedScrollView' });
+>(RNScrollView, { displayName: 'Strx.ScrollView' });

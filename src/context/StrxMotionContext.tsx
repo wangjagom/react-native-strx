@@ -1,15 +1,15 @@
-import React, { createContext, useContext, useMemo, type ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useMemo,
+  type ReactNode,
+} from 'react';
 import { useReducedMotion } from 'react-native-reanimated';
 
 export type StrxReduceMotionMode = 'system' | 'always' | 'never';
 
 export type StrxEasingName =
-  | 'linear'
-  | 'ease'
-  | 'ease-in'
-  | 'ease-out'
-  | 'ease-in-out'
-  | (string & {});
+  'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | (string & {});
 
 export interface StrxMotionPreset {
   /** Default duration used when an animation does not declare `duration-*`. */
@@ -25,20 +25,17 @@ export interface StrxMotionContextValue {
   easing?: StrxEasingName;
   reduceMotion: StrxReduceMotionMode;
   isReduceMotionEnabled: boolean;
-  debug: boolean;
 }
 
 export interface StrxMotionProviderProps {
   children: ReactNode;
   motionPreset?: StrxMotionPreset;
   reduceMotion?: StrxReduceMotionMode;
-  debug?: boolean;
 }
 
 const DEFAULT_MOTION_CONTEXT: StrxMotionContextValue = Object.freeze({
   reduceMotion: 'system',
   isReduceMotionEnabled: false,
-  debug: false,
 });
 
 export const StrxMotionContext = createContext<StrxMotionContextValue>(
@@ -49,7 +46,6 @@ export function StrxMotionProvider({
   children,
   motionPreset,
   reduceMotion,
-  debug = false,
 }: StrxMotionProviderProps) {
   const systemReduceMotion = useReducedMotion();
   const resolvedReduceMotion = normalizeReduceMotionMode(
@@ -67,9 +63,8 @@ export function StrxMotionProvider({
       ...(easing === undefined ? null : { easing }),
       reduceMotion: resolvedReduceMotion,
       isReduceMotionEnabled,
-      debug,
     }),
-    [debug, duration, easing, isReduceMotionEnabled, resolvedReduceMotion],
+    [duration, easing, isReduceMotionEnabled, resolvedReduceMotion],
   );
 
   return (
@@ -97,7 +92,9 @@ function getSafeDuration(value: number | undefined): number | undefined {
     : undefined;
 }
 
-function getSafeEasing(value: StrxEasingName | undefined): StrxEasingName | undefined {
+function getSafeEasing(
+  value: StrxEasingName | undefined,
+): StrxEasingName | undefined {
   return typeof value === 'string' && value.length > 0 && value.length <= 64
     ? value
     : undefined;
