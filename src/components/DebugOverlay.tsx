@@ -15,10 +15,7 @@ import { useStrxLayout } from '../context/StrxLayoutContext';
 import { useStrxMotion } from '../context/StrxMotionContext';
 
 export type StrxDebugOverlayPosition =
-  | 'top-left'
-  | 'top-right'
-  | 'bottom-left'
-  | 'bottom-right';
+  'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 export interface StrxDebugOverlayProps {
   /** When false, the overlay returns null and does not start a polling timer. */
@@ -81,7 +78,9 @@ export function DebugOverlay({
   const [snapshot, setSnapshot] = useState<DebugSnapshot>(EMPTY_SNAPSHOT);
   const [graphExpanded, setGraphExpanded] = useState(false);
   const [renderGraph, setRenderGraph] = useState(false);
-  const panelProgress = useRef(new Animated.Value(initialExpanded ? 1 : 0)).current;
+  const panelProgress = useRef(
+    new Animated.Value(initialExpanded ? 1 : 0),
+  ).current;
   const graphProgress = useRef(new Animated.Value(0)).current;
   const timingProgress = useRef(new Animated.Value(0)).current;
   const previewPoints = useMemo(
@@ -96,7 +95,11 @@ export function DebugOverlay({
   const timingDuration = getPreviewDuration(actualDuration);
   const isPreviewSlowed = timingDuration > actualDuration + 1;
   const isTimingPreviewVisible =
-    enabled && showMotionPreview && !motion.isReduceMotionEnabled && renderExpanded && renderGraph;
+    enabled &&
+    showMotionPreview &&
+    !motion.isReduceMotionEnabled &&
+    renderExpanded &&
+    renderGraph;
   const dotInputRange = useMemo(
     () => previewPoints.map((_, index) => index / (previewPoints.length - 1)),
     [previewPoints],
@@ -173,7 +176,12 @@ export function DebugOverlay({
       }
       timingProgress.stopAnimation();
     };
-  }, [isTimingPreviewVisible, motion.isReduceMotionEnabled, timingDuration, timingProgress]);
+  }, [
+    isTimingPreviewVisible,
+    motion.isReduceMotionEnabled,
+    timingDuration,
+    timingProgress,
+  ]);
 
   useEffect(() => {
     if (graphExpanded) {
@@ -238,7 +246,11 @@ export function DebugOverlay({
           style={styles.collapsed}
         >
           <RNView style={styles.logoMark}>
-            <RNImage source={strxLogo} style={styles.logoImage} resizeMode="contain" />
+            <RNImage
+              source={strxLogo}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </RNView>
           <RNView>
             <RNText style={styles.collapsedTitle}>STRX</RNText>
@@ -267,7 +279,11 @@ export function DebugOverlay({
           <RNView style={styles.header}>
             <RNView style={styles.headerTitleRow}>
               <RNView style={styles.logoMarkLarge}>
-                <RNImage source={strxLogo} style={styles.logoImageLarge} resizeMode="contain" />
+                <RNImage
+                  source={strxLogo}
+                  style={styles.logoImageLarge}
+                  resizeMode="contain"
+                />
               </RNView>
               <RNView>
                 <RNText style={styles.title}>STRX Debug</RNText>
@@ -325,12 +341,17 @@ export function DebugOverlay({
                 </RNView>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={graphExpanded ? 'Collapse motion timing graph' : 'Expand motion timing graph'}
+                  accessibilityLabel={
+                    graphExpanded
+                      ? 'Collapse motion timing graph'
+                      : 'Expand motion timing graph'
+                  }
                   onPress={() => setGraphExpanded(value => !value)}
                   style={styles.graphToggle}
                 >
                   <RNText style={styles.graphToggleText}>
-                    {graphExpanded ? 'Less' : 'More'} {graphExpanded ? '▴' : '▾'}
+                    {graphExpanded ? 'Less' : 'More'}{' '}
+                    {graphExpanded ? '▴' : '▾'}
                   </RNText>
                 </Pressable>
               </RNView>
@@ -354,10 +375,16 @@ export function DebugOverlay({
                 >
                   <RNView style={styles.graphTitleRow}>
                     <RNView>
-                      <RNText style={styles.graphName}>{motion.easing ?? 'ease-out'}</RNText>
-                      <RNText style={styles.graphFormula}>progress over time</RNText>
+                      <RNText style={styles.graphName}>
+                        {motion.easing ?? 'ease-out'}
+                      </RNText>
+                      <RNText style={styles.graphFormula}>
+                        progress over time
+                      </RNText>
                     </RNView>
-                    <RNText style={styles.graphDuration}>{actualDuration}ms</RNText>
+                    <RNText style={styles.graphDuration}>
+                      {actualDuration}ms
+                    </RNText>
                   </RNView>
                   <RNView style={styles.previewTrack}>
                     {GRAPH_GRID_STEPS.map(step => (
@@ -365,7 +392,9 @@ export function DebugOverlay({
                         key={`v-${step}`}
                         style={[
                           styles.graphGridLineVertical,
-                          { left: GRAPH_PADDING_LEFT + (step / 4) * CURVE_WIDTH },
+                          {
+                            left: GRAPH_PADDING_LEFT + (step / 4) * CURVE_WIDTH,
+                          },
                         ]}
                       />
                     ))}
@@ -374,7 +403,9 @@ export function DebugOverlay({
                         key={`h-${step}`}
                         style={[
                           styles.graphGridLineHorizontal,
-                          { top: GRAPH_PADDING_TOP + (step / 4) * CURVE_HEIGHT },
+                          {
+                            top: GRAPH_PADDING_TOP + (step / 4) * CURVE_HEIGHT,
+                          },
                         ]}
                       />
                     ))}
@@ -392,11 +423,23 @@ export function DebugOverlay({
                         ]}
                       />
                     ))}
-                    <RNText style={styles.progressAxisLabel}>PROGRESSION</RNText>
+                    <RNText style={styles.progressAxisLabel}>
+                      PROGRESSION
+                    </RNText>
                     <RNText style={styles.timeAxisLabel}>TIME</RNText>
-                    <RNText style={[styles.graphTickText, styles.graphTickZero]}>0</RNText>
-                    <RNText style={[styles.graphTickText, styles.graphTickHalf]}>0.5</RNText>
-                    <RNText style={[styles.graphTickText, styles.graphTickOne]}>1</RNText>
+                    <RNText
+                      style={[styles.graphTickText, styles.graphTickZero]}
+                    >
+                      0
+                    </RNText>
+                    <RNText
+                      style={[styles.graphTickText, styles.graphTickHalf]}
+                    >
+                      0.5
+                    </RNText>
+                    <RNText style={[styles.graphTickText, styles.graphTickOne]}>
+                      1
+                    </RNText>
                     <Animated.View
                       style={[
                         styles.movingDot,
@@ -491,7 +534,9 @@ function createPreviewSegments(points: PreviewPoint[]): PreviewSegment[] {
 }
 
 function getActualDuration(duration: number | undefined): number {
-  return typeof duration === 'number' && Number.isFinite(duration) && duration > 0
+  return typeof duration === 'number' &&
+    Number.isFinite(duration) &&
+    duration > 0
     ? Math.round(duration)
     : 600;
 }

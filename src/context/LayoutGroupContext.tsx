@@ -20,8 +20,7 @@ export type LayoutGroupTransition = 'linear' | 'spring';
  * Reanimated layout transition builder accepted by STRX layout context.
  */
 export type LayoutTransitionBuilder =
-  | BaseAnimationBuilder
-  | typeof BaseAnimationBuilder;
+  BaseAnimationBuilder | typeof BaseAnimationBuilder;
 
 /**
  * Internal context shared by nodes inside `Strx.LayoutGroup`.

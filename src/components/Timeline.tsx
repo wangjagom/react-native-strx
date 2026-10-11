@@ -9,7 +9,11 @@ import React, {
 
 import { animationPresets } from '../core/presets';
 import { normalizeAnimate, type StandardAnimConfig } from '../parser/normalize';
-import type { AnimateObject, AnimateProp, PlaybackMode } from '../types/animate';
+import type {
+  AnimateObject,
+  AnimateProp,
+  PlaybackMode,
+} from '../types/animate';
 import { View, type CodexViewProps } from './View';
 
 /**
@@ -20,8 +24,10 @@ import { View, type CodexViewProps } from './View';
  * several child components should appear together, one after another, or with a
  * staggered delay.
  */
-export interface TimelineProps
-  extends Omit<CodexViewProps, 'animate' | 'children' | 'playback' | 'interval'> {
+export interface TimelineProps extends Omit<
+  CodexViewProps,
+  'animate' | 'children' | 'playback' | 'interval'
+> {
   /**
    * How child animations are scheduled.
    *
@@ -81,7 +87,8 @@ export function Timeline({
     const childDurations: number[] = [];
     let serialOffset = 0;
     let staggerDelayCarry = 0;
-    const safeInterval = Number.isFinite(interval) && interval > 0 ? interval : 0;
+    const safeInterval =
+      Number.isFinite(interval) && interval > 0 ? interval : 0;
 
     for (let index = 0; index < childList.length; index += 1) {
       const child = childList[index];
@@ -111,7 +118,10 @@ export function Timeline({
       }
     }
 
-    const cycleDuration = getTimelineCycleDuration(childOffsets, childDurations);
+    const cycleDuration = getTimelineCycleDuration(
+      childOffsets,
+      childDurations,
+    );
 
     return childList.map((child, index) => {
       if (!isValidElement<TimelineChildProps>(child)) {
@@ -120,11 +130,7 @@ export function Timeline({
 
       const animate = child.props.animate;
       const offset = childOffsets[index] ?? 0;
-      const nextAnimate = createTimelineAnimate(
-        animate,
-        offset,
-        playCount,
-      );
+      const nextAnimate = createTimelineAnimate(animate, offset, playCount);
       const playbackProps =
         typeof playCount === 'number' && playCount > 1
           ? { playback: 'stagger' as PlaybackMode, interval: cycleDuration }
@@ -234,7 +240,8 @@ function estimateAnimateDuration(
   for (const config of configs) {
     const duration = getConfigDuration(config);
     const delay = getNumberValue(config.delay);
-    const playCount = timelinePlayCount ?? config.playCount ?? config.repeat ?? 1;
+    const playCount =
+      timelinePlayCount ?? config.playCount ?? config.repeat ?? 1;
 
     if (playCount === 'infinite') {
       return Number.POSITIVE_INFINITY;
@@ -285,7 +292,10 @@ function getConfigDuration(config: StandardAnimConfig): number {
   }
 
   if ('type' in config && typeof config.type === 'string') {
-    return animationPresets[config.type]?.options.duration ?? DEFAULT_TIMELINE_DURATION;
+    return (
+      animationPresets[config.type]?.options.duration ??
+      DEFAULT_TIMELINE_DURATION
+    );
   }
 
   return DEFAULT_TIMELINE_DURATION;

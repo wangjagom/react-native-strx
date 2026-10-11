@@ -1,5 +1,8 @@
 import type React from 'react';
-import { Image as RNImage, type ImageProps as RNImageProps } from 'react-native';
+import {
+  Image as RNImage,
+  type ImageProps as RNImageProps,
+} from 'react-native';
 
 import {
   createStrxComponent,

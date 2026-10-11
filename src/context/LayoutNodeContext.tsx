@@ -4,11 +4,7 @@ import type { LayoutAnimationFunction } from 'react-native-reanimated';
 import type { LayoutTransitionBuilder } from './LayoutGroupContext';
 
 export type LayoutTransitionType =
-  | 'linear'
-  | 'spring'
-  | 'fade'
-  | 'spring-stiff'
-  | 'spring-bouncy';
+  'linear' | 'spring' | 'fade' | 'spring-stiff' | 'spring-bouncy';
 
 export interface LayoutNodeContextType {
   parentId: string | null;

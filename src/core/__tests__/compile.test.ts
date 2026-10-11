@@ -70,7 +70,10 @@ describe('compileCodexAnimation', () => {
   it('compiles from/to keyframes with neutral completion', () => {
     const plan = compile({ from: { opacity: 0, scale: 0.9 }, to: {} });
 
-    expect(plan.from).toEqual({ style: { opacity: 0 }, transform: { scale: 0.9 } });
+    expect(plan.from).toEqual({
+      style: { opacity: 0 },
+      transform: { scale: 0.9 },
+    });
     expect(plan.to).toEqual({ style: { opacity: 1 }, transform: { scale: 1 } });
   });
 
@@ -89,18 +92,23 @@ describe('compileCodexAnimation', () => {
   });
 
   it('falls back to the provider easing for unknown easing names', () => {
-    expect(compile({ type: 'fade-in', easing: 'bogus' }, { easing: 'linear' }).easing).toBe(
-      'linear',
-    );
+    expect(
+      compile({ type: 'fade-in', easing: 'bogus' }, { easing: 'linear' })
+        .easing,
+    ).toBe('linear');
   });
 
   it('estimates duration including delay and play count', () => {
-    const compiled = compileCodexAnimation('fade-in duration-200 delay-100 play-3')!;
+    const compiled = compileCodexAnimation(
+      'fade-in duration-200 delay-100 play-3',
+    )!;
 
     expect(estimateCodexAnimationDuration(compiled)).toBe(700);
     expect(estimateCodexAnimationDelay(compiled)).toBe(100);
     expect(
-      estimateCodexAnimationDuration(compileCodexAnimation('fade-in play-infinite')!),
+      estimateCodexAnimationDuration(
+        compileCodexAnimation('fade-in play-infinite')!,
+      ),
     ).toBe(Infinity);
   });
 

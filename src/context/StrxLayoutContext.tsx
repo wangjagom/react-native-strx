@@ -13,11 +13,7 @@ import type { CodexAnimationController } from '../core/useCodexAnimation';
  * Layout transition families supported by STRX layout tokens.
  */
 export type StrxLayoutTransitionType =
-  | 'linear'
-  | 'spring'
-  | 'fade'
-  | 'spring-stiff'
-  | 'spring-bouncy';
+  'linear' | 'spring' | 'fade' | 'spring-stiff' | 'spring-bouncy';
 
 /**
  * Layout propagation behavior for STRX nodes.
@@ -74,7 +70,10 @@ export interface StrxLayoutContextType {
   /** Unregisters a STRX layout node by generated node ID. */
   unregisterNode: (nodeId: string) => void;
   /** Registers an event-playable animation target by user-provided `strxId`. */
-  registerPlayable: (strxId: string, controller: CodexAnimationController) => void;
+  registerPlayable: (
+    strxId: string,
+    controller: CodexAnimationController,
+  ) => void;
   /** Removes an event-playable animation target by `strxId`. */
   unregisterPlayable: (strxId: string) => void;
   /** Looks up an event-playable animation target by `strxId`. */
@@ -110,7 +109,9 @@ export const StrxLayoutContext = createContext<StrxLayoutContextType | null>(
  */
 export function StrxLayoutRoot({ children }: { children: ReactNode }) {
   const registryRef = useRef(new Map<string, StrxMeasuredNode>());
-  const playableRegistryRef = useRef(new Map<string, CodexAnimationController>());
+  const playableRegistryRef = useRef(
+    new Map<string, CodexAnimationController>(),
+  );
   const influencedNodeIdsRef = useRef<ReadonlySet<string>>(EMPTY_INFLUENCE_SET);
   const lastDebugEventRef = useRef<string | null>(null);
   const debugWarningsRef = useRef<string[]>([]);
@@ -122,7 +123,9 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
   const reportDebugWarning = useCallback((warning: string) => {
     const message = sanitizeDebugMessage(warning);
 
-    if (debugWarningsRef.current[debugWarningsRef.current.length - 1] === message) {
+    if (
+      debugWarningsRef.current[debugWarningsRef.current.length - 1] === message
+    ) {
       return;
     }
 
@@ -132,48 +135,13 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
     ];
   }, []);
 
-  const registerNode = useCallback((node: StrxMeasuredNode) => {
-    try {
-      const registry = registryRef.current;
-
-      if (registry.has(node.nodeId)) {
-        registry.delete(node.nodeId);
-      }
-
-      while (registry.size >= MAX_REGISTRY_SIZE) {
-        const firstKey = registry.keys().next().value as string | undefined;
-
-        if (firstKey === undefined) {
-          break;
-        }
-
-        registry.delete(firstKey);
-        reportDebugWarning('Layout node registry reached capacity; oldest node was evicted.');
-      }
-
-      registry.set(node.nodeId, createStoredNode(node));
-    } catch {
-      registryRef.current.delete(node.nodeId);
-    }
-  }, [reportDebugWarning]);
-
-  const unregisterNode = useCallback((nodeId: string) => {
-    registryRef.current.delete(nodeId);
-  }, []);
-
-  const registerPlayable = useCallback(
-    (strxId: string, controller: CodexAnimationController) => {
+  const registerNode = useCallback(
+    (node: StrxMeasuredNode) => {
       try {
-        if (!isSafeRegistryId(strxId)) {
-          reportDebugWarning('Ignored unsafe strxId. Use 1-128 visible characters.');
-          return;
-        }
+        const registry = registryRef.current;
 
-        const registry = playableRegistryRef.current;
-
-        if (registry.has(strxId)) {
-          registry.delete(strxId);
-          reportDebugWarning('Duplicate strxId replaced an existing timeline target.');
+        if (registry.has(node.nodeId)) {
+          registry.delete(node.nodeId);
         }
 
         while (registry.size >= MAX_REGISTRY_SIZE) {
@@ -184,7 +152,53 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
           }
 
           registry.delete(firstKey);
-          reportDebugWarning('Timeline target registry reached capacity; oldest target was evicted.');
+          reportDebugWarning(
+            'Layout node registry reached capacity; oldest node was evicted.',
+          );
+        }
+
+        registry.set(node.nodeId, createStoredNode(node));
+      } catch {
+        registryRef.current.delete(node.nodeId);
+      }
+    },
+    [reportDebugWarning],
+  );
+
+  const unregisterNode = useCallback((nodeId: string) => {
+    registryRef.current.delete(nodeId);
+  }, []);
+
+  const registerPlayable = useCallback(
+    (strxId: string, controller: CodexAnimationController) => {
+      try {
+        if (!isSafeRegistryId(strxId)) {
+          reportDebugWarning(
+            'Ignored unsafe strxId. Use 1-128 visible characters.',
+          );
+          return;
+        }
+
+        const registry = playableRegistryRef.current;
+
+        if (registry.has(strxId)) {
+          registry.delete(strxId);
+          reportDebugWarning(
+            'Duplicate strxId replaced an existing timeline target.',
+          );
+        }
+
+        while (registry.size >= MAX_REGISTRY_SIZE) {
+          const firstKey = registry.keys().next().value as string | undefined;
+
+          if (firstKey === undefined) {
+            break;
+          }
+
+          registry.delete(firstKey);
+          reportDebugWarning(
+            'Timeline target registry reached capacity; oldest target was evicted.',
+          );
         }
 
         registry.set(strxId, controller);
@@ -211,19 +225,22 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
     return influencedNodeIdsRef.current.has(nodeId);
   }, []);
 
-  const publishLayoutDemand = useCallback((demand: StrxLayoutDemand) => {
-    try {
-      const influencedIds = collectInfluencedNodes(
-        registryRef.current,
-        demand.sourceId,
-      );
-      influencedNodeIdsRef.current = influencedIds;
-      reportDebugEvent(`layout ${demand.transitionType}`);
-    } catch {
-      influencedNodeIdsRef.current = EMPTY_INFLUENCE_SET;
-      reportDebugWarning('Layout demand could not be resolved.');
-    }
-  }, [reportDebugEvent, reportDebugWarning]);
+  const publishLayoutDemand = useCallback(
+    (demand: StrxLayoutDemand) => {
+      try {
+        const influencedIds = collectInfluencedNodes(
+          registryRef.current,
+          demand.sourceId,
+        );
+        influencedNodeIdsRef.current = influencedIds;
+        reportDebugEvent(`layout ${demand.transitionType}`);
+      } catch {
+        influencedNodeIdsRef.current = EMPTY_INFLUENCE_SET;
+        reportDebugWarning('Layout demand could not be resolved.');
+      }
+    },
+    [reportDebugEvent, reportDebugWarning],
+  );
 
   const getDebugSnapshot = useCallback<() => StrxLayoutDebugSnapshot>(() => {
     return {

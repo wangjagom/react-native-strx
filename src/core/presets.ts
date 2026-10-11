@@ -1,8 +1,5 @@
 export type AnimatableChannel =
-  | 'opacity'
-  | 'translateX'
-  | 'translateY'
-  | 'scale';
+  'opacity' | 'translateX' | 'translateY' | 'scale';
 
 export type PresetDriver = 'timing' | 'spring';
 

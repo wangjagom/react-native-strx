@@ -128,11 +128,7 @@ export function createStrxComponent<Props extends object, RefType = unknown>(
       const motion = useStrxMotion();
       const animatedRef = useAnimatedRef<any>();
       const combinedRef = useMemo(
-        () =>
-          mergeRefs<RefType>(
-            animatedRef as unknown as Ref<RefType>,
-            ref,
-          ),
+        () => mergeRefs<RefType>(animatedRef as unknown as Ref<RefType>, ref),
         [animatedRef, ref],
       );
       const layoutTokenState = useMemo(
@@ -172,17 +168,18 @@ export function createStrxComponent<Props extends object, RefType = unknown>(
       const localDemandTransition = effectiveDemand
         ? getLayoutTransition(effectiveDemand)
         : undefined;
-      const activeLayout =
-        motion.isReduceMotionEnabled
-          ? stableNoOpTransition
-          : localDemandTransition ??
-            parentNode?.inheritedTransition ??
-            layoutGroup?.defaultLayoutTransition ??
-            stableNoOpTransition;
+      const activeLayout = motion.isReduceMotionEnabled
+        ? stableNoOpTransition
+        : (localDemandTransition ??
+          parentNode?.inheritedTransition ??
+          layoutGroup?.defaultLayoutTransition ??
+          stableNoOpTransition);
 
       useEffect(() => {
         if (typeof animate === 'string' && animate.length > 512) {
-          strxLayout?.reportDebugWarning('animate string exceeded 512 characters and was ignored.');
+          strxLayout?.reportDebugWarning(
+            'animate string exceeded 512 characters and was ignored.',
+          );
         }
       }, [animate, strxLayout]);
 

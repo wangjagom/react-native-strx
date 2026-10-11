@@ -84,9 +84,13 @@ export const Text = forwardRef<React.ElementRef<typeof RNText>, CodexTextProps>(
       }
 
       return hasActiveLayoutTransition
-        ? inheritedTransition ?? stableNoOpTransition
+        ? (inheritedTransition ?? stableNoOpTransition)
         : stableNoOpTransition;
-    }, [hasActiveLayoutTransition, inheritedTransition, motion.isReduceMotionEnabled]);
+    }, [
+      hasActiveLayoutTransition,
+      inheritedTransition,
+      motion.isReduceMotionEnabled,
+    ]);
     const styleAnimateProp = useMemo(
       () => getStyleAnimateProp(animate),
       [animate],
@@ -101,7 +105,9 @@ export const Text = forwardRef<React.ElementRef<typeof RNText>, CodexTextProps>(
 
     useEffect(() => {
       if (typeof animate === 'string' && animate.length > 512) {
-        strxLayout?.reportDebugWarning('animate string exceeded 512 characters and was ignored.');
+        strxLayout?.reportDebugWarning(
+          'animate string exceeded 512 characters and was ignored.',
+        );
       }
     }, [animate, strxLayout]);
 

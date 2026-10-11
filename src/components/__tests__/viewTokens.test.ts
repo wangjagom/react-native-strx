@@ -95,7 +95,9 @@ describe('getExitTokenState', () => {
 
   it('collects exit utilities and timing', () => {
     expect(
-      getExitTokenState('exit:opacity-0 exit:-translate-y-10 duration-200 delay-50'),
+      getExitTokenState(
+        'exit:opacity-0 exit:-translate-y-10 duration-200 delay-50',
+      ),
     ).toEqual({
       hasExitToken: true,
       style: { opacity: 0, translateY: -10 },

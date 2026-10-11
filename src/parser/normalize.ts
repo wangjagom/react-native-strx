@@ -1,9 +1,10 @@
-import type { AnimateObject, AnimateProp, AnimateStyle } from '../types/animate';
+import type {
+  AnimateObject,
+  AnimateProp,
+  AnimateStyle,
+} from '../types/animate';
 
-export type StandardAnimConfig =
-  | PresetAnimConfig
-  | CustomFromToAnimConfig;
-
+export type StandardAnimConfig = PresetAnimConfig | CustomFromToAnimConfig;
 
 export interface PresetAnimConfig {
   type: string;
@@ -57,7 +58,7 @@ export function normalizeAnimate(
   }
 
   if (Array.isArray(animate)) {
-    return animate.flatMap((entry) => normalizeAnimate(entry));
+    return animate.flatMap(entry => normalizeAnimate(entry));
   }
 
   return [normalizeAnimateObject(animate as AnimateObject)];
@@ -96,7 +97,7 @@ function parseAnimateString(input: string): readonly StandardAnimConfig[] {
 
   const configs: StandardAnimConfig[] = [];
 
-  forEachAnimationPart(input, (part) => {
+  forEachAnimationPart(input, part => {
     const config = parseAnimationPart(part);
 
     if (
@@ -107,12 +108,7 @@ function parseAnimateString(input: string): readonly StandardAnimConfig[] {
     }
   });
 
-  setCappedMapValue(
-    stringParseCache,
-    input,
-    configs,
-    STRING_PARSE_CACHE_LIMIT,
-  );
+  setCappedMapValue(stringParseCache, input, configs, STRING_PARSE_CACHE_LIMIT);
 
   return configs;
 }
@@ -126,7 +122,7 @@ function parseAnimationPart(part: string): StandardAnimConfig {
   let hasFrameToken = false;
   let tokenIndex = 0;
 
-  forEachToken(part, (token) => {
+  forEachToken(part, token => {
     if (token.startsWith('from:')) {
       hasFrameToken =
         applyUtilityToken(from, token.slice('from:'.length)) || hasFrameToken;
@@ -197,10 +193,7 @@ function forEachToken(input: string, visitor: (token: string) => void): void {
   for (let index = 0; index <= input.length; index += 1) {
     const charCode = index < input.length ? input.charCodeAt(index) : 32;
     const isBoundary =
-      charCode === 32 ||
-      charCode === 9 ||
-      charCode === 10 ||
-      charCode === 13;
+      charCode === 32 || charCode === 9 || charCode === 10 || charCode === 13;
 
     if (!isBoundary && tokenStart === -1) {
       tokenStart = index;
@@ -472,5 +465,5 @@ function parsePlayCountSuffix(token: string): number | 'infinite' | undefined {
 function cloneConfigs(
   configs: readonly StandardAnimConfig[],
 ): StandardAnimConfig[] {
-  return configs.map((config) => ({ ...config }));
+  return configs.map(config => ({ ...config }));
 }

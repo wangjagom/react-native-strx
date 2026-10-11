@@ -92,9 +92,13 @@ export const Pressable = forwardRef<
     }
 
     return hasActiveLayoutTransition
-      ? inheritedTransition ?? stableNoOpTransition
+      ? (inheritedTransition ?? stableNoOpTransition)
       : stableNoOpTransition;
-  }, [hasActiveLayoutTransition, inheritedTransition, motion.isReduceMotionEnabled]);
+  }, [
+    hasActiveLayoutTransition,
+    inheritedTransition,
+    motion.isReduceMotionEnabled,
+  ]);
   const styleAnimateProp = useMemo(
     () => getStyleAnimateProp(animate),
     [animate],
@@ -110,7 +114,9 @@ export const Pressable = forwardRef<
 
   useEffect(() => {
     if (typeof animate === 'string' && animate.length > 512) {
-      strxLayout?.reportDebugWarning('animate string exceeded 512 characters and was ignored.');
+      strxLayout?.reportDebugWarning(
+        'animate string exceeded 512 characters and was ignored.',
+      );
     }
   }, [animate, strxLayout]);
 
@@ -127,7 +133,10 @@ export const Pressable = forwardRef<
   }, [animationEngine.controller, strxId, strxLayout]);
   const mergedStyle = useMemo(() => {
     if (typeof style === 'function') {
-      return (state: PressableStateCallbackType) => [style(state), animatedStyle];
+      return (state: PressableStateCallbackType) => [
+        style(state),
+        animatedStyle,
+      ];
     }
 
     return [style, animatedStyle];

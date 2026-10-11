@@ -17,7 +17,10 @@ import {
 
 import { animationPresets } from './presets';
 import type { AnimatableChannel, PresetMotionOptions } from './presets';
-import { useStrxMotion, type StrxMotionContextValue } from '../context/StrxMotionContext';
+import {
+  useStrxMotion,
+  type StrxMotionContextValue,
+} from '../context/StrxMotionContext';
 import { normalizeAnimate } from '../parser/normalize';
 import type { StandardAnimConfig } from '../parser/normalize';
 import type { AnimateProp, AnimateStyle, PlaybackMode } from '../types/animate';
@@ -163,12 +166,7 @@ const PLAN_CACHE_LIMIT = 256;
 const TRANSITION_CACHE_LIMIT = 256;
 
 type TransitionKind =
-  | 'all'
-  | 'colors'
-  | 'opacity'
-  | 'transform'
-  | 'spacing'
-  | 'layout';
+  'all' | 'colors' | 'opacity' | 'transform' | 'spacing' | 'layout';
 
 interface TransitionSpec {
   enabled: boolean;
@@ -281,7 +279,8 @@ export function useCodexAnimation(
   playback: PlaybackMode = 'parallel',
   interval = 100,
 ) {
-  return useCodexAnimationEngine(animate, style, playback, interval).animatedStyle;
+  return useCodexAnimationEngine(animate, style, playback, interval)
+    .animatedStyle;
 }
 
 /**
@@ -297,7 +296,10 @@ export function useCodexAnimationEngine(
   interval = 100,
 ): CodexAnimationEngine {
   const motion = useStrxMotion();
-  const motionOptions = useMemo(() => createMotionRuntimeOptions(motion), [motion]);
+  const motionOptions = useMemo(
+    () => createMotionRuntimeOptions(motion),
+    [motion],
+  );
   const transitionSpec = useMemo(
     () => getTransitionSpec(animate, motionOptions),
     [animate, motionOptions],
@@ -315,7 +317,13 @@ export function useCodexAnimationEngine(
 
   // 1. 객체의 구조적 동등성을 판별하기 위한 직렬화 키 생성
   const animationKey = useMemo(
-    () => stableSerialize({ animate: explicitAnimate, playback, interval, motionOptions }),
+    () =>
+      stableSerialize({
+        animate: explicitAnimate,
+        playback,
+        interval,
+        motionOptions,
+      }),
     [explicitAnimate, interval, motionOptions, playback],
   );
 
@@ -324,7 +332,12 @@ export function useCodexAnimationEngine(
       return null;
     }
 
-    return createPlaybackPlans(explicitAnimate, playback, interval, motionOptions);
+    return createPlaybackPlans(
+      explicitAnimate,
+      playback,
+      interval,
+      motionOptions,
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animationKey]);
 
@@ -667,7 +680,15 @@ export function useCodexAnimationEngine(
       }
       cancelAnimation(target);
     };
-  }, [config, plan, playbackPlans, shouldUseDoubleFrame, target, transitionFrame, transitionSpec]);
+  }, [
+    config,
+    plan,
+    playbackPlans,
+    shouldUseDoubleFrame,
+    target,
+    transitionFrame,
+    transitionSpec,
+  ]);
 
   const animatedStyle = useAnimatedStyle<ViewStyle>(() => {
     const runtimeTarget = target.value;
@@ -1425,7 +1446,10 @@ function createRuntimeTarget(
   };
 }
 
-function createRuntimeConfig(plan: AnimationPlan, extraDelay = 0): RuntimeConfig {
+function createRuntimeConfig(
+  plan: AnimationPlan,
+  extraDelay = 0,
+): RuntimeConfig {
   return {
     duration: plan.duration,
     delay: Math.max(0, plan.delay + extraDelay),

@@ -1,4 +1,4 @@
-import type { ViewStyle } from "react-native";
+import type { ViewStyle } from 'react-native';
 
 /**
  * STRX intentionally keeps the runtime token type open.
@@ -16,25 +16,21 @@ import type { ViewStyle } from "react-native";
  * Example: `animate="fade-in duration-300"`.
  */
 export type AnimatePresetToken =
-  | "fade-in"
-  | "fade-out"
-  | "slide-up"
-  | "slide-down"
-  | "slide-left"
-  | "slide-right"
-  | "scale-in"
-  | "scale-out"
-  | "scale-up"
-  | "scale-down"
-  | "bounce";
+  | 'fade-in'
+  | 'fade-out'
+  | 'slide-up'
+  | 'slide-down'
+  | 'slide-left'
+  | 'slide-right'
+  | 'scale-in'
+  | 'scale-out'
+  | 'scale-up'
+  | 'scale-down'
+  | 'bounce';
 
 /** Easing tokens accepted by preset, from/to, event, and transition animations. */
 export type AnimateEasingToken =
-  | "linear"
-  | "ease"
-  | "ease-in"
-  | "ease-out"
-  | "ease-in-out";
+  'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out';
 
 /**
  * Native Reanimated layout transition tokens.
@@ -42,11 +38,11 @@ export type AnimateEasingToken =
  * Use these when size or position changes should animate on the UI thread.
  */
 export type AnimateLayoutToken =
-  | "layout-linear"
-  | "layout-spring"
-  | "layout-fade"
-  | "layout-spring-stiff"
-  | "layout-spring-bouncy";
+  | 'layout-linear'
+  | 'layout-spring'
+  | 'layout-fade'
+  | 'layout-spring-stiff'
+  | 'layout-spring-bouncy';
 
 /**
  * Implicit transition tokens for animating changes in the static `style` prop.
@@ -54,13 +50,13 @@ export type AnimateLayoutToken =
  * Example: `animate="transition-colors duration-250"`.
  */
 export type AnimateTransitionToken =
-  | "transition"
-  | "transition-all"
-  | "transition-colors"
-  | "transition-opacity"
-  | "transition-transform"
-  | "transition-spacing"
-  | "transition-layout";
+  | 'transition'
+  | 'transition-all'
+  | 'transition-colors'
+  | 'transition-opacity'
+  | 'transition-transform'
+  | 'transition-spacing'
+  | 'transition-layout';
 
 /**
  * Timing and playback modifiers.
@@ -71,9 +67,9 @@ export type AnimateTimingToken =
   | `duration-${number}`
   | `delay-${number}`
   | `repeat-${number}`
-  | "repeat-infinite"
+  | 'repeat-infinite'
   | `play-${number}`
-  | "play-infinite"
+  | 'play-infinite'
   | AnimateEasingToken;
 
 /** Tailwind-like utilities that can be used with `from:`, `to:`, or `exit:` prefixes. */
@@ -211,7 +207,7 @@ export interface AnimateStyle extends AnimateTransformStyle {
   borderBottomColor?: AnimateColor;
   borderLeftColor?: AnimateColor;
 
-  transform?: ViewStyle["transform"];
+  transform?: ViewStyle['transform'];
 }
 
 export interface AnimateTimingOptions {
@@ -222,9 +218,9 @@ export interface AnimateTimingOptions {
   /** Easing token. Unknown values fall back to STRX's safe default easing. */
   easing?: AnimateEasingToken | (string & {});
   /** Legacy repeat count. Prefer `playCount` for new code. */
-  repeat?: number | "infinite";
+  repeat?: number | 'infinite';
   /** Total number of times to play the animation. */
-  playCount?: number | "infinite";
+  playCount?: number | 'infinite';
 }
 
 /**
@@ -234,7 +230,7 @@ export interface AnimateTimingOptions {
  * - `serial`: each entry waits for the previous delay + duration.
  * - `stagger`: each entry starts at `interval` offsets; previous explicit delays also push later entries.
  */
-export type PlaybackMode = "parallel" | "serial" | "stagger";
+export type PlaybackMode = 'parallel' | 'serial' | 'stagger';
 
 export type PresetAnimateObject = AnimateTimingOptions & {
   /** Built-in or custom preset token name. */

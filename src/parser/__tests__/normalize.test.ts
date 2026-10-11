@@ -67,7 +67,10 @@ describe('normalizeAnimate', () => {
   });
 
   it.each([
-    ['from:opacity-0 to:opacity-100', { from: { opacity: 0 }, to: { opacity: 1 } }],
+    [
+      'from:opacity-0 to:opacity-100',
+      { from: { opacity: 0 }, to: { opacity: 1 } },
+    ],
     ['from:translate-x-20', { from: { translateX: 20 }, to: {} }],
     ['from:-translate-x-20', { from: { translateX: -20 }, to: {} }],
     ['from:translate-y-12', { from: { translateY: 12 }, to: {} }],
@@ -84,7 +87,9 @@ describe('normalizeAnimate', () => {
 
   it('applies timing tokens to keyframe configs', () => {
     expect(
-      normalizeAnimate('from:opacity-0 to:opacity-100 duration-300 delay-50 linear'),
+      normalizeAnimate(
+        'from:opacity-0 to:opacity-100 duration-300 delay-50 linear',
+      ),
     ).toEqual([
       {
         from: { opacity: 0 },

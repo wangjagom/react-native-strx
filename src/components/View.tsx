@@ -265,8 +265,13 @@ const AnimatedCodexView = forwardRef<
     : reanimatedLayout;
 
   useEffect(() => {
-    if (typeof animate === 'string' && animate.length > MAX_ANIMATE_STRING_LENGTH) {
-      strxLayout?.reportDebugWarning('animate string exceeded 512 characters and was ignored.');
+    if (
+      typeof animate === 'string' &&
+      animate.length > MAX_ANIMATE_STRING_LENGTH
+    ) {
+      strxLayout?.reportDebugWarning(
+        'animate string exceeded 512 characters and was ignored.',
+      );
     }
   }, [animate, strxLayout]);
 
@@ -783,10 +788,12 @@ function parseStyleAnimateProp(animate: string): AnimateProp | undefined {
       to: Object.freeze({ ...state.to }),
       ...(state.duration === undefined ? null : { duration: state.duration }),
       ...(state.delay === undefined ? null : { delay: state.delay }),
-    ...(state.easing === undefined ? null : { easing: state.easing }),
-    ...(state.repeat === undefined ? null : { repeat: state.repeat }),
-    ...(state.playCount === undefined ? null : { playCount: state.playCount }),
-  };
+      ...(state.easing === undefined ? null : { easing: state.easing }),
+      ...(state.repeat === undefined ? null : { repeat: state.repeat }),
+      ...(state.playCount === undefined
+        ? null
+        : { playCount: state.playCount }),
+    };
 
     return Object.freeze(result) as AnimateProp;
   } catch {
@@ -794,7 +801,9 @@ function parseStyleAnimateProp(animate: string): AnimateProp | undefined {
   }
 }
 
-export function getExitTokenState(animate: AnimateProp | undefined): ExitTokenState {
+export function getExitTokenState(
+  animate: AnimateProp | undefined,
+): ExitTokenState {
   if (typeof animate !== 'string' || !isSafeAnimateString(animate)) {
     return EMPTY_EXIT_TOKEN_STATE;
   }

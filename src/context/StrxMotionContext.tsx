@@ -1,15 +1,15 @@
-import React, { createContext, useContext, useMemo, type ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useMemo,
+  type ReactNode,
+} from 'react';
 import { useReducedMotion } from 'react-native-reanimated';
 
 export type StrxReduceMotionMode = 'system' | 'always' | 'never';
 
 export type StrxEasingName =
-  | 'linear'
-  | 'ease'
-  | 'ease-in'
-  | 'ease-out'
-  | 'ease-in-out'
-  | (string & {});
+  'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | (string & {});
 
 export interface StrxMotionPreset {
   /** Default duration used when an animation does not declare `duration-*`. */
@@ -97,7 +97,9 @@ function getSafeDuration(value: number | undefined): number | undefined {
     : undefined;
 }
 
-function getSafeEasing(value: StrxEasingName | undefined): StrxEasingName | undefined {
+function getSafeEasing(
+  value: StrxEasingName | undefined,
+): StrxEasingName | undefined {
   return typeof value === 'string' && value.length > 0 && value.length <= 64
     ? value
     : undefined;

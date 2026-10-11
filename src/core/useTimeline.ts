@@ -115,12 +115,20 @@ export function useTimeline({
   const motion = useStrxMotion();
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const compiledPlayables = useMemo(
-    () => compileTimelinePlayables(playables, playback, interval, {
-      duration: motion.duration,
-      easing: motion.easing,
-      reduceMotionEnabled: motion.isReduceMotionEnabled,
-    }),
-    [interval, motion.duration, motion.easing, motion.isReduceMotionEnabled, playback, playables],
+    () =>
+      compileTimelinePlayables(playables, playback, interval, {
+        duration: motion.duration,
+        easing: motion.easing,
+        reduceMotionEnabled: motion.isReduceMotionEnabled,
+      }),
+    [
+      interval,
+      motion.duration,
+      motion.easing,
+      motion.isReduceMotionEnabled,
+      playback,
+      playables,
+    ],
   );
 
   const clearCompleteTimer = useCallback(() => {
@@ -161,7 +169,9 @@ export function useTimeline({
       const controller = strxLayout.getPlayable(playable.target);
 
       if (!controller) {
-        strxLayout.reportDebugWarning('Timeline target was not registered. Check strxId.');
+        strxLayout.reportDebugWarning(
+          'Timeline target was not registered. Check strxId.',
+        );
         continue;
       }
 
@@ -172,7 +182,14 @@ export function useTimeline({
     }
 
     scheduleComplete();
-  }, [clearCompleteTimer, compiledPlayables, playCount, playback, scheduleComplete, strxLayout]);
+  }, [
+    clearCompleteTimer,
+    compiledPlayables,
+    playCount,
+    playback,
+    scheduleComplete,
+    strxLayout,
+  ]);
 
   const reverse = useCallback(() => {
     if (!strxLayout) {
@@ -186,7 +203,9 @@ export function useTimeline({
       const controller = strxLayout.getPlayable(playable.target);
 
       if (!controller) {
-        strxLayout.reportDebugWarning('Timeline target was not registered. Check strxId.');
+        strxLayout.reportDebugWarning(
+          'Timeline target was not registered. Check strxId.',
+        );
         continue;
       }
 
@@ -197,7 +216,14 @@ export function useTimeline({
     }
 
     scheduleComplete();
-  }, [clearCompleteTimer, compiledPlayables, playCount, playback, scheduleComplete, strxLayout]);
+  }, [
+    clearCompleteTimer,
+    compiledPlayables,
+    playCount,
+    playback,
+    scheduleComplete,
+    strxLayout,
+  ]);
 
   const reset = useCallback(() => {
     if (!strxLayout) {
@@ -326,8 +352,10 @@ function getAnimationDuration(
 
   const count = Number.isFinite(playCount) && playCount > 0 ? playCount : 1;
 
-  return Math.max(0, animation.plan.delay) +
-    Math.max(0, animation.plan.duration) * count;
+  return (
+    Math.max(0, animation.plan.delay) +
+    Math.max(0, animation.plan.duration) * count
+  );
 }
 
 function isSafeTarget(target: string): boolean {
