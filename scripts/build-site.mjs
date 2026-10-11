@@ -23,7 +23,8 @@ const REPO = 'https://github.com/wangjagom/react-native-strx';
 // Absolute URL the site is served from. Used for canonical links, social
 // cards and the sitemap. Override with SITE_URL when using a custom domain.
 const SITE_URL = (process.env.SITE_URL || 'https://wangjagom.github.io/react-native-strx/').replace(/\/?$/, '/');
-const BUILD_DATE = new Date().toISOString().slice(0, 10);
+const GOOGLE_SITE_VERIFICATION = process.env.GOOGLE_SITE_VERIFICATION || 'Y4f7LAiSm2Qm78evDJuH8WvByOelDiSEHPQGnUzwaPk';
+const BUILD_DATE =new Date().toISOString().slice(0, 10);
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 const tokens = JSON.parse(fs.readFileSync(path.join(ROOT, 'tokens.json'), 'utf8'));
 
@@ -524,6 +525,7 @@ function head({ title, description, base, path: pagePath = '', type = 'website',
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
+<meta name="google-site-verification" content="${escapeHtml(GOOGLE_SITE_VERIFICATION)}">
 ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" href="${url}">`}
 <meta property="og:site_name" content="react-native-strx">
 <meta property="og:title" content="${escapeHtml(title)}">
