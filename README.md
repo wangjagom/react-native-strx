@@ -33,16 +33,12 @@ It supports preset animations, explicit `from:/to:/exit:` keyframes, implicit `t
 ### From npm
 
 ```sh
-npm install react-native-strx react-native-reanimated
+npm install react-native-strx react-native-reanimated react-native-worklets
 ```
+
+For Expo apps, prefer `npx expo install react-native-reanimated react-native-worklets` so the versions match your SDK.
 
 > Recommended: install [STRX Animation IntelliSense](https://marketplace.visualstudio.com/items?itemName=strx.strx-animation-intellisense) for Tailwind-style autocomplete inside `animate=""`.
-
-If your Reanimated version requires Worklets as a separate package, also install:
-
-```sh
-npm install react-native-worklets
-```
 
 ### From GitHub
 
@@ -62,18 +58,18 @@ npm install github:wangjagom/react-native-strx#v0.1.11
 
 `react-native-strx` expects these packages to be installed by the consuming app:
 
-- `react` >= 18
-- `react-native` >= 0.74
-- `react-native-reanimated` >= 3
-- `react-native-worklets` when required by your Reanimated version
+- `react` >= 19
+- `react-native` >= 0.78 with the New Architecture
+- `react-native-reanimated` >= 4.1
+- `react-native-worklets` >= 0.5
+
+Reanimated 3 is no longer supported; use `react-native-strx@0.1.x` with Reanimated 3.
 
 ## Required app setup
 
 ### Babel
 
-Reanimated needs its worklet Babel plugin in the consuming app.
-
-For **Reanimated 4**, use `react-native-worklets/plugin` as the last plugin:
+Reanimated needs its worklet Babel plugin in the consuming app. Use `react-native-worklets/plugin` as the last plugin (Expo's `babel-preset-expo` already includes it):
 
 ```js
 module.exports = {
@@ -82,16 +78,7 @@ module.exports = {
 };
 ```
 
-For **Reanimated 3**, use `react-native-reanimated/plugin` as the last plugin:
-
-```js
-module.exports = {
-  presets: ["module:@react-native/babel-preset"],
-  plugins: ["react-native-reanimated/plugin"],
-};
-```
-
-If the app already has plugins, keep the Reanimated/Worklets plugin last.
+If the app already has plugins, keep the Worklets plugin last.
 
 ### iOS
 
@@ -637,9 +624,9 @@ function SuccessCardContent() {
 Timeline controls:
 
 - `timeline.play()` starts all registered target animations.
-- `timeline.reverse()` starts the same target animations from each declared `to` frame back to `from`.
+- `timeline.reverse()` plays targets back toward their `from` frames, continuing from the current position when the animation was already played or is in flight.
 - `timeline.reset()` immediately returns targets to their declared `from` frames.
-- `timeline.stop()` cancels pending frame starts and running animations.
+- `timeline.stop()` cancels pending starts and freezes running animations where they are.
 - `playback="parallel"` starts all targets together.
 - `playback="serial"` starts each target after the previous target's estimated `delay + duration` window.
 - `playback="stagger"` starts targets at `interval` millisecond offsets, with previous targets' explicit `delay-*` values added to later offsets.
@@ -652,20 +639,20 @@ Timeline controls:
 | `playback`  | `parallel`, `serial`, or `stagger` | `parallel`  | Controls how target animations are scheduled.                                      |
 | `interval`  | `number`                           | `100`       | Millisecond offset between targets when `playback="stagger"`.                     |
 | `playCount` | `number` or `infinite`             | `undefined` | Number of times each target animation should play.                                |
-| `onComplete` | `() => void`                      | `undefined` | Called once after a finite `play()` or `reverse()` timeline is expected to finish. |
+| `onComplete` | `() => void`                      | `undefined` | Called once after every target of a finite `play()` or `reverse()` actually finishes. Not called if the run is stopped, reset, or replaced. |
 
 Returned controller:
 
 | Function             | Meaning                                                                  |
 | -------------------- | ------------------------------------------------------------------------ |
 | `timeline.play()`    | Starts all configured target animations.                                 |
-| `timeline.reverse()` | Starts all configured target animations as declared `to -> from` motion. |
+| `timeline.reverse()` | Plays all configured targets back toward `from`, from their current position. |
 | `timeline.reset()`   | Immediately returns all configured targets to their declared `from` frames. |
-| `timeline.stop()`    | Cancels pending starts and running animations for all configured targets. |
+| `timeline.stop()`    | Cancels pending starts and freezes running animations in place.          |
 
 `Strx.useTimeline` must run under `Strx.Provider` or `Strx.LayoutRoot`, because the root owns the target registry.
 
-`timeline.reverse()` is a declarative reverse pass. It uses the same playback schedule, interval, and play count as `timeline.play()`, but swaps each target's normalized `from` and `to` frames. It does not scrub an already-running animation from its exact current progress value.
+`timeline.reverse()` uses the same playback schedule, interval, and play count as `timeline.play()`. If a target is currently showing this timeline's animation, it reverses from its current position; otherwise it plays the full `to -> from` pass.
 
 ## Preset animations
 
@@ -726,6 +713,8 @@ Animate changes in the static `style` prop:
 />
 ```
 
+Transitions start from the values currently on screen, so changing the style again mid-transition continues smoothly instead of jumping. Style changes never replay a component's entrance animation.
+
 Supported transition tokens:
 
 - `transition`, `transition-all`
@@ -778,7 +767,7 @@ Use `layoutPropagation="none"` to isolate untrusted or independent subtrees:
 - Use `Strx.LayoutRoot` near the screen or app root.
 - Prefer the namespace API, such as `Strx.View`, `Strx.Text`, `Strx.Pressable`, `Strx.Image`, `Strx.ScrollView`, and `Strx.TextInput`, for animated regions.
 - Alias exports are also available for teams that prefer named imports.
-- Keep `react-native-worklets/plugin` last for Reanimated 4, or `react-native-reanimated/plugin` last for Reanimated 3.
+- Keep `react-native-worklets/plugin` last in your Babel plugins.
 - Run `pod install` for iOS after installing Reanimated.
 - Reset Metro cache after installation or Babel changes.
 - Install [STRX Animation IntelliSense](https://marketplace.visualstudio.com/items?itemName=strx.strx-animation-intellisense) for the best `animate=""` authoring experience in VS Code.
