@@ -211,3 +211,152 @@ export function renderReadme(readme: string): string {
 
   return result;
 }
+
+/**
+ * Machine-readable token metadata, published as `react-native-strx/tokens.json`.
+ *
+ * Editor tooling such as STRX Animation IntelliSense reads it from the
+ * installed package, so completions and diagnostics match the exact library
+ * version a project uses.
+ */
+export interface TokenMetadata {
+  schemaVersion: 1;
+  library: string;
+  presets: {
+    name: string;
+    initial: Record<string, number>;
+    target: Record<string, number>;
+    motion: string;
+  }[];
+  easings: { token: string; description: string }[];
+  spring: { token: string; description: string };
+  numericTiming: {
+    prefix: string;
+    example: string;
+    description: string;
+  }[];
+  countTiming: {
+    prefix: string;
+    example: string;
+    description: string;
+    legacy: boolean;
+  }[];
+  keyframePrefixes: { prefix: string; description: string }[];
+  utilities: {
+    prefix: string;
+    property: string;
+    signed: boolean;
+    example: string;
+    result: string;
+    max?: number;
+  }[];
+  transitions: { token: string; kind: string; description: string }[];
+  layout: { token: string; description: string; motion: string }[];
+}
+
+export function buildTokenMetadata(library: string): TokenMetadata {
+  return {
+    schemaVersion: 1,
+    library,
+    presets: Object.entries(animationPresets).map(([name, preset]) => ({
+      name,
+      initial: preset.initial as Record<string, number>,
+      target: preset.target as Record<string, number>,
+      motion: describeMotion(preset),
+    })),
+    easings: EASING_TOKENS.map(token => ({
+      token,
+      description: EASING_DESCRIPTIONS[token],
+    })),
+    spring: {
+      token: 'spring',
+      description: 'Uses the spring driver for numeric channels.',
+    },
+    numericTiming: [
+      {
+        prefix: 'duration-',
+        example: 'duration-300',
+        description: `Duration in milliseconds. Precedence: token or object → preset default → Strx.Provider duration → ${DEFAULT_DURATION}ms.`,
+      },
+      {
+        prefix: 'delay-',
+        example: 'delay-100',
+        description: 'Delay in milliseconds before the animation starts.',
+      },
+      {
+        prefix: 'damping-',
+        example: 'damping-12',
+        description: 'Spring damping. Default 10.',
+      },
+      {
+        prefix: 'stiffness-',
+        example: 'stiffness-180',
+        description: 'Spring stiffness. Default 100.',
+      },
+      {
+        prefix: 'mass-',
+        example: 'mass-1',
+        description: 'Spring mass. Default 1.',
+      },
+    ],
+    countTiming: [
+      {
+        prefix: 'play-',
+        example: 'play-3',
+        description: 'Total number of plays, or `play-infinite`.',
+        legacy: false,
+      },
+      {
+        prefix: 'repeat-',
+        example: 'repeat-3',
+        description: 'Same as `play-*`; kept for compatibility.',
+        legacy: true,
+      },
+    ],
+    keyframePrefixes: [
+      { prefix: 'from:', description: 'Style before the animation starts.' },
+      { prefix: 'to:', description: 'Target style of the animation.' },
+      {
+        prefix: 'exit:',
+        description: 'Style animated to when the component unmounts.',
+      },
+    ],
+    utilities: UTILITIES.map(utility => {
+      const sample = UTILITY_SAMPLES[utility.prefix] ?? 0;
+      const example = `${utility.prefix}${sample}`;
+      const style: Record<string, unknown> = {};
+      applyUtility(style, example);
+
+      return {
+        prefix: utility.prefix,
+        property: utility.key,
+        signed: utility.signed,
+        example,
+        result: Object.entries(style)
+          .map(([key, value]) => `${key}: ${formatValue(value)}`)
+          .join(', '),
+        ...(utility.prefix === 'opacity-' ? { max: 100 } : null),
+      };
+    }),
+    transitions: [...TRANSITION_TOKENS].map(([token, kind]) => ({
+      token,
+      kind,
+      description: TRANSITION_DESCRIPTIONS[kind],
+    })),
+    layout: [...LAYOUT_TOKENS].map(([token, type]) => {
+      const spring = SPRING_PRESETS[type];
+
+      return {
+        token,
+        description: LAYOUT_DESCRIPTIONS[type],
+        motion: spring
+          ? `damping ${spring.damping}, stiffness ${spring.stiffness}, mass ${spring.mass}`
+          : `${DEFAULT_LAYOUT_DURATION}ms, or duration-* / provider duration`,
+      };
+    }),
+  };
+}
+
+export function renderTokenMetadata(library: string): string {
+  return `${JSON.stringify(buildTokenMetadata(library), null, 2)}\n`;
+}

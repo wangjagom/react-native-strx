@@ -30,6 +30,7 @@
     "!**/__tests__",
     "!**/__fixtures__",
     "!**/__mocks__",
+    "tokens.json",
     "README.md",
     "CHANGELOG.md",
     "MIGRATION.md",
@@ -51,7 +52,8 @@
     "prepublishOnly": "npm run typecheck && npm run lint && npm test && npm run pack:check",
     "publish:npm": "npm publish --access public",
     "npm:whoami": "npm whoami",
-    "changeset": "changeset"
+    "changeset": "changeset",
+    "version-packages": "changeset version && npm run docs:tokens"
   },
   "peerDependencies": {
     "react": ">=19",
@@ -98,6 +100,7 @@
       "types": "./lib/typescript/src/debug/index.d.ts",
       "default": "./lib/module/debug/index.js"
     },
+    "./tokens.json": "./tokens.json",
     "./package.json": "./package.json"
   },
   "react-native-builder-bob": {
