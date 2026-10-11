@@ -48,6 +48,8 @@
     "build": "bob build",
     "clean": "rm -rf lib",
     "pack:check": "npm pack --dry-run",
+    "site:build": "node scripts/build-site.mjs",
+    "site:serve": "node scripts/build-site.mjs && npx --yes serve website/dist",
     "prepare": "bob build",
     "prepublishOnly": "npm run typecheck && npm run lint && npm test && npm run pack:check",
     "publish:npm": "npm publish --access public",

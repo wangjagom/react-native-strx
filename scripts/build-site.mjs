@@ -1,0 +1,834 @@
+#!/usr/bin/env node
+/**
+ * Builds the documentation site into website/dist.
+ *
+ * - Pages are Markdown files in website/content (see NAV for their order).
+ * - Token tables are generated from tokens.json, so they always match the
+ *   parser.
+ * - Every animate string in a code block is checked against the token data,
+ *   and every internal link and anchor is checked, so the build fails when
+ *   the docs drift from the library.
+ *
+ * Usage: node scripts/build-site.mjs
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const SITE = path.join(ROOT, 'website');
+const OUT = path.join(SITE, 'dist');
+const REPO = 'https://github.com/wangjagom/react-native-strx';
+const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+const tokens = JSON.parse(fs.readFileSync(path.join(ROOT, 'tokens.json'), 'utf8'));
+
+const NAV = [
+  {
+    title: 'Getting started',
+    pages: ['introduction', 'installation', 'quick-start'],
+  },
+  {
+    title: 'Core concepts',
+    pages: ['animate-prop', 'presets', 'keyframes', 'timing', 'springs', 'exit'],
+  },
+  {
+    title: 'Interaction & layout',
+    pages: ['transitions', 'layout', 'layout-group'],
+  },
+  {
+    title: 'Choreography',
+    pages: ['playback', 'timeline', 'use-timeline'],
+  },
+  {
+    title: 'Components & app',
+    pages: ['components', 'custom-components', 'provider', 'accessibility'],
+  },
+  {
+    title: 'Tooling',
+    pages: ['debugging', 'editor', 'recipes'],
+  },
+  {
+    title: 'Reference',
+    pages: ['token-reference', 'api-reference', 'migration'],
+  },
+];
+
+// ------------------------------------------------------------- token engine
+
+const engineSource = fs.readFileSync(path.join(SITE, 'static/token-engine.js'), 'utf8');
+const sandbox = { STRX_TOKENS: tokens };
+sandbox.globalThis = sandbox;
+vm.runInNewContext(engineSource, sandbox);
+const T = sandbox.StrxTokens;
+
+// ------------------------------------------------------------- helpers
+
+const errors = [];
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function slugify(text) {
+  return text
+    .toLowerCase()
+    .replace(/<[^>]+>/g, '')
+    .replace(/`/g, '')
+    .replace(/&[a-z]+;/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+}
+
+function stripTags(html) {
+  return html
+    .replace(/<[^>]+>/g, '')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&');
+}
+
+// ------------------------------------------------------------- highlighting
+
+function highlightAnimateString(quote, body) {
+  const parts = body.split(/(\s+|,)/).map(part => {
+    if (!part.trim() || part === ',') return escapeHtml(part);
+    return `<span class="tk-${T.classify(part)}">${escapeHtml(part)}</span>`;
+  });
+
+  return `<span class="hl-s">${quote}</span>${parts.join('')}<span class="hl-s">${quote}</span>`;
+}
+
+const KEYWORDS =
+  /^(import|from|export|default|const|let|var|function|return|if|else|true|false|null|undefined|new|typeof|as|type|interface|extends|async|await|module|require)$/;
+
+function highlightCode(code, lang, context) {
+  if (lang === 'sh' || lang === 'bash') {
+    return code
+      .split('\n')
+      .map(line => {
+        if (/^\s*#/.test(line)) return `<span class="hl-c">${escapeHtml(line)}</span>`;
+        return escapeHtml(line).replace(/^(npm|npx|yarn|pnpm|cd|bun)\b/, '<span class="hl-k">$1</span>');
+      })
+      .join('\n');
+  }
+
+  if (lang === 'text' || lang === 'txt') {
+    return escapeHtml(code);
+  }
+
+  const pattern =
+    /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`)|(<\/?[A-Z][\w.]*|<\/?[a-z][\w]*(?=[\s>/]))|(\b[A-Za-z_$][\w$]*\b)|(\b\d+(?:\.\d+)?\b)/g;
+  let out = '';
+  let last = 0;
+  let match;
+
+  while ((match = pattern.exec(code))) {
+    out += escapeHtml(code.slice(last, match.index));
+    last = pattern.lastIndex;
+    const [text, comment, string, tag, word, number] = match;
+
+    if (comment) {
+      out += `<span class="hl-c">${escapeHtml(text)}</span>`;
+    } else if (string) {
+      const quote = string[0];
+      const body = string.slice(1, -1);
+
+      if (quote !== '`' && T.isAnimateString(body)) {
+        out += highlightAnimateString(quote, body);
+      } else {
+        out += `<span class="hl-s">${escapeHtml(text)}</span>`;
+      }
+
+      checkAnimateString(body, quote, code, match.index, context);
+    } else if (tag) {
+      const slash = tag.startsWith('</') ? '&lt;/' : '&lt;';
+      out += `<span class="hl-p">${slash}</span><span class="hl-t">${escapeHtml(tag.replace(/^<\/?/, ''))}</span>`;
+    } else if (word) {
+      const isKey = /^\s*:/.test(code.slice(last));
+      out += KEYWORDS.test(word) && !isKey ? `<span class="hl-k">${word}</span>` : escapeHtml(word);
+    } else if (number) {
+      out += `<span class="hl-n">${number}</span>`;
+    }
+  }
+
+  return out + escapeHtml(code.slice(last));
+}
+
+/**
+ * Fails the build when a code sample passes an unknown token to animate.
+ * Only strings assigned to `animate=` / `animate:` or inside an `animate={[...]}`
+ * array are checked; blocks marked `allow-invalid` are skipped.
+ */
+function checkAnimateString(body, quote, code, index, context) {
+  if (!context || context.allowInvalid || quote === '`') return;
+
+  const before = code.slice(Math.max(0, index - 200), index);
+  const direct = /animate\s*[=:]\s*\{?\s*$/.test(before);
+  const inArray = /animate=\{\[[^\]]*$/.test(before);
+
+  if (!direct && !inArray) return;
+  if (!/[a-z]/.test(body)) return;
+
+  validateAnimate(body, context);
+}
+
+function validateAnimate(body, context) {
+  const custom = context.customPresets || [];
+  const groups = T.split(body);
+  const bad = groups
+    .flat()
+    .filter(token => T.classify(token) === 'invalid' && !custom.includes(token));
+
+  if (bad.length) {
+    errors.push(`${context.file}: unknown animate token(s) ${bad.join(', ')} in "${body}"`);
+  }
+
+  for (const group of groups) {
+    const presets = group.filter(token => T.classify(token) === 'preset' || custom.includes(token));
+
+    if (presets.length > 1) {
+      errors.push(`${context.file}: more than one preset in a group (${presets.join(', ')}) in "${body}"`);
+    }
+  }
+}
+
+function codeBlock(code, lang, meta, context) {
+  const title = /title="([^"]+)"/.exec(meta || '');
+  const allowInvalid = /allow-invalid/.test(meta || '');
+  const body = highlightCode(code, lang, { ...context, allowInvalid });
+
+  return (
+    `<div class="codeblock">` +
+    (title ? `<div class="codeblock-title"><span>${escapeHtml(title[1])}</span></div>` : '') +
+    `<pre><code class="lang-${escapeHtml(lang || 'text')}">${body}</code></pre></div>`
+  );
+}
+
+// ------------------------------------------------------------- generated tables
+
+function table(head, rows) {
+  return (
+    '<div class="table-wrap"><table><thead><tr>' +
+    head.map(cell => `<th scope="col">${cell}</th>`).join('') +
+    '</tr></thead><tbody>' +
+    rows.map(row => '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>').join('') +
+    '</tbody></table></div>'
+  );
+}
+
+function tokenCode(token, kind) {
+  return `<code class="tk-${kind || T.classify(token)}">${escapeHtml(token)}</code>`;
+}
+
+function frame(values) {
+  return Object.entries(values)
+    .map(([key, value]) => `<code>${key}: ${value}</code>`)
+    .join(' ');
+}
+
+function inlineMarkdown(text) {
+  return escapeHtml(text).replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+
+const GENERATED = {
+  presets: () =>
+    table(
+      ['Token', 'Starts from', 'Animates to', 'Default motion'],
+      tokens.presets.map(preset => [
+        tokenCode(preset.name, 'preset'),
+        frame(preset.initial),
+        frame(preset.target),
+        escapeHtml(preset.motion),
+      ]),
+    ),
+  easings: () =>
+    table(
+      ['Token', 'Curve'],
+      tokens.easings
+        .map(easing => [tokenCode(easing.token, 'timing'), inlineMarkdown(easing.description)])
+        .concat([[tokenCode(tokens.spring.token, 'timing'), inlineMarkdown(tokens.spring.description)]]),
+    ),
+  timing: () =>
+    table(
+      ['Token', 'Meaning'],
+      tokens.numericTiming
+        .map(item => [tokenCode(item.example, 'timing'), inlineMarkdown(item.description)])
+        .concat(
+          tokens.countTiming.map(item => [
+            `${tokenCode(item.example, 'timing')} ${tokenCode(item.prefix + 'infinite', 'timing')}`,
+            inlineMarkdown(item.description) + (item.legacy ? ' <em>(legacy)</em>' : ''),
+          ]),
+        ),
+    ),
+  utilities: () =>
+    table(
+      ['Utility', 'Result', 'Negative form', 'Notes'],
+      tokens.utilities.map(utility => [
+        `<code>${escapeHtml(utility.example)}</code>`,
+        `<code>${escapeHtml(utility.result)}</code>`,
+        utility.signed ? `<code>-${escapeHtml(utility.example)}</code>` : '—',
+        utility.property === 'opacity'
+          ? 'Percent, clamped to 0–100'
+          : /^scale/.test(utility.property)
+            ? 'Percent (100 = 1)'
+            : utility.property === 'rotate'
+              ? 'Degrees'
+              : 'Points',
+      ]),
+    ),
+  prefixes: () =>
+    table(
+      ['Prefix', 'Meaning'],
+      tokens.keyframePrefixes.map(prefix => [
+        tokenCode(prefix.prefix + '*', prefix.prefix === 'exit:' ? 'exit' : 'keyframe'),
+        inlineMarkdown(prefix.description),
+      ]),
+    ),
+  transitions: () =>
+    table(
+      ['Token', 'Animated style subset'],
+      tokens.transitions.map(item => [tokenCode(item.token, 'transition'), inlineMarkdown(item.description)]),
+    ),
+  layout: () =>
+    table(
+      ['Token', 'Behavior', 'Motion'],
+      tokens.layout.map(item => [
+        tokenCode(item.token, 'layout'),
+        inlineMarkdown(item.description),
+        inlineMarkdown(item.motion),
+      ]),
+    ),
+};
+
+// ------------------------------------------------------------- markdown
+
+function renderInline(text) {
+  const codes = [];
+  let html = text.replace(/`([^`]+)`/g, (_, code) => {
+    codes.push(code);
+    return `\u0000${codes.length - 1}\u0000`;
+  });
+
+  html = escapeHtml(html)
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[\s(])_([^_]+)_(?=[\s).,:;]|$)/g, '$1<em>$2</em>')
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, label, href) => {
+      const external = /^https?:/.test(href);
+      return `<a href="${href}"${external ? ' rel="noopener"' : ''}>${label}</a>`;
+    });
+
+  return html.replace(/\u0000(\d+)\u0000/g, (_, index) => `<code>${escapeHtml(codes[Number(index)])}</code>`);
+}
+
+function parseFrontmatter(source) {
+  const match = /^---\n([\s\S]*?)\n---\n/.exec(source);
+  const meta = {};
+
+  if (!match) return { meta, body: source };
+
+  match[1].split('\n').forEach(line => {
+    const colon = line.indexOf(':');
+    if (colon > 0) meta[line.slice(0, colon).trim()] = line.slice(colon + 1).trim();
+  });
+
+  return { meta, body: source.slice(match[0].length) };
+}
+
+function renderMarkdown(source, context) {
+  const lines = source.split('\n');
+  const html = [];
+  const headings = [];
+  let i = 0;
+
+  function isBlockStart(line) {
+    return (
+      /^(#{1,4})\s/.test(line) ||
+      /^```/.test(line) ||
+      /^\s*[-*]\s/.test(line) ||
+      /^\s*\d+\.\s/.test(line) ||
+      /^>/.test(line) ||
+      /^\|/.test(line) ||
+      /^<(?!code|a |strong|em)/.test(line)
+    );
+  }
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    if (!line.trim()) {
+      i += 1;
+      continue;
+    }
+
+    const fence = /^```(\w*)\s*(.*)$/.exec(line);
+    if (fence) {
+      const code = [];
+      i += 1;
+      while (i < lines.length && !/^```\s*$/.test(lines[i])) {
+        code.push(lines[i]);
+        i += 1;
+      }
+      i += 1;
+      html.push(codeBlock(code.join('\n'), fence[1], fence[2], context));
+      continue;
+    }
+
+    const generated = /^<!--\s*strx:(\w+)\s*-->$/.exec(line.trim());
+    if (generated) {
+      if (!GENERATED[generated[1]]) errors.push(`${context.file}: unknown generated block ${generated[1]}`);
+      else html.push(GENERATED[generated[1]]());
+      i += 1;
+      continue;
+    }
+
+    const heading = /^(#{2,4})\s+(.*)$/.exec(line);
+    if (heading) {
+      const depth = heading[1].length;
+      const inner = renderInline(heading[2]);
+      let id = slugify(heading[2]);
+      let n = 2;
+      while (headings.some(item => item.id === id)) {
+        id = `${slugify(heading[2])}-${n}`;
+        n += 1;
+      }
+      headings.push({ depth, id, text: stripTags(inner) });
+      html.push(`<h${depth} id="${id}"><a class="anchor" href="#${id}">${inner}</a></h${depth}>`);
+      i += 1;
+      continue;
+    }
+
+    if (/^\|/.test(line) && i + 1 < lines.length && /^\|[\s:|-]+\|\s*$/.test(lines[i + 1])) {
+      const split = row =>
+        row
+          .trim()
+          .replace(/^\||\|$/g, '')
+          .split(/(?<!\\)\|/)
+          .map(cell => renderInline(cell.trim().replace(/\\\|/g, '|')));
+      const head = split(line);
+      const rows = [];
+      i += 2;
+      while (i < lines.length && /^\|/.test(lines[i])) {
+        rows.push(split(lines[i]));
+        i += 1;
+      }
+      html.push(table(head, rows));
+      continue;
+    }
+
+    if (/^>/.test(line)) {
+      const quote = [];
+      while (i < lines.length && /^>/.test(lines[i])) {
+        quote.push(lines[i].replace(/^>\s?/, ''));
+        i += 1;
+      }
+      const kind = /^\[!(NOTE|TIP|WARNING|IMPORTANT)\]\s*(.*)$/.exec(quote[0]);
+      if (kind) quote.shift();
+      const title = kind && kind[2] ? `<span class="callout-title">${renderInline(kind[2])}</span>` : '';
+      const paragraphs = quote
+        .join('\n')
+        .split(/\n\s*\n/)
+        .map(paragraph => `<p>${renderInline(paragraph.replace(/\n/g, ' '))}</p>`)
+        .join('');
+      const variant = kind && kind[1] === 'WARNING' ? ' warning' : '';
+      html.push(`<div class="callout${variant}">${title}${paragraphs}</div>`);
+      continue;
+    }
+
+    const list = /^(\s*)([-*]|\d+\.)\s+(.*)$/.exec(line);
+    if (list) {
+      const ordered = /\d/.test(list[2]);
+      const items = [];
+      while (i < lines.length) {
+        const item = /^(\s*)([-*]|\d+\.)\s+(.*)$/.exec(lines[i]);
+        if (item) {
+          items.push(item[3]);
+          i += 1;
+        } else if (lines[i].trim() && /^\s{2,}/.test(lines[i]) && items.length) {
+          items[items.length - 1] += ' ' + lines[i].trim();
+          i += 1;
+        } else {
+          break;
+        }
+      }
+      const tag = ordered ? 'ol' : 'ul';
+      html.push(`<${tag}>${items.map(item => `<li>${renderInline(item)}</li>`).join('')}</${tag}>`);
+      continue;
+    }
+
+    if (/^</.test(line)) {
+      const block = [];
+      while (i < lines.length && lines[i].trim()) {
+        block.push(lines[i]);
+        i += 1;
+      }
+      const raw = block.join('\n');
+      for (const attr of raw.matchAll(/data-(?:options|animate|entries|enter|exit-tokens)="([^"]*)"/g)) {
+        attr[1].split('|').forEach(value => validateAnimate(value, context));
+      }
+      html.push(raw);
+      continue;
+    }
+
+    const paragraph = [];
+    while (i < lines.length && lines[i].trim() && (paragraph.length === 0 || !isBlockStart(lines[i]))) {
+      paragraph.push(lines[i].trim());
+      i += 1;
+    }
+    html.push(`<p>${renderInline(paragraph.join(' '))}</p>`);
+  }
+
+  return { html: html.join('\n'), headings };
+}
+
+// ------------------------------------------------------------- templates
+
+const ICONS = {
+  github:
+    '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.42c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.69 5.4-5.25 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg>',
+  sun: '<svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>',
+  moon: '<svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+  search:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  menu: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  arrow:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>',
+  copy: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+};
+
+const THEME_SCRIPT =
+  "(function(){var t;try{t=localStorage.getItem('strx-theme')}catch(e){}if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)})();";
+
+function head({ title, description, base }) {
+  return `<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeHtml(title)}</title>
+<meta name="description" content="${escapeHtml(description)}">
+<meta property="og:title" content="${escapeHtml(title)}">
+<meta property="og:description" content="${escapeHtml(description)}">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0e17" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="${base}assets/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>${THEME_SCRIPT}</script>
+<link rel="stylesheet" href="${base}assets/site.css">
+</head>`;
+}
+
+function topNav({ base, active, withMenu }) {
+  return `<header class="topnav">
+<div class="topnav-inner">
+${withMenu ? `<button type="button" class="icon-btn menu-btn" aria-label="Open navigation" aria-expanded="false">${ICONS.menu}</button>` : ''}
+<a class="brand" href="${base}index.html">
+<img src="${base}assets/logo.png" alt="" width="28" height="28">
+<span class="brand-name">react-native-strx</span>
+<span class="pill">v${escapeHtml(pkg.version)}</span>
+</a>
+<nav class="topnav-links" aria-label="Main">
+<button type="button" class="search-btn">${ICONS.search}<span class="search-label">Search docs</span><kbd>⌘K</kbd></button>
+<a class="hide-sm" href="${base}docs/introduction.html"${active === 'docs' ? ' aria-current="page"' : ''}>Docs</a>
+<a class="hide-sm" href="${base}index.html#playground">Playground</a>
+<a class="hide-sm" href="${base}docs/token-reference.html">Tokens</a>
+<button type="button" class="icon-btn theme-toggle" aria-label="Switch theme">${ICONS.sun}${ICONS.moon}</button>
+<a class="icon-btn" href="${REPO}" aria-label="GitHub repository">${ICONS.github}</a>
+</nav>
+</div>
+</header>`;
+}
+
+function searchDialog() {
+  return `<dialog class="search-dialog" aria-label="Search documentation">
+<div class="search-field">${ICONS.search}<input type="search" placeholder="Search the docs…" aria-label="Search the docs" autocomplete="off" spellcheck="false"><kbd class="mono" style="font-size:11px">Esc</kbd></div>
+<ul class="search-results" role="list"></ul>
+</dialog>`;
+}
+
+function scripts(base) {
+  return `<script src="${base}assets/tokens-data.js"></script>
+<script src="${base}assets/token-engine.js"></script>
+<script src="${base}assets/search-index.js"></script>
+<script src="${base}assets/site.js"></script>`;
+}
+
+function footer(base) {
+  return `<footer class="band"><div class="frame footer">
+<span>react-native-strx · MIT License</span>
+<nav aria-label="Footer">
+<a href="${base}docs/introduction.html">Docs</a>
+<a href="${REPO}">GitHub</a>
+<a href="https://www.npmjs.com/package/react-native-strx">npm</a>
+<a href="${REPO}/blob/main/CHANGELOG.md">Changelog</a>
+</nav>
+</div></footer>`;
+}
+
+function docPage(page, pages) {
+  const base = '../';
+  const flat = NAV.flatMap(section => section.pages);
+  const index = flat.indexOf(page.slug);
+  const prev = pages.get(flat[index - 1]);
+  const next = pages.get(flat[index + 1]);
+  const section = NAV.find(item => item.pages.includes(page.slug));
+
+  const sidebar = NAV.map(
+    item =>
+      `<h5>${escapeHtml(item.title)}</h5><ul>` +
+      item.pages
+        .map(slug => {
+          const target = pages.get(slug);
+          if (!target) return '';
+          const current = slug === page.slug ? ' aria-current="page"' : '';
+          return `<li><a href="${slug}.html"${current}>${escapeHtml(target.meta.nav || target.meta.title)}</a></li>`;
+        })
+        .join('') +
+      '</ul>',
+  ).join('');
+
+  const toc = page.headings.filter(heading => heading.depth <= 3);
+  const tocHtml = toc.length
+    ? `<h5>On this page</h5><ul>${toc
+        .map(heading => `<li><a class="depth-${heading.depth}" href="#${heading.id}">${escapeHtml(heading.text)}</a></li>`)
+        .join('')}</ul>`
+    : '';
+
+  return `${head({
+    title: `${page.meta.title} · react-native-strx`,
+    description: page.meta.description || pkg.description,
+    base,
+  })}
+<body data-base="${base}">
+<a class="sr-only" href="#main">Skip to content</a>
+${topNav({ base, active: 'docs', withMenu: true })}
+<div class="docs">
+<aside class="sidebar" aria-label="Documentation">${sidebar}</aside>
+<main class="content" id="main">
+<article class="article">
+<p class="crumb">${escapeHtml(section.title)}</p>
+<h1>${renderInline(page.meta.title)}</h1>
+${page.meta.description ? `<p class="description">${renderInline(page.meta.description)}</p>` : ''}
+${page.html}
+<nav class="pager" aria-label="Pagination">
+${prev ? `<a class="prev" href="${prev.slug}.html"><span>Previous</span>${escapeHtml(prev.meta.nav || prev.meta.title)}</a>` : ''}
+${next ? `<a class="next" href="${next.slug}.html"><span>Next</span>${escapeHtml(next.meta.nav || next.meta.title)}</a>` : ''}
+</nav>
+<p class="edit-link"><a href="${REPO}/edit/main/${page.meta.include || `website/content/${page.slug}.md`}">Edit this page on GitHub</a></p>
+</article>
+</main>
+<aside class="toc" aria-label="On this page">${tocHtml}</aside>
+</div>
+<div class="scrim"></div>
+${searchDialog()}
+${scripts(base)}
+</body>
+</html>
+`;
+}
+
+// ------------------------------------------------------------- landing
+
+function renderLanding() {
+  const base = '';
+  let html = fs.readFileSync(path.join(SITE, 'templates/landing.html'), 'utf8');
+
+  html = html.replace(/<pre data-hl="(\w+)">([\s\S]*?)<\/pre>/g, (_, lang, code) =>
+    codeBlock(
+      code.replace(/^\n/, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'),
+      lang,
+      '',
+      { file: 'templates/landing.html' },
+    ),
+  );
+
+  const presetRows = tokens.presets
+    .map(
+      preset =>
+        `<tr><td>${tokenCode(preset.name, 'preset')}</td><td>${frame(preset.initial)}</td><td>${frame(preset.target)}</td><td>${escapeHtml(preset.motion)}</td></tr>`,
+    )
+    .join('');
+
+  const replacements = {
+    HEAD: head({
+      title: 'react-native-strx — motion for React Native, written as tokens',
+      description: pkg.description,
+      base,
+    }),
+    NAV: topNav({ base, active: 'home', withMenu: false }),
+    FOOTER: footer(base),
+    SEARCH: searchDialog(),
+    SCRIPTS: scripts(base),
+    VERSION: escapeHtml(pkg.version),
+    PRESET_ROWS: presetRows,
+    ICON_ARROW: ICONS.arrow,
+    ICON_COPY: ICONS.copy,
+  };
+
+  return html.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    if (!(key in replacements)) {
+      errors.push(`templates/landing.html: unknown placeholder ${match}`);
+      return match;
+    }
+    return replacements[key];
+  });
+}
+
+// ------------------------------------------------------------- build
+
+function loadPages() {
+  const pages = new Map();
+  const customPresets = [];
+
+  for (const slug of NAV.flatMap(section => section.pages)) {
+    const file = path.join(SITE, 'content', `${slug}.md`);
+
+    if (!fs.existsSync(file)) {
+      errors.push(`missing page website/content/${slug}.md`);
+      continue;
+    }
+
+    const parsed = parseFrontmatter(fs.readFileSync(file, 'utf8'));
+    const { meta } = parsed;
+    let { body } = parsed;
+
+    if (meta.include) {
+      // Pages such as the migration guide reuse a root Markdown file; its
+      // own H1 is replaced by the page title.
+      body = fs.readFileSync(path.join(ROOT, meta.include), 'utf8').replace(/^# .*\n/, '');
+    }
+
+    for (const match of body.matchAll(/definePreset\(\s*["']([a-z][a-z0-9-]*)["']/g)) {
+      customPresets.push(match[1]);
+    }
+
+    pages.set(slug, { slug, meta, body });
+  }
+
+  for (const file of fs.readdirSync(path.join(SITE, 'content'))) {
+    if (!pages.has(file.replace(/\.md$/, ''))) {
+      errors.push(`website/content/${file} is not listed in NAV`);
+    }
+  }
+
+  for (const page of pages.values()) {
+    if (!page.meta.title) errors.push(`${page.slug}.md: missing title`);
+    const rendered = renderMarkdown(page.body, { file: `content/${page.slug}.md`, customPresets });
+    page.html = rendered.html;
+    page.headings = rendered.headings;
+  }
+
+  return pages;
+}
+
+function searchIndex(pages) {
+  const entries = [];
+
+  for (const page of pages.values()) {
+    const title = stripTags(renderInline(page.meta.title));
+    entries.push({
+      title,
+      page: page.meta.description ? stripTags(renderInline(page.meta.description)) : title,
+      url: `docs/${page.slug}.html`,
+      text: '',
+    });
+
+    const sections = page.html.split(/(?=<h[23] id=")/);
+    for (const section of sections) {
+      const heading = /^<h[23] id="([^"]+)">([\s\S]*?)<\/h[23]>/.exec(section);
+      if (!heading) continue;
+      const text = stripTags(section.slice(heading[0].length)).replace(/\s+/g, ' ').trim().slice(0, 240);
+      entries.push({ title: stripTags(heading[2]), page: title, url: `docs/${page.slug}.html#${heading[1]}`, text });
+    }
+  }
+
+  return entries;
+}
+
+function checkLinks(files) {
+  const ids = new Map();
+
+  for (const [file, html] of files) {
+    ids.set(file, new Set([...html.matchAll(/\sid="([^"]+)"/g)].map(match => match[1])));
+  }
+
+  for (const [file, html] of files) {
+    for (const match of html.matchAll(/href="([^"]+)"/g)) {
+      const href = match[1];
+      if (/^(https?:|mailto:)/.test(href)) continue;
+
+      const [target, hash] = href.split('#');
+      const resolved = target ? path.posix.normalize(path.posix.join(path.posix.dirname(file), target)) : file;
+
+      if (/\.(css|png|js)$/.test(resolved)) {
+        if (!fs.existsSync(path.join(OUT, resolved)) && !resolved.startsWith('assets/')) {
+          errors.push(`${file}: broken asset link ${href}`);
+        }
+        continue;
+      }
+
+      if (!ids.has(resolved)) {
+        errors.push(`${file}: broken link ${href}`);
+      } else if (hash && !ids.get(resolved).has(hash)) {
+        errors.push(`${file}: missing anchor ${href}`);
+      }
+    }
+  }
+}
+
+function build() {
+  const pages = loadPages();
+  const files = new Map();
+
+  for (const page of pages.values()) {
+    files.set(`docs/${page.slug}.html`, docPage(page, pages));
+  }
+
+  const first = NAV[0].pages[0];
+  files.set(
+    'docs/index.html',
+    `<!doctype html><meta charset="utf-8"><link rel="icon" href="../assets/logo.png"><meta http-equiv="refresh" content="0; url=${first}.html"><link rel="canonical" href="${first}.html"><a href="${first}.html" id="redirect">Documentation</a>`,
+  );
+  files.set('index.html', renderLanding());
+
+  checkLinks(files);
+
+  if (errors.length) {
+    console.error(`Site build failed:\n- ${errors.join('\n- ')}`);
+    process.exit(1);
+  }
+
+  fs.rmSync(OUT, { recursive: true, force: true });
+  fs.mkdirSync(path.join(OUT, 'docs'), { recursive: true });
+  fs.mkdirSync(path.join(OUT, 'assets'), { recursive: true });
+
+  for (const [file, html] of files) {
+    fs.writeFileSync(path.join(OUT, file), html);
+  }
+
+  for (const asset of fs.readdirSync(path.join(SITE, 'static'))) {
+    fs.copyFileSync(path.join(SITE, 'static', asset), path.join(OUT, 'assets', asset));
+  }
+
+  fs.writeFileSync(path.join(OUT, 'assets/tokens-data.js'), `globalThis.STRX_TOKENS = ${JSON.stringify(tokens)};\n`);
+  fs.writeFileSync(path.join(OUT, 'assets/search-index.js'), `window.STRX_SEARCH = ${JSON.stringify(searchIndex(pages))};\n`);
+  fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
+  fs.writeFileSync(
+    path.join(OUT, '404.html'),
+    `${head({ title: 'Not found · react-native-strx', description: pkg.description, base: './' })}<body>${topNav({ base: './', active: '', withMenu: false })}<main class="frame cta"><h1 class="h-section">Page not found</h1><p>That page doesn't exist. Try the <a href="./docs/introduction.html">documentation</a>.</p></main>${searchDialog()}${scripts('./')}</body></html>`,
+  );
+
+  console.log(`Built ${files.size} pages into ${path.relative(ROOT, OUT)}/`);
+}
+
+build();

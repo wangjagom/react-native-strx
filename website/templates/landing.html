@@ -1,0 +1,357 @@
+{{HEAD}}
+<body data-base="">
+<a class="sr-only" href="#main">Skip to content</a>
+{{NAV}}
+<main id="main">
+
+<!-- Hero -->
+<section class="band" id="top">
+<div class="frame">
+<div class="hero-top">
+<p class="eyebrow">React Native · Reanimated 4</p>
+<h1 class="h-display">Motion for React Native,<br><span class="dim">written as tokens.</span></h1>
+<p class="lead">Describe entrances, exits, style transitions and layout motion right on the component, the way Tailwind describes style. STRX turns the string into Reanimated animations on the UI thread.</p>
+<div class="hero-tokens" aria-label="Example: fade-in from:translate-y-12 layout-spring duration-400 ease-out exit:opacity-0">
+<span class="tok preset" style="animation-delay: 80ms">fade-in</span>
+<span class="tok keyframe" style="animation-delay: 160ms">from:translate-y-12</span>
+<span class="tok layout" style="animation-delay: 240ms">layout-spring</span>
+<span class="tok timing" style="animation-delay: 320ms">duration-400</span>
+<span class="tok timing" style="animation-delay: 400ms">ease-out</span>
+<span class="tok exit" style="animation-delay: 480ms">exit:opacity-0</span>
+</div>
+</div>
+<div class="hero-actions">
+<a href="docs/quick-start.html" class="btn">Get started {{ICON_ARROW}}</a>
+<div class="install">
+<span class="dollar">$</span><span>npm i react-native-strx</span>
+<button type="button" class="icon-btn copy" data-copy="npm i react-native-strx react-native-reanimated react-native-worklets" aria-label="Copy install command">{{ICON_COPY}}</button>
+</div>
+<span class="muted-note">v{{VERSION}} · Reanimated 4.1+ · New Architecture</span>
+</div>
+</div>
+</section>
+
+<!-- Playground -->
+<section class="band subtle" id="playground">
+<div class="frame band-pad" style="display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px">
+<div class="section-head">
+<p class="eyebrow">Try it</p>
+<h2 class="h-section">Type tokens, watch the result.</h2>
+<p>The preview uses the library's own token data, easing curves and spring parameters. Typos are flagged with the same suggestions you get in development.</p>
+</div>
+</div>
+
+<div class="playground" data-playground>
+<div class="pg-controls">
+<label class="pg-row">
+<span>animate</span>
+<input class="pg-input" value="slide-up from:opacity-0 duration-600 ease-out exit:opacity-0 exit:scale-90" spellcheck="false" autocomplete="off">
+</label>
+<div class="pg-tokens" aria-live="polite"></div>
+<div class="pg-messages" aria-live="polite"></div>
+<div class="pg-row">
+<span>Preset <small>· one per group</small></span>
+<div class="pg-chips">
+<button type="button" class="chip" data-group="preset" data-token="fade-in">fade-in</button>
+<button type="button" class="chip" data-group="preset" data-token="slide-up">slide-up</button>
+<button type="button" class="chip" data-group="preset" data-token="slide-down">slide-down</button>
+<button type="button" class="chip" data-group="preset" data-token="slide-left">slide-left</button>
+<button type="button" class="chip" data-group="preset" data-token="slide-right">slide-right</button>
+<button type="button" class="chip" data-group="preset" data-token="scale-in">scale-in</button>
+<button type="button" class="chip" data-group="preset" data-token="scale-down">scale-down</button>
+<button type="button" class="chip" data-group="preset" data-token="bounce">bounce</button>
+</div>
+</div>
+<div class="pg-row">
+<span>Keyframes <small>· override the preset per channel</small></span>
+<div class="pg-chips">
+<button type="button" class="chip" data-toggle data-token="from:opacity-0">from:opacity-0</button>
+<button type="button" class="chip" data-toggle data-token="from:rotate-6">from:rotate-6</button>
+<button type="button" class="chip" data-toggle data-token="from:scale-80">from:scale-80</button>
+<button type="button" class="chip" data-toggle data-token="exit:opacity-0">exit:opacity-0</button>
+<button type="button" class="chip" data-toggle data-token="exit:scale-90">exit:scale-90</button>
+</div>
+</div>
+<div class="pg-inline">
+<div class="pg-row">
+<span>Duration</span>
+<div class="pg-chips">
+<button type="button" class="chip" data-group="duration" data-token="duration-150">150</button>
+<button type="button" class="chip" data-group="duration" data-token="duration-300">300</button>
+<button type="button" class="chip" data-group="duration" data-token="duration-600">600</button>
+<button type="button" class="chip" data-group="duration" data-token="duration-1000">1000</button>
+</div>
+</div>
+<div class="pg-row">
+<span>Delay</span>
+<div class="pg-chips">
+<button type="button" class="chip" data-group="delay" data-token="delay-0">0</button>
+<button type="button" class="chip" data-group="delay" data-token="delay-150">150</button>
+<button type="button" class="chip" data-group="delay" data-token="delay-300">300</button>
+</div>
+</div>
+</div>
+<div class="pg-row">
+<span>Easing</span>
+<div class="pg-chips">
+<button type="button" class="chip" data-group="easing" data-token="linear">linear</button>
+<button type="button" class="chip" data-group="easing" data-token="ease">ease</button>
+<button type="button" class="chip" data-group="easing" data-token="ease-in">ease-in</button>
+<button type="button" class="chip" data-group="easing" data-token="ease-out">ease-out</button>
+<button type="button" class="chip" data-group="easing" data-token="ease-in-out">ease-in-out</button>
+<button type="button" class="chip" data-group="easing" data-token="spring">spring</button>
+</div>
+</div>
+<div class="codeblock" style="margin:4px 0 0"><pre><code><span class="hl-p">&lt;</span><span class="hl-t">Strx.View</span>
+  animate=<span class="hl-s">"</span><span class="pg-code"></span><span class="hl-s">"</span>
+<span class="hl-p">/&gt;</span></code></pre></div>
+</div>
+<div class="pg-preview">
+<div class="phone" role="img" aria-label="Preview of the animation on a phone screen">
+<div class="phone-screen">
+<div class="bar" style="width:72px;align-self:center"></div>
+<div class="bar strong" style="width:55%;margin-top:12px"></div>
+<div class="bar" style="width:80%"></div>
+<div class="demo-card">
+<div class="icon"></div>
+<div class="title">Welcome back</div>
+<div class="line" style="width:70%"></div>
+<div class="line" style="width:50%;opacity:.7"></div>
+</div>
+<div class="phone-cta">Continue</div>
+</div>
+</div>
+<div class="pg-actions">
+<button type="button" class="btn btn-sm" data-action="replay">Replay</button>
+<button type="button" class="ghost" data-action="exit">Unmount / mount</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Get started -->
+<section class="band" id="start">
+<div class="frame band-pad split">
+<div class="section-head" style="flex:1 1 300px">
+<p class="eyebrow">Get started</p>
+<h2 class="h-section">Three steps to your first animation.</h2>
+<p>STRX sits on top of Reanimated, so setup is the Reanimated setup plus one provider.</p>
+<p><a href="docs/installation.html">Full installation guide →</a></p>
+</div>
+<ol class="steps" style="flex:2 1 540px">
+<li>
+<div class="step-head"><span>01</span><h3>Install with Reanimated 4</h3></div>
+<pre data-hl="sh">npm i react-native-strx react-native-reanimated react-native-worklets</pre>
+<p>Expo apps: use <code>npx expo install</code> for the Reanimated packages. Bare apps add <code>react-native-worklets/plugin</code> last in Babel.</p>
+</li>
+<li>
+<div class="step-head"><span>02</span><h3>Wrap your app</h3></div>
+<pre data-hl="tsx">import { Strx } from "react-native-strx";
+
+&lt;Strx.Provider motionPreset={{ duration: 300 }}&gt;
+  &lt;App /&gt;
+&lt;/Strx.Provider&gt;</pre>
+<p>Sets default timing, follows the OS Reduce Motion setting, and connects event timelines.</p>
+</li>
+<li>
+<div class="step-head"><span>03</span><h3>Add animate</h3></div>
+<pre data-hl="tsx">&lt;Strx.View animate="fade-in from:translate-y-12 layout-spring"&gt;
+  &lt;Strx.Text&gt;Hello STRX&lt;/Strx.Text&gt;
+&lt;/Strx.View&gt;</pre>
+<p>Every STRX component accepts the same <code>animate</code> prop: View, Text, Pressable, Image, ScrollView, TextInput, and your own via <code>createStrxComponent</code>.</p>
+</li>
+</ol>
+</div>
+</section>
+
+<!-- Grammar -->
+<section class="band subtle" id="tokens">
+<div class="frame band-pad" style="display:flex;flex-direction:column;gap:36px">
+<div class="section-head">
+<p class="eyebrow">The grammar</p>
+<h2 class="h-section">Read it like a sentence.</h2>
+<p>Each token does one thing. Order inside a group doesn't matter, and a comma starts a new group with its own timing.</p>
+</div>
+<div class="legend">
+<div class="legend-item"><span class="tok preset">fade-in</span><span>Preset</span></div>
+<div class="legend-item"><span class="tok keyframe">from:translate-y-12</span><span>Keyframe</span></div>
+<div class="legend-item"><span class="tok exit">exit:opacity-0</span><span>Exit</span></div>
+<div class="legend-item"><span class="tok transition">transition-colors</span><span>Style transition</span></div>
+<div class="legend-item"><span class="tok layout">layout-spring</span><span>Layout</span></div>
+<div class="legend-item"><span class="tok timing">duration-400</span><span>Timing</span></div>
+<div class="legend-item"><span class="tok timing">ease-out</span><span>Easing</span></div>
+</div>
+<div class="card-grid">
+<div class="card">
+<p class="mono" style="color:var(--t-preset);font-weight:600;font-size:13.5px">fade-in, slide-up duration-500</p>
+<p>Two groups play together. <code>duration-500</code> applies to <code>slide-up</code> only.</p>
+</div>
+<div class="card">
+<p class="mono" style="color:var(--t-preset);font-weight:600;font-size:13.5px">bounce spring damping-12</p>
+<p>Switch to the spring driver and tune it inline with damping, stiffness and mass.</p>
+</div>
+<div class="card">
+<p class="mono" style="color:var(--t-preset);font-weight:600;font-size:13.5px">from:opacity-0 to:opacity-100 play-infinite</p>
+<p>Write keyframes directly when no preset fits, and loop them with <code>play-*</code>.</p>
+</div>
+</div>
+<p style="margin:0"><a href="docs/animate-prop.html">How the animate prop is parsed →</a></p>
+</div>
+</section>
+
+<!-- Features -->
+<section class="band">
+<div class="frame band-pad" style="display:flex;flex-direction:column;gap:40px">
+<div class="section-head">
+<p class="eyebrow">Beyond entrances</p>
+<h2 class="h-section">Every kind of motion, same prop.</h2>
+</div>
+<div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+
+<article class="feature">
+<div class="feature-stage" data-landing-transition>
+<div class="lt-target" style="height:56px;width:120px;background-color:var(--accent);border-radius:14px;transition:width 300ms cubic-bezier(.33,1,.68,1),background-color 300ms cubic-bezier(.33,1,.68,1)"></div>
+<button type="button" class="ghost" aria-pressed="false">Toggle style</button>
+</div>
+<div class="feature-body">
+<h3>Style transitions</h3>
+<p>Changes to <code>style</code> animate from the value on screen, so toggling mid-way never jumps.</p>
+<pre data-hl="tsx">&lt;Strx.View animate="transition-all duration-300"
+  style={{ width: on ? 200 : 120 }} /&gt;</pre>
+<a class="card-link" href="docs/transitions.html">Transitions →</a>
+</div>
+</article>
+
+<article class="feature">
+<div class="feature-stage" data-landing-layout>
+<div class="expander" style="width:220px">
+<div class="bar head"></div>
+<div class="bar" style="width:90%"></div>
+<div class="extra" style="display:none;flex-direction:column;gap:8px">
+<div class="bar" style="width:80%"></div>
+<div class="bar" style="width:70%"></div>
+<div class="bar" style="width:85%"></div>
+</div>
+</div>
+<button type="button" class="ghost" aria-expanded="false">Expand</button>
+</div>
+<div class="feature-body">
+<h3>Layout</h3>
+<p>Size and position changes spring into place. Children inherit it; components without a token pay nothing.</p>
+<pre data-hl="tsx">&lt;Strx.View animate="layout-spring" layoutClip&gt;</pre>
+<a class="card-link" href="docs/layout.html">Layout transitions →</a>
+</div>
+</article>
+
+<article class="feature">
+<div class="feature-stage" data-landing-timeline>
+<div class="stack" style="max-width:220px">
+<div class="row-item"><i style="background:var(--t-preset)"></i><b></b></div>
+<div class="row-item"><i style="background:var(--t-key)"></i><b></b></div>
+<div class="row-item"><i style="background:var(--t-layout)"></i><b></b></div>
+</div>
+<button type="button" class="ghost">timeline.play()</button>
+</div>
+<div class="feature-body">
+<h3>Timelines</h3>
+<p>Choreograph targets in parallel, serial or stagger. <code>stop()</code> freezes in place, <code>reverse()</code> continues from there.</p>
+<pre data-hl="tsx">&lt;Strx.Timeline playback="stagger" interval={100}&gt;</pre>
+<a class="card-link" href="docs/use-timeline.html">Timelines →</a>
+</div>
+</article>
+
+</div>
+</div>
+</section>
+
+<!-- Everything in the docs -->
+<section class="band subtle">
+<div class="frame band-pad" style="display:flex;flex-direction:column;gap:32px">
+<div class="section-head">
+<p class="eyebrow">Documentation</p>
+<h2 class="h-section">Everything STRX can do.</h2>
+<p>Each page explains one feature with live previews and copy-ready code.</p>
+</div>
+<div class="card-grid">
+<a class="card" href="docs/presets.html"><h3>Presets</h3><p>Eleven entrance presets and <code>definePreset</code> for your own.</p><span class="card-link">Presets →</span></a>
+<a class="card" href="docs/keyframes.html"><h3>Keyframes</h3><p><code>from:</code> and <code>to:</code> utilities, or style objects, for any animatable channel.</p><span class="card-link">Keyframes →</span></a>
+<a class="card" href="docs/timing.html"><h3>Timing &amp; easing</h3><p>Duration, delay, easing and repeat tokens, with a clear precedence order.</p><span class="card-link">Timing →</span></a>
+<a class="card" href="docs/springs.html"><h3>Springs</h3><p><code>spring</code>, <code>damping-*</code>, <code>stiffness-*</code>, <code>mass-*</code> for physical motion.</p><span class="card-link">Springs →</span></a>
+<a class="card" href="docs/exit.html"><h3>Exit animations</h3><p><code>exit:</code> tokens animate a component out when it unmounts.</p><span class="card-link">Exit →</span></a>
+<a class="card" href="docs/layout-group.html"><h3>LayoutGroup</h3><p>Share one layout transition across a region, like a list.</p><span class="card-link">LayoutGroup →</span></a>
+<a class="card" href="docs/playback.html"><h3>Array playback</h3><p>Run several animations on one component in parallel, serial or stagger.</p><span class="card-link">Playback →</span></a>
+<a class="card" href="docs/use-timeline.html"><h3>useTimeline</h3><p>Event-driven animations with <code>play</code>, <code>reverse</code>, <code>stop</code> and <code>reset</code>.</p><span class="card-link">useTimeline →</span></a>
+<a class="card" href="docs/custom-components.html"><h3>Custom components</h3><p>Give any component the <code>animate</code> prop with <code>createStrxComponent</code>.</p><span class="card-link">createStrxComponent →</span></a>
+<a class="card" href="docs/accessibility.html"><h3>Reduce Motion</h3><p>Respects the OS setting automatically, or force it per subtree.</p><span class="card-link">Accessibility →</span></a>
+<a class="card" href="docs/debugging.html"><h3>Debugging</h3><p>Dev warnings with suggestions and an optional on-device overlay.</p><span class="card-link">Debugging →</span></a>
+<a class="card" href="docs/token-reference.html"><h3>Token reference</h3><p>Every token, generated from the same data the parser uses.</p><span class="card-link">Reference →</span></a>
+</div>
+</div>
+</section>
+
+<!-- Editor -->
+<section class="band">
+<div class="frame band-pad split" style="align-items:center">
+<div class="section-head" style="flex:1 1 320px">
+<p class="eyebrow">Editor support</p>
+<h2 class="h-section">Autocomplete for every token.</h2>
+<p>The VS Code extension suggests tokens as you type, explains them on hover, and flags typos with a one-click fix. It reads the token list from the version you installed.</p>
+<p><a href="docs/editor.html" style="font-weight:600">Set up the extension →</a></p>
+</div>
+<div class="editor" style="flex:1 1 460px">
+<div class="editor-bar"><i></i><i></i><i></i><span>Card.tsx</span></div>
+<div class="editor-body">
+<div><span class="hl-p">&lt;</span><span class="hl-t">Strx.View</span></div>
+<div style="padding-left:18px">animate=<span class="hl-s">"</span><span class="tk-preset">fade-in</span> <span class="squiggle">layout-sprng</span> dur<span class="caret"></span><span class="hl-s">"</span></div>
+<div><span class="hl-p">/&gt;</span></div>
+<div class="suggest">
+<div><span>duration-{number}</span><span>timing</span></div>
+<div><span>duration-300</span><span>timing</span></div>
+<div><span>duration-500</span><span>timing</span></div>
+<p>Duration in milliseconds. Token → preset default → Provider → 300ms.</p>
+</div>
+<div class="editor-warn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Unknown animate token "layout-sprng". Did you mean "layout-spring"?</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Presets -->
+<section class="band subtle">
+<div class="frame band-pad" style="display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px">
+<div class="section-head">
+<p class="eyebrow">Reference</p>
+<h2 class="h-section">Presets to start from.</h2>
+</div>
+<a href="docs/token-reference.html" style="font-weight:600">Full token reference →</a>
+</div>
+<div class="table-wrap" style="margin:0;background:var(--bg)">
+<table>
+<thead><tr><th scope="col">Token</th><th scope="col">Starts from</th><th scope="col">Animates to</th><th scope="col">Default motion</th></tr></thead>
+<tbody>{{PRESET_ROWS}}</tbody>
+</table>
+</div>
+</div>
+</section>
+
+<!-- CTA -->
+<section class="band">
+<div class="frame cta">
+<h2 class="h-section">Start animating in a minute.</h2>
+<p>Upgrading from 0.1? The migration guide lists every renamed API and behavior change.</p>
+<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px">
+<a href="docs/introduction.html" class="btn">Read the docs</a>
+<a href="docs/migration.html" class="ghost ghost-lg">Migration guide</a>
+</div>
+</div>
+</section>
+
+</main>
+{{FOOTER}}
+{{SEARCH}}
+{{SCRIPTS}}
+</body>
+</html>

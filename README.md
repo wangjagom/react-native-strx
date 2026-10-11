@@ -11,6 +11,8 @@
 </p>
 
 <p align="center">
+  <a href="https://wangjagom.github.io/react-native-strx/">Documentation</a>
+  ·
   <a href="https://www.npmjs.com/package/react-native-strx">npm</a>
   ·
   <a href="https://github.com/wangjagom/react-native-strx">GitHub</a>
@@ -28,7 +30,7 @@ Tailwind-style declarative animations and layout transitions for React Native Re
 
 It supports preset animations, explicit `from:/to:/exit:` keyframes, implicit `transition-*` style transitions, and Reanimated layout transitions.
 
-> Upgrading from 0.1.x? See [MIGRATION.md](./MIGRATION.md).
+> Full documentation with live previews: **[wangjagom.github.io/react-native-strx](https://wangjagom.github.io/react-native-strx/)**. Upgrading from 0.1.x? See [MIGRATION.md](./MIGRATION.md).
 
 ## Installation
 
@@ -269,7 +271,7 @@ An animated image primitive for image entrance, fade, scale, and layout transiti
 
 ```tsx
 <Strx.Image
-  animate="fade-in scale-in layout-linear"
+  animate="fade-in, scale-in layout-linear"
   source={{ uri: avatarUrl }}
   style={{ width: 72, height: 72, borderRadius: 36 }}
 />
@@ -304,9 +306,9 @@ A wrapper for entrance choreography. It injects timing into child `animate` prop
 
 ```tsx
 <Strx.Timeline playback="stagger" interval={80} playCount={1}>
-  <Strx.View animate="fade-in slide-up" />
-  <Strx.View animate="fade-in slide-up" />
-  <Strx.View animate="fade-in slide-up" />
+  <Strx.View animate="fade-in from:translate-y-12" />
+  <Strx.View animate="fade-in from:translate-y-12" />
+  <Strx.View animate="fade-in from:translate-y-12" />
 </Strx.Timeline>
 ```
 
@@ -613,9 +615,9 @@ function SuccessCardContent() {
     playback: "stagger",
     interval: 80,
     playables: [
-      { target: "coin", animate: "scale-in fade-in duration-280 delay-300" },
-      { target: "title", animate: "fade-in slide-up duration-260" },
-      { target: "button", animate: "fade-in slide-up duration-240" },
+      { target: "coin", animate: "scale-in from:opacity-0 duration-280 delay-300" },
+      { target: "title", animate: "fade-in from:translate-y-12 duration-260" },
+      { target: "button", animate: "fade-in from:translate-y-12 duration-240" },
     ],
     onComplete: () => {
       console.log("Timeline finished");
@@ -728,15 +730,6 @@ Inheritance only flows **down**. A child with a `layout-*` token does not make i
 `duration-*` tokens in the same group set the duration of `layout-linear` and `layout-fade`; otherwise `Strx.Provider`'s `motionPreset.duration` or 300ms is used. Springs use their own parameters.
 
 See [Layout tokens](#layout-tokens) for every token.
-
-A STRX component animates its size and position changes when:
-
-1. it has its own `layout-*` token, or
-2. it inherits one: from the nearest STRX ancestor that has a layout transition, or from the nearest `Strx.LayoutGroup`.
-
-Inheritance only flows **down**. A child with a `layout-*` token does not make its parent animate; when content appearing inside a container should also resize the container smoothly, put the token on the container (as above) or wrap the region in `Strx.LayoutGroup`.
-
-`duration-*` tokens in the same group set the duration of `layout-linear` and `layout-fade`; otherwise `Strx.Provider`'s `motionPreset.duration` or 300ms is used. Springs use their own parameters.
 
 Supported layout tokens:
 
