@@ -6,7 +6,7 @@
     "strict": true,
     "baseUrl": ".",
     "ignoreDeprecations": "6.0",
-    "types": ["react"]
+    "types": ["react", "jest"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "example", "dist", "build"]

@@ -109,10 +109,17 @@ export type {
   AnimateEntry,
   AnimateObject,
   AnimateProp,
+  AnimateScalar,
+  AnimateStyle,
   AnimateToken,
+  AnimateTransitionToken,
+  AnimateTransformStyle,
   AnimateValue,
+  CustomFromToAnimateObject,
   PlaybackMode,
+  PresetAnimateObject,
 } from "./types/animate";
+export type {} from "./types/react-native-augmentation";
 
 export { createStrxComponent } from "./components/createStrxComponent";
 export type {
@@ -130,7 +137,8 @@ export { Pressable as StrxPressable } from "./components/Pressable";
 /**
  * Namespace API for STRX primitives.
  *
- * This is the recommended import style:
+ * Prefer this import style when writing app code so animated STRX components
+ * stay visually distinct from React Native built-ins:
  *
  * ```tsx
  * import { Strx } from "react-native-strx";
@@ -138,7 +146,73 @@ export { Pressable as StrxPressable } from "./components/Pressable";
  * <Strx.View animate="fade-in layout-spring" />
  * ```
  */
-export const Strx = Object.freeze({
+export const Strx: Readonly<{
+  /**
+   * Animated container component.
+   *
+   * Accepts React Native `View` props plus STRX props such as `animate`,
+   * `layoutClip`, `layoutPropagation`, `playback`, `interval`, and `strxId`.
+   */
+  View: typeof View;
+  /**
+   * Recommended root provider for global motion settings, reduce motion,
+   * debug overlay, layout registry, and event timeline registry.
+   */
+  Provider: typeof Provider;
+  /** Aggregate dev-only runtime diagnostics overlay. */
+  DebugOverlay: typeof DebugOverlay;
+  /**
+   * Animated text component.
+   *
+   * Accepts React Native `Text` props plus STRX animation and timeline props.
+   */
+  Text: typeof Text;
+  /**
+   * Animated press target.
+   *
+   * Accepts React Native `Pressable` props, including event callbacks such as
+   * `onPress`, plus STRX animation and timeline props.
+   */
+  Pressable: typeof Pressable;
+  /**
+   * Animated image component.
+   *
+   * Accepts React Native `Image` props plus STRX animation and layout props.
+   */
+  Image: typeof Image;
+  /**
+   * Animated scroll container.
+   *
+   * Accepts React Native `ScrollView` props plus STRX animation and layout
+   * context props.
+   */
+  ScrollView: typeof ScrollView;
+  /**
+   * Animated text input component.
+   *
+   * Accepts React Native `TextInput` props, including text/focus callbacks,
+   * plus STRX animation and timeline props.
+   */
+  TextInput: typeof TextInput;
+  /**
+   * Render-time choreography wrapper that injects timing into child `animate`
+   * props.
+   */
+  Timeline: typeof Timeline;
+  /**
+   * Provider required for event timelines and layout propagation registry.
+   */
+  LayoutRoot: typeof StrxLayoutRoot;
+  /**
+   * Provider that gives descendants a shared default layout transition.
+   */
+  LayoutGroup: typeof LayoutGroup;
+  /**
+   * Hook for event-driven animation timelines controlled by `play`, `reset`,
+   * and `stop`.
+   */
+  useTimeline: typeof useTimeline;
+}> = Object.freeze({
   View,
   Provider,
   DebugOverlay,

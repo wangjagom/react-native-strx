@@ -9,7 +9,7 @@ import {
   View as RNView,
 } from 'react-native';
 
-import strxLogo from '../../images/logo.png';
+import strxLogo from '../assets/logo.png';
 import { getNormalizeAnimateCacheSize } from '../parser/normalize';
 import { useStrxLayout } from '../context/StrxLayoutContext';
 import { useStrxMotion } from '../context/StrxMotionContext';

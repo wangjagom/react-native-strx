@@ -20,27 +20,35 @@
   "bugs": {
     "url": "https://github.com/wangjagom/react-native-strx/issues"
   },
-  "main": "src/index.ts",
-  "module": "src/index.ts",
-  "react-native": "src/index.ts",
-  "types": "src/types/index.d.ts",
+  "main": "./lib/module/index.js",
+  "module": "./lib/module/index.js",
+  "react-native": "./src/index.ts",
+  "types": "./lib/typescript/src/index.d.ts",
   "files": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.d.ts",
-    "!src/**/README.md",
+    "src",
+    "lib",
+    "!**/__tests__",
+    "!**/__fixtures__",
+    "!**/__mocks__",
     "README.md",
     "SECURITY.md",
-    "images/logo.png",
     "LICENSE"
   ],
   "sideEffects": false,
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
+    "test": "jest",
+    "build": "bob build",
+    "clean": "rm -rf lib",
     "pack:check": "npm pack --dry-run",
-    "prepublishOnly": "npm run typecheck && npm run pack:check",
+    "prepare": "bob build",
+    "prepublishOnly": "npm run typecheck && npm run lint && npm test && npm run pack:check",
     "publish:npm": "npm publish --access public",
-    "npm:whoami": "npm whoami"
+    "npm:whoami": "npm whoami",
+    "changeset": "changeset"
   },
   "peerDependencies": {
     "react": ">=18",
@@ -53,12 +61,24 @@
     }
   },
   "devDependencies": {
-    "@react-native/typescript-config": ">=0.74",
-    "@types/react": ">=18",
-    "react": ">=18",
-    "react-native": ">=0.74",
-    "react-native-reanimated": ">=3",
-    "typescript": ">=5"
+    "@changesets/cli": "^2.31.1",
+    "@react-native/babel-preset": "^0.87.1",
+    "@react-native/eslint-config": "^0.87.1",
+    "@react-native/jest-preset": "^0.87.1",
+    "@react-native/typescript-config": "^0.87.1",
+    "@testing-library/react-native": "^14.1.0",
+    "@types/jest": "^29.5.14",
+    "@types/react": "^19.3.0",
+    "eslint": "^9.39.5",
+    "jest": "^29.7.0",
+    "prettier": "^3.9.10",
+    "react": "^19.2.3",
+    "react-native": "^0.87.1",
+    "react-native-builder-bob": "^0.43.1",
+    "react-native-reanimated": "^4.7.1",
+    "react-native-worklets": "^0.13.0",
+    "test-renderer": "^1.3.0",
+    "typescript": "~6.0.3"
   },
   "engines": {
     "node": ">=18"
@@ -66,14 +86,46 @@
   "publishConfig": {
     "access": "public"
   },
-  "source": "src/index.ts",
+  "source": "./src/index.ts",
   "exports": {
     ".": {
-      "types": "./src/types/index.d.ts",
-      "react-native": "./src/index.ts",
-      "import": "./src/index.ts",
-      "default": "./src/index.ts"
+      "source": "./src/index.ts",
+      "types": "./lib/typescript/src/index.d.ts",
+      "default": "./lib/module/index.js"
     },
     "./package.json": "./package.json"
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "exclude": "{**/__tests__/**,**/__fixtures__/**,**/__mocks__/**,**/*.d.ts}",
+    "targets": [
+      [
+        "module",
+        {
+          "esm": true
+        }
+      ],
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
+  },
+  "jest": {
+    "preset": "@react-native/jest-preset",
+    "modulePathIgnorePatterns": [
+      "<rootDir>/lib/",
+      "<rootDir>/example/"
+    ],
+    "setupFiles": [
+      "<rootDir>/jest.setup.js"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?|react-native-reanimated|react-native-worklets)/)"
+    ],
+    "resolver": "react-native-reanimated/jest/resolver.js"
   }
 }

@@ -155,7 +155,7 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
     } catch {
       registryRef.current.delete(node.nodeId);
     }
-  }, []);
+  }, [reportDebugWarning]);
 
   const unregisterNode = useCallback((nodeId: string) => {
     registryRef.current.delete(nodeId);
