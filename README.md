@@ -28,6 +28,8 @@ Tailwind-style declarative animations and layout transitions for React Native Re
 
 It supports preset animations, explicit `from:/to:/exit:` keyframes, implicit `transition-*` style transitions, and Reanimated layout transitions.
 
+> Upgrading from 0.1.x? See [MIGRATION.md](./MIGRATION.md).
+
 ## Installation
 
 ### From npm
@@ -51,7 +53,7 @@ npm install github:wangjagom/react-native-strx
 or with a release tag:
 
 ```sh
-npm install github:wangjagom/react-native-strx#v0.1.11
+npm install github:wangjagom/react-native-strx#v1.0.0-beta.0
 ```
 
 ### Peer dependencies
@@ -443,9 +445,7 @@ For array entries on a single component, use `playback` when you want STRX to or
 
 Preset tokens create an explicit animation plan with predefined `from` and `to` values.
 
-The `Default motion` values below are STRX preset defaults, not Reanimated defaults. They were chosen as opinionated starter timings for each motion family, and you can override them with tokens such as `duration-500`, `ease-out`, `linear`, or object configs.
-
-Duration precedence is: token or object value → the preset's own default → `Strx.Provider` `motionPreset.duration` → `300ms`.
+The `Default motion` values below are STRX preset defaults, not Reanimated defaults. Override them with tokens such as `duration-500`, `ease-out`, `linear`, or object configs.
 
 Register your own presets with `definePreset` at module scope, before components using them render:
 
@@ -461,39 +461,47 @@ definePreset("pop-in", {
 <Strx.View animate="pop-in" />;
 ```
 
-| Token         | Starts from                      | Animates to                 | Default motion                             |
-| ------------- | -------------------------------- | --------------------------- | ------------------------------------------ |
-| `fade-in`     | `opacity: 0`                     | `opacity: 1`                | timing, 300ms                              |
-| `fade-out`    | `opacity: 1`                     | `opacity: 0`                | timing, 250ms                              |
-| `slide-up`    | `translateY: 24`                 | `translateY: 0`             | timing, 320ms                              |
-| `slide-down`  | `translateY: -24`                | `translateY: 0`             | timing, 320ms                              |
-| `slide-left`  | `translateX: 24`                 | `translateX: 0`             | timing, 320ms                              |
-| `slide-right` | `translateX: -24`                | `translateX: 0`             | timing, 320ms                              |
-| `scale-in`    | `scale: 0.92`                    | `scale: 1`                  | timing, 260ms                              |
-| `scale-up`    | `scale: 0.92`                    | `scale: 1`                  | timing, 260ms                              |
-| `scale-down`  | `scale: 1.08`                    | `scale: 1`                  | timing, 260ms                              |
-| `scale-out`   | `scale: 1`                       | `scale: 0.92`               | timing, 220ms                              |
-| `bounce`      | `translateY: -16`, `scale: 0.96` | `translateY: 0`, `scale: 1` | spring, damping 8, stiffness 180, mass 0.9 |
+<!-- generated:presets -->
+
+| Token | Starts from | Animates to | Default motion |
+| --- | --- | --- | --- |
+| `fade-in` | `opacity: 0` | `opacity: 1` | timing, 300ms |
+| `fade-out` | `opacity: 1` | `opacity: 0` | timing, 250ms |
+| `slide-up` | `translateY: 24` | `translateY: 0` | timing, 320ms |
+| `slide-down` | `translateY: -24` | `translateY: 0` | timing, 320ms |
+| `slide-left` | `translateX: 24` | `translateX: 0` | timing, 320ms |
+| `slide-right` | `translateX: -24` | `translateX: 0` | timing, 320ms |
+| `scale-up` | `scale: 0.92` | `scale: 1` | timing, 260ms |
+| `scale-in` | `scale: 0.92` | `scale: 1` | timing, 260ms |
+| `scale-down` | `scale: 1.08` | `scale: 1` | timing, 260ms |
+| `scale-out` | `scale: 1` | `scale: 0.92` | timing, 220ms |
+| `bounce` | `translateY: -16`, `scale: 0.96` | `translateY: 0`, `scale: 1` | spring, damping 8, stiffness 180, mass 0.9 |
+
+<!-- /generated:presets -->
 
 ### Timing tokens
 
 Timing tokens configure preset, `from:/to:`, `exit:`, and `transition-*` animations.
 
-| Token             | Meaning                                                                |
-| ----------------- | ---------------------------------------------------------------------- |
-| `duration-300`    | Sets duration to `300` milliseconds. Accepts unsigned decimals.        |
-| `delay-100`       | Delays animation by `100` milliseconds. Accepts unsigned decimals.     |
-| `repeat-2`        | Repeats explicit preset/from-to animation 2 times.                     |
-| `repeat-infinite` | Repeats explicit preset/from-to animation indefinitely.                |
-| `play-3`          | Plays the full animation 3 total times, then stops.                    |
-| `play-infinite`   | Plays the full animation indefinitely.                                 |
-| `linear`          | Linear easing.                                                         |
-| `ease`            | Smoothstep default easing.                                             |
-| `ease-in`         | Cubic ease-in.                                                         |
-| `ease-out`        | Cubic ease-out.                                                        |
-| `ease-in-out`     | Cubic ease-in-out.                                                     |
-| `spring`          | Uses the spring driver for numeric channels.                           |
-| `damping-12`      | Spring damping. Also `stiffness-*` and `mass-*`.                       |
+<!-- generated:timing -->
+
+| Token | Meaning |
+| --- | --- |
+| `duration-300` | Duration in milliseconds. Precedence: token or object → preset default → `Strx.Provider` duration → 300ms. |
+| `delay-100` | Delay in milliseconds before the animation starts. |
+| `play-3`, `play-infinite` | Total number of plays. Positive integers only. |
+| `repeat-3`, `repeat-infinite` | Same as `play-*`; kept for compatibility. |
+| `linear` | Linear easing. |
+| `ease` | Smoothstep easing. |
+| `ease-in` | Cubic ease-in. |
+| `ease-out` | Cubic ease-out. Default when no easing is set. |
+| `ease-in-out` | Cubic ease-in-out. |
+| `spring` | Uses the spring driver for numeric channels. |
+| `damping-12`, `stiffness-180`, `mass-1` | Spring parameters. Defaults: damping 10, stiffness 100, mass 1. |
+
+Numbers are unsigned decimals such as `300` or `0.5`. Without an easing token, animations use `ease-out` or the provider's easing.
+
+<!-- /generated:timing -->
 
 ### Explicit keyframe prefixes
 
@@ -507,20 +515,21 @@ Prefix tokens turn a Tailwind-like utility into a `from`, `to`, or `exit` style.
 
 Supported prefixed utilities:
 
-| Utility                      | Result                                                |
-| ---------------------------- | ----------------------------------------------------- |
-| `opacity-0` to `opacity-100` | `opacity` from `0` to `1`. Values are divided by 100. |
-| `translate-x-20`             | `translateX: 20`                                      |
-| `-translate-x-20`            | `translateX: -20`                                     |
-| `translate-y-20`             | `translateY: 20`                                      |
-| `-translate-y-20`            | `translateY: -20`                                     |
-| `scale-90`                   | `scale: 0.9`                                          |
-| `scale-x-95`                 | `scaleX: 0.95`                                        |
-| `scale-y-105`                | `scaleY: 1.05`                                        |
-| `rotate-45`                  | `rotate: '45deg'`                                     |
-| `-rotate-45`                 | `rotate: '-45deg'`                                    |
-| `w-120`                      | `width: 120`                                          |
-| `h-80`                       | `height: 80`                                          |
+<!-- generated:utilities -->
+
+| Utility | Result | Negative form |
+| --- | --- | --- |
+| `opacity-50` | `opacity: 0.5` | — |
+| `translate-x-20` | `translateX: 20` | `-translate-x-20` |
+| `translate-y-20` | `translateY: 20` | `-translate-y-20` |
+| `scale-x-95` | `scaleX: 0.95` | — |
+| `scale-y-105` | `scaleY: 1.05` | — |
+| `scale-90` | `scale: 0.9` | — |
+| `rotate-45` | `rotate: '45deg'` | `-rotate-45` |
+| `w-120` | `width: 120` | — |
+| `h-80` | `height: 80` | — |
+
+<!-- /generated:utilities -->
 
 Example:
 
@@ -532,14 +541,18 @@ Example:
 
 Transition tokens animate changes in the static `style` prop. They compare the previous animatable style snapshot with the next one and animate only changed channels.
 
-| Token                          | Animated style subset                                                             |
-| ------------------------------ | --------------------------------------------------------------------------------- |
-| `transition`, `transition-all` | All supported numeric/color/transform channels.                                   |
-| `transition-colors`            | Color style keys such as `backgroundColor`, `borderColor`, `borderTopColor`, etc. |
-| `transition-opacity`           | `opacity` only.                                                                   |
-| `transition-transform`         | Transform channels such as `translateX`, `translateY`, `scale`, `rotate`, etc.    |
-| `transition-spacing`           | `margin*` and `padding*` keys.                                                    |
-| `transition-layout`            | `width`, `height`, min/max dimensions, and positional keys.                       |
+<!-- generated:transitions -->
+
+| Token | Animated style subset |
+| --- | --- |
+| `transition`, `transition-all` | All supported numeric, color, and transform channels. |
+| `transition-colors` | Color keys such as `backgroundColor` and `borderColor`. |
+| `transition-opacity` | `opacity` only. |
+| `transition-transform` | Transform channels such as `translateX`, `scale`, and `rotate`. |
+| `transition-spacing` | `margin*` and `padding*` keys. |
+| `transition-layout` | `width`, `height`, min/max sizes, and `top`/`right`/`bottom`/`left`. |
+
+<!-- /generated:transitions -->
 
 Example:
 
@@ -552,15 +565,19 @@ Example:
 
 ### Layout tokens
 
-Layout tokens are passed to Reanimated's `layout` prop through stable worklet transitions. They animate native layout changes such as size and position changes.
+Layout tokens are passed to Reanimated's `layout` prop. They animate native size and position changes. See [Layout transitions](#layout-transitions) for inheritance rules.
 
-| Token                  | Behavior                                                                   |
-| ---------------------- | -------------------------------------------------------------------------- |
-| `layout-linear`        | Timing layout transition (300ms, or `duration-*` / provider duration).     |
-| `layout-spring`        | Spring layout transition with damping 15, stiffness 120, mass 1.           |
-| `layout-fade`          | Timing layout transition with an opacity fade-in.                          |
-| `layout-spring-stiff`  | Stiffer spring layout transition with damping 20, stiffness 180, mass 0.9. |
-| `layout-spring-bouncy` | Bouncier spring layout transition with damping 10, stiffness 105, mass 1.  |
+<!-- generated:layout -->
+
+| Token | Behavior | Motion |
+| --- | --- | --- |
+| `layout-linear` | Timing transition. | 300ms, or `duration-*` / provider duration |
+| `layout-spring` | Spring transition. | damping 15, stiffness 120, mass 1 |
+| `layout-fade` | Timing transition that also fades the view in. | 300ms, or `duration-*` / provider duration |
+| `layout-spring-stiff` | Stiffer spring transition. | damping 20, stiffness 180, mass 0.9 |
+| `layout-spring-bouncy` | Bouncier spring transition. | damping 10, stiffness 105, mass 1 |
+
+<!-- /generated:layout -->
 
 Components without a layout transition get no Reanimated `layout` prop at all, so they carry no layout-animation cost. Once a component has had a layout transition, it keeps a no-op transition instead of toggling the prop back off.
 
@@ -572,8 +589,8 @@ Components without a layout transition get no Reanimated `layout` prop at all, s
 | `strxId`            | All STRX primitives and custom factory components                     | Registers the component as an event-playable target for `Strx.useTimeline`.                   |
 | `playback`          | All STRX primitives and custom factory components                     | Orchestrates array `animate` entries as `parallel`, `serial`, or `stagger`. Default is `parallel`. |
 | `interval`          | All STRX primitives and custom factory components                     | Millisecond offset used by `playback="stagger"`. Default is `100`.                           |
-| `layoutClip`        | All STRX primitives and custom factory components                     | When `true`, injects `overflow: 'hidden'` during active layout animation. Default is `false`. |
-| `layoutPropagation` | All STRX primitives and custom factory components                     | Use `layoutPropagation="none"` to stop layout demand from bubbling past this boundary.        |
+| `layoutClip`        | All STRX primitives and custom factory components                     | When `true`, injects `overflow: 'hidden'` while a layout transition applies. Default is `false`. |
+| `layoutPropagation` | All STRX primitives and custom factory components                     | `none` ignores layout transitions inherited from ancestors. Default is `auto`.                |
 | `playCount`         | `Strx.Timeline`                                                       | Repeats the whole child choreography cycle a fixed number of total plays, or `infinite`.      |
 
 ## Event timelines
@@ -661,24 +678,7 @@ Returned controller:
 </Strx.View>
 ```
 
-Common tokens:
-
-- `fade-in`
-- `fade-out`
-- `slide-up`
-- `slide-down`
-- `slide-left`
-- `slide-right`
-- `scale-in`
-- `scale-out`
-- `scale-up`
-- `scale-down`
-- `bounce`
-- `duration-300`
-- `delay-100`
-- `ease`, `ease-in`, `ease-out`, `ease-in-out`, `linear`
-- `repeat-2`, `repeat-infinite`
-- `play-3`, `play-infinite`
+See [Preset tokens](#preset-tokens) for every preset and its default motion.
 
 ## Explicit keyframes: from:/to:/exit:
 
@@ -688,13 +688,7 @@ Common tokens:
 </Strx.View>
 ```
 
-Supported utility examples:
-
-- `from:opacity-0`, `to:opacity-100`, `exit:opacity-0`
-- `from:translate-y-20`, `from:-translate-y-20`, `to:translate-y-0`
-- `from:translate-x-20`, `to:translate-x-0`
-- `from:scale-90`, `to:scale-100`
-- `from:rotate-45`, `to:rotate-0`
+See [Explicit keyframe prefixes](#explicit-keyframe-prefixes) for every utility.
 
 ## Implicit style transitions
 
@@ -714,14 +708,7 @@ Animate changes in the static `style` prop:
 
 Transitions start from the values currently on screen, so changing the style again mid-transition continues smoothly instead of jumping. Style changes never replay a component's entrance animation.
 
-Supported transition tokens:
-
-- `transition`, `transition-all`
-- `transition-colors`
-- `transition-opacity`
-- `transition-transform`
-- `transition-spacing`
-- `transition-layout`
+See [Implicit transition tokens](#implicit-transition-tokens) for every token.
 
 ## Layout transitions
 
@@ -730,6 +717,17 @@ Supported transition tokens:
   {open && <Strx.Text>Expanded content</Strx.Text>}
 </Strx.View>
 ```
+
+A STRX component animates its size and position changes when:
+
+1. it has its own `layout-*` token, or
+2. it inherits one: from the nearest STRX ancestor that has a layout transition, or from the nearest `Strx.LayoutGroup`.
+
+Inheritance only flows **down**. A child with a `layout-*` token does not make its parent animate; when content appearing inside a container should also resize the container smoothly, put the token on the container (as above) or wrap the region in `Strx.LayoutGroup`.
+
+`duration-*` tokens in the same group set the duration of `layout-linear` and `layout-fade`; otherwise `Strx.Provider`'s `motionPreset.duration` or 300ms is used. Springs use their own parameters.
+
+See [Layout tokens](#layout-tokens) for every token.
 
 A STRX component animates its size and position changes when:
 

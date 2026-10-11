@@ -12,5 +12,8 @@
     "example",
     "lib",
     "**/__tests__"
+  ],
+  "include": [
+    "src/**/*"
   ]
 }

@@ -39,11 +39,11 @@ export interface LayoutTransitionOptions {
   spring?: Partial<SpringParams>;
 }
 
-const DEFAULT_LAYOUT_DURATION = 300;
+export const DEFAULT_LAYOUT_DURATION = 300;
 /** Position/size changes smaller than this (in points) are applied instantly. */
 const MOVEMENT_THRESHOLD = 0.5;
 
-const SPRING_PRESETS: Readonly<Record<string, SpringParams>> = {
+export const SPRING_PRESETS: Readonly<Record<string, SpringParams>> = {
   spring: { damping: 15, stiffness: 120, mass: 1 },
   'spring-stiff': { damping: 20, stiffness: 180, mass: 0.9 },
   'spring-bouncy': { damping: 10, stiffness: 105, mass: 1 },
