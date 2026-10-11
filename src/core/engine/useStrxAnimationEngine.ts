@@ -45,7 +45,7 @@ import {
   getTransitionSpec,
   stableSerialize,
   type AnimationPlan,
-  type CodexCompiledAnimation,
+  type StrxCompiledAnimation,
   type RuntimeConfig,
   type TransitionSpec,
 } from './plan';
@@ -55,7 +55,7 @@ type TransformEntry = NonNullable<ViewStyle['transform']>[number];
 /**
  * Options passed when playing a compiled animation through a controller.
  */
-export interface CodexAnimationPlayOptions {
+export interface StrxAnimationPlayOptions {
   /**
    * Extra delay, in milliseconds, added before the animation starts.
    */
@@ -76,13 +76,13 @@ export interface CodexAnimationPlayOptions {
 /**
  * Imperative animation controller used by STRX event timelines.
  */
-export interface CodexAnimationController {
+export interface StrxAnimationController {
   /**
    * Plays a compiled animation from its `from` frame to its `to` frame.
    */
   play: (
-    animation: CodexCompiledAnimation,
-    options?: CodexAnimationPlayOptions,
+    animation: StrxCompiledAnimation,
+    options?: StrxAnimationPlayOptions,
   ) => void;
   /**
    * Plays a compiled animation back toward its `from` frame.
@@ -91,14 +91,14 @@ export interface CodexAnimationController {
    * current position; otherwise it plays the full `to -> from` pass.
    */
   reverse: (
-    animation: CodexCompiledAnimation,
-    options?: CodexAnimationPlayOptions,
+    animation: StrxCompiledAnimation,
+    options?: StrxAnimationPlayOptions,
   ) => void;
   /**
    * Clears values applied by event-driven playback, or immediately applies a
    * compiled animation's `from` frame when provided.
    */
-  reset: (animation?: CodexCompiledAnimation) => void;
+  reset: (animation?: StrxCompiledAnimation) => void;
   /**
    * Cancels pending starts and freezes running animations where they are.
    */
@@ -106,13 +106,13 @@ export interface CodexAnimationController {
 }
 
 /**
- * Runtime animation engine returned by `useCodexAnimationEngine`.
+ * Runtime animation engine returned by `useStrxAnimationEngine`.
  */
-export interface CodexAnimationEngine {
+export interface StrxAnimationEngine {
   /** Animated style that should be merged after the component's static style. */
   animatedStyle: ReturnType<typeof useAnimatedStyle<ViewStyle>>;
   /** Imperative controller used by `Strx.useTimeline`. */
-  controller: CodexAnimationController;
+  controller: StrxAnimationController;
 }
 
 /**
@@ -129,12 +129,12 @@ export interface CodexAnimationEngine {
  * Because style changes only touch the transition layer, they never replay
  * explicit animations, and interrupted transitions continue without jumps.
  */
-export function useCodexAnimationEngine(
+export function useStrxAnimationEngine(
   animate?: AnimateProp | null,
   style?: AnimatableStaticStyle,
   playback: PlaybackMode = 'parallel',
   interval = 100,
-): CodexAnimationEngine {
+): StrxAnimationEngine {
   const motion = useStrxMotion();
   const motionOptions = useMemo(
     () => createMotionRuntimeOptions(motion),
@@ -367,7 +367,7 @@ export function useCodexAnimationEngine(
     [clearTimers, explicitProgress, transitionProgress],
   );
 
-  const controller = useMemo<CodexAnimationController>(
+  const controller = useMemo<StrxAnimationController>(
     () => ({
       play: (animation, options = {}) => {
         clearTimers();
@@ -479,13 +479,13 @@ export function useCodexAnimationEngine(
  * This is a lower-level hook exported for custom integrations. Most users
  * should prefer STRX components or `createStrxComponent`.
  */
-export function useCodexAnimation(
+export function useStrxAnimation(
   animate?: AnimateProp | null,
   style?: AnimatableStaticStyle,
   playback: PlaybackMode = 'parallel',
   interval = 100,
 ) {
-  return useCodexAnimationEngine(animate, style, playback, interval)
+  return useStrxAnimationEngine(animate, style, playback, interval)
     .animatedStyle;
 }
 

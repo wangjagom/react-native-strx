@@ -1,5 +1,4 @@
 import { Image } from './components/Image';
-import { DebugOverlay } from './components/DebugOverlay';
 import { Pressable } from './components/Pressable';
 import { Provider } from './components/Provider';
 import { ScrollView } from './components/ScrollView';
@@ -7,135 +6,102 @@ import { Text } from './components/Text';
 import { TextInput } from './components/TextInput';
 import { Timeline } from './components/Timeline';
 import { View } from './components/View';
-import { useTimeline } from './core/useTimeline';
 import { LayoutGroup } from './context/LayoutGroupContext';
-import { StrxLayoutRoot } from './context/StrxLayoutContext';
+import { StrxTimelineRoot } from './context/TimelineRegistry';
+import {
+  animationPresets as presetRegistry,
+  type StrxPreset,
+} from './core/presets';
+import { useTimeline } from './core/useTimeline';
 
-export { Image } from './components/Image';
-export type { CodexImageProps } from './components/Image';
-export { DebugOverlay } from './components/DebugOverlay';
-export type { StrxDebugOverlayProps } from './components/DebugOverlay';
-export { Pressable } from './components/Pressable';
-export type { CodexPressableProps } from './components/Pressable';
-export { Provider } from './components/Provider';
+// Components ------------------------------------------------------------------
+
+export { View as StrxView } from './components/View';
+export { Text as StrxText } from './components/Text';
+export { Pressable as StrxPressable } from './components/Pressable';
+export { Image as StrxImage } from './components/Image';
+export { ScrollView as StrxScrollView } from './components/ScrollView';
+export { TextInput as StrxTextInput } from './components/TextInput';
+export { Timeline as StrxTimeline } from './components/Timeline';
+export { Provider as StrxProvider } from './components/Provider';
+export { LayoutGroup as StrxLayoutGroup } from './context/LayoutGroupContext';
+export { StrxTimelineRoot } from './context/TimelineRegistry';
+export { createStrxComponent } from './components/createStrxComponent';
+
+export type { StrxViewProps } from './components/View';
+export type { StrxTextProps } from './components/Text';
+export type { StrxPressableProps } from './components/Pressable';
+export type { StrxImageProps } from './components/Image';
+export type { StrxScrollViewProps } from './components/ScrollView';
+export type { StrxTextInputProps } from './components/TextInput';
+export type { StrxTimelineProps } from './components/Timeline';
 export type { StrxProviderProps } from './components/Provider';
-export { ScrollView } from './components/ScrollView';
-export type { CodexScrollViewProps } from './components/ScrollView';
-export { Text } from './components/Text';
-export type { CodexTextProps } from './components/Text';
-export { TextInput } from './components/TextInput';
-export type { CodexTextInputProps } from './components/TextInput';
-export { Timeline } from './components/Timeline';
-export type { TimelineProps } from './components/Timeline';
-export { View } from './components/View';
-export type { CodexViewProps, LayoutPropagationMode } from './components/View';
-export type { CodexImageProps as StrxImageProps } from './components/Image';
-export type { CodexPressableProps as StrxPressableProps } from './components/Pressable';
-export type { CodexScrollViewProps as StrxScrollViewProps } from './components/ScrollView';
-export type { CodexTextProps as StrxTextProps } from './components/Text';
-export type { CodexTextInputProps as StrxTextInputProps } from './components/TextInput';
-export type { CodexViewProps as StrxViewProps } from './components/View';
-export { LayoutGroup, useLayoutGroup } from './context/LayoutGroupContext';
-export { LayoutNodeContext, useLayoutNode } from './context/LayoutNodeContext';
-export { StrxLayoutRoot, useStrxLayout } from './context/StrxLayoutContext';
-export { StrxMotionProvider, useStrxMotion } from './context/StrxMotionContext';
 export type {
-  StrxLayoutDebugSnapshot,
-  StrxLayoutContextType,
-} from './context/StrxLayoutContext';
+  LayoutGroupProps as StrxLayoutGroupProps,
+  LayoutGroupTransition as StrxLayoutGroupTransition,
+} from './context/LayoutGroupContext';
+export type {
+  StrxComponentOptions,
+  StrxComponentProps,
+} from './components/createStrxComponent';
 export type { LayoutPropagationMode as StrxLayoutPropagationMode } from './core/layout';
 export type { LayoutTransitionType as StrxLayoutTransitionType } from './context/LayoutNodeContext';
-export type {
-  StrxEasingName,
-  StrxMotionContextValue,
-  StrxMotionPreset,
-  StrxMotionProviderProps,
-  StrxReduceMotionMode,
-} from './context/StrxMotionContext';
-export type {
-  LayoutNodeContextType,
-  LayoutTransitionType,
-} from './context/LayoutNodeContext';
-export type {
-  LayoutGroupContextValue,
-  LayoutGroupProps,
-  LayoutGroupTransition,
-} from './context/LayoutGroupContext';
-export { animationPresets, definePreset } from './core/presets';
-export type {
-  AnimatableChannel,
-  BuiltInAnimationPreset,
-  CodexAnimationPreset,
-  PresetMotionOptions,
-} from './core/presets';
-export {
-  compileCodexAnimation,
-  estimateCodexAnimationDelay,
-  estimateCodexAnimationDuration,
-  reverseCodexAnimation,
-  useCodexAnimation,
-  useCodexAnimationEngine,
-} from './core/useCodexAnimation';
-export type {
-  CodexAnimationController,
-  CodexCompileOptions,
-  CodexAnimationEngine,
-  CodexAnimationPlayOptions,
-  CodexCompiledAnimation,
-} from './core/useCodexAnimation';
-export type {
-  CodexAnimationController as StrxAnimationController,
-  CodexAnimationEngine as StrxAnimationEngine,
-  CodexAnimationPlayOptions as StrxAnimationPlayOptions,
-  CodexCompiledAnimation as StrxCompiledAnimation,
-} from './core/useCodexAnimation';
+
+// Hooks -----------------------------------------------------------------------
+
 export { useTimeline } from './core/useTimeline';
 export type {
   StrxTimelineController,
   StrxTimelinePlayable,
   UseTimelineOptions,
 } from './core/useTimeline';
-export {
-  clearNormalizeAnimateCache,
-  getNormalizeAnimateCacheSize,
-  normalizeAnimate,
-} from './parser/normalize';
-export type { StandardAnimConfig } from './parser/normalize';
+export { useStrxMotion } from './context/StrxMotionContext';
 export type {
-  AnimateLayoutToken,
+  StrxEasingName,
+  StrxMotionContextValue,
+  StrxMotionPreset,
+  StrxReduceMotionMode,
+} from './context/StrxMotionContext';
+
+// Presets ---------------------------------------------------------------------
+
+export { definePreset } from './core/presets';
+export type {
+  AnimatableChannel,
+  BuiltInAnimationPreset,
+  PresetMotionOptions,
+  StrxPreset,
+} from './core/presets';
+
+/** Registered presets, including built-ins and `definePreset` additions. */
+export const animationPresets: Readonly<Record<string, Readonly<StrxPreset>>> =
+  presetRegistry;
+
+// Token types -----------------------------------------------------------------
+
+export type {
   AnimateEntry,
+  AnimateLayoutToken,
   AnimateObject,
   AnimateProp,
   AnimateScalar,
   AnimateStyle,
   AnimateToken,
-  AnimateTransitionToken,
   AnimateTransformStyle,
+  AnimateTransitionToken,
   AnimateValue,
   CustomFromToAnimateObject,
   PlaybackMode,
   PresetAnimateObject,
 } from './types/animate';
-export type {} from './types/react-native-augmentation';
 
-export { createStrxComponent } from './components/createStrxComponent';
-export type {
-  StrxComponentOptions,
-  StrxComponentProps,
-} from './components/createStrxComponent';
-export { Image as StrxImage } from './components/Image';
-export { ScrollView as StrxScrollView } from './components/ScrollView';
-export { TextInput as StrxTextInput } from './components/TextInput';
-export { Timeline as StrxTimeline } from './components/Timeline';
-export { View as StrxView } from './components/View';
-export { Text as StrxText } from './components/Text';
-export { Pressable as StrxPressable } from './components/Pressable';
+// Namespace -------------------------------------------------------------------
 
 /**
  * Namespace API for STRX primitives.
  *
- * Prefer this import style when writing app code so animated STRX components
- * stay visually distinct from React Native built-ins:
+ * Prefer this import style so animated STRX components stay visually
+ * distinct from React Native built-ins:
  *
  * ```tsx
  * import { Strx } from "react-native-strx";
@@ -144,82 +110,41 @@ export { Pressable as StrxPressable } from './components/Pressable';
  * ```
  */
 export const Strx: Readonly<{
-  /**
-   * Animated container component.
-   *
-   * Accepts React Native `View` props plus STRX props such as `animate`,
-   * `layoutClip`, `layoutPropagation`, `playback`, `interval`, and `strxId`.
-   */
+  /** Animated `View` with STRX animation props. */
   View: typeof View;
-  /**
-   * Recommended root provider for global motion settings, reduce motion,
-   * debug overlay, layout registry, and event timeline registry.
-   */
-  Provider: typeof Provider;
-  /** Aggregate dev-only runtime diagnostics overlay. */
-  DebugOverlay: typeof DebugOverlay;
-  /**
-   * Animated text component.
-   *
-   * Accepts React Native `Text` props plus STRX animation and timeline props.
-   */
+  /** Animated `Text` with STRX animation props. */
   Text: typeof Text;
   /**
-   * Animated press target.
-   *
-   * Accepts React Native `Pressable` props, including event callbacks such as
-   * `onPress`, plus STRX animation and timeline props.
+   * Animated `Pressable`. Function styles such as `({ pressed }) => ...`
+   * work with `transition-*` tokens.
    */
   Pressable: typeof Pressable;
-  /**
-   * Animated image component.
-   *
-   * Accepts React Native `Image` props plus STRX animation and layout props.
-   */
+  /** Animated `Image` with STRX animation props. */
   Image: typeof Image;
-  /**
-   * Animated scroll container.
-   *
-   * Accepts React Native `ScrollView` props plus STRX animation and layout
-   * context props.
-   */
+  /** Animated `ScrollView` with STRX animation props. */
   ScrollView: typeof ScrollView;
-  /**
-   * Animated text input component.
-   *
-   * Accepts React Native `TextInput` props, including text/focus callbacks,
-   * plus STRX animation and timeline props.
-   */
+  /** Animated `TextInput` with STRX animation props. */
   TextInput: typeof TextInput;
-  /**
-   * Render-time choreography wrapper that injects timing into child `animate`
-   * props.
-   */
+  /** Render-time choreography: injects timing into child `animate` props. */
   Timeline: typeof Timeline;
-  /**
-   * Provider required for event timelines and layout propagation registry.
-   */
-  LayoutRoot: typeof StrxLayoutRoot;
-  /**
-   * Provider that gives descendants a shared default layout transition.
-   */
+  /** Root provider: motion defaults, reduce motion, and the timeline registry. */
+  Provider: typeof Provider;
+  /** Timeline registry only, for apps that do not use `Strx.Provider`. */
+  TimelineRoot: typeof StrxTimelineRoot;
+  /** Gives STRX descendants a shared layout transition. */
   LayoutGroup: typeof LayoutGroup;
-  /**
-   * Hook for event-driven animation timelines controlled by `play`, `reset`,
-   * and `stop`.
-   */
+  /** Event-driven animation timelines controlled by `play`, `reverse`, `reset`, and `stop`. */
   useTimeline: typeof useTimeline;
 }> = Object.freeze({
   View,
-  Provider,
-  DebugOverlay,
   Text,
   Pressable,
   Image,
   ScrollView,
   TextInput,
   Timeline,
-  LayoutRoot: StrxLayoutRoot,
+  Provider,
+  TimelineRoot: StrxTimelineRoot,
   LayoutGroup,
   useTimeline,
 });

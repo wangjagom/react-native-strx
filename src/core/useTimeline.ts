@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import type { AnimateProp, PlaybackMode } from '../types/animate';
-import { useStrxLayout } from '../context/StrxLayoutContext';
+import { useTimelineRegistry } from '../context/TimelineRegistry';
 import { useStrxMotion } from '../context/StrxMotionContext';
 import {
-  compileCodexAnimation,
-  estimateCodexAnimationDelay,
-  estimateCodexAnimationDuration,
-  type CodexCompiledAnimation,
-} from './useCodexAnimation';
+  compileAnimation,
+  estimateAnimationDelay,
+  estimateAnimationDuration,
+  type StrxCompiledAnimation,
+} from './engine';
 
 /**
  * A single event-playable animation target for `Strx.useTimeline`.
@@ -18,7 +18,7 @@ export interface StrxTimelinePlayable {
    * Target component ID.
    *
    * This must match the `strxId` prop on a STRX component inside the nearest
-   * `Strx.LayoutRoot`.
+   * `Strx.TimelineRoot`.
    */
   target: string;
   /**
@@ -93,7 +93,7 @@ export interface StrxTimelineController {
 
 interface CompiledTimelinePlayable {
   target: string;
-  animation: CodexCompiledAnimation;
+  animation: StrxCompiledAnimation;
   offset: number;
 }
 
@@ -102,7 +102,7 @@ const DEFAULT_TIMELINE_INTERVAL = 100;
 /**
  * Creates an event-driven animation controller.
  *
- * `useTimeline` must run under `Strx.LayoutRoot`, because the root owns the
+ * `useTimeline` must run under `Strx.TimelineRoot`, because the root owns the
  * registry that connects `playables[].target` to component `strxId` values.
  */
 export function useTimeline({
@@ -112,7 +112,7 @@ export function useTimeline({
   playables,
   onComplete,
 }: UseTimelineOptions): StrxTimelineController {
-  const strxLayout = useStrxLayout();
+  const strxLayout = useTimelineRegistry();
   const motion = useStrxMotion();
   const compiledPlayables = useMemo(
     () =>
@@ -246,7 +246,7 @@ function compileTimelinePlayables(
       continue;
     }
 
-    const animation = compileCodexAnimation(playable.animate, compileOptions);
+    const animation = compileAnimation(playable.animate, compileOptions);
 
     if (!animation) {
       continue;
@@ -266,7 +266,7 @@ function compileTimelinePlayables(
     });
 
     if (playback === 'serial') {
-      const duration = estimateCodexAnimationDuration(animation);
+      const duration = estimateAnimationDuration(animation);
 
       if (!Number.isFinite(duration)) {
         break;
@@ -274,7 +274,7 @@ function compileTimelinePlayables(
 
       serialOffset += duration;
     } else if (playback === 'stagger') {
-      staggerDelayCarry += estimateCodexAnimationDelay(animation);
+      staggerDelayCarry += estimateAnimationDelay(animation);
     }
   }
 

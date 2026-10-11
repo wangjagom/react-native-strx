@@ -1,16 +1,16 @@
 import {
-  compileCodexAnimation,
-  estimateCodexAnimationDelay,
-  estimateCodexAnimationDuration,
-  reverseCodexAnimation,
-} from '../useCodexAnimation';
+  compileAnimation,
+  estimateAnimationDelay,
+  estimateAnimationDuration,
+  reverseAnimation,
+} from '../engine';
 import type { AnimateProp } from '../../types/animate';
 
 /**
- * Tests for `compileCodexAnimation`, the path used by `Strx.useTimeline`.
+ * Tests for `compileAnimation`, the path used by `Strx.useTimeline`.
  */
 function compile(animate: AnimateProp, options = {}) {
-  const compiled = compileCodexAnimation(animate, options);
+  const compiled = compileAnimation(animate, options);
 
   if (!compiled) {
     throw new Error(`expected ${JSON.stringify(animate)} to compile`);
@@ -19,7 +19,7 @@ function compile(animate: AnimateProp, options = {}) {
   return compiled.plan;
 }
 
-describe('compileCodexAnimation', () => {
+describe('compileAnimation', () => {
   let warn: jest.SpyInstance;
 
   beforeEach(() => {
@@ -31,9 +31,9 @@ describe('compileCodexAnimation', () => {
   });
 
   it('returns null for empty or unknown animations', () => {
-    expect(compileCodexAnimation(undefined)).toBeNull();
-    expect(compileCodexAnimation('not-a-preset')).toBeNull();
-    expect(compileCodexAnimation('layout-spring')).toBeNull();
+    expect(compileAnimation(undefined)).toBeNull();
+    expect(compileAnimation('not-a-preset')).toBeNull();
+    expect(compileAnimation('layout-spring')).toBeNull();
   });
 
   it('compiles a timing preset with its defaults', () => {
@@ -132,22 +132,18 @@ describe('compileCodexAnimation', () => {
   });
 
   it('estimates duration including delay and play count', () => {
-    const compiled = compileCodexAnimation(
-      'fade-in duration-200 delay-100 play-3',
-    )!;
+    const compiled = compileAnimation('fade-in duration-200 delay-100 play-3')!;
 
-    expect(estimateCodexAnimationDuration(compiled)).toBe(700);
-    expect(estimateCodexAnimationDelay(compiled)).toBe(100);
+    expect(estimateAnimationDuration(compiled)).toBe(700);
+    expect(estimateAnimationDelay(compiled)).toBe(100);
     expect(
-      estimateCodexAnimationDuration(
-        compileCodexAnimation('fade-in play-infinite')!,
-      ),
+      estimateAnimationDuration(compileAnimation('fade-in play-infinite')!),
     ).toBe(Infinity);
   });
 
   it('reverses frames while keeping timing', () => {
-    const compiled = compileCodexAnimation('fade-in duration-200')!;
-    const reversed = reverseCodexAnimation(compiled).plan;
+    const compiled = compileAnimation('fade-in duration-200')!;
+    const reversed = reverseAnimation(compiled).plan;
 
     expect(reversed.from).toEqual(compiled.plan.to);
     expect(reversed.to).toEqual(compiled.plan.from);

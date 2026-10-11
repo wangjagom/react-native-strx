@@ -7,36 +7,36 @@ import React, {
   type ReactNode,
 } from 'react';
 
-import type { CodexAnimationController } from '../core/useCodexAnimation';
+import type { StrxAnimationController } from '../core/engine';
 import { warnOnce } from '../utils/warn';
 
-export interface StrxLayoutDebugSnapshot {
+export interface StrxTimelineDebugSnapshot {
   playableCount: number;
   lastEvent: string | null;
   warnings: readonly string[];
 }
 
 /**
- * Registry owned by `Strx.LayoutRoot` (and `Strx.Provider`).
+ * Registry owned by `Strx.TimelineRoot` (and `Strx.Provider`).
  *
  * It connects `strxId` props to `Strx.useTimeline` and collects development
  * diagnostics. Most users do not call it directly.
  */
-export interface StrxLayoutContextType {
+export interface StrxTimelineRegistry {
   /** Registers an event-playable animation target by `strxId`. */
   registerPlayable: (
     strxId: string,
-    controller: CodexAnimationController,
+    controller: StrxAnimationController,
   ) => void;
   /** Removes a target, if `controller` is still the registered one. */
   unregisterPlayable: (
     strxId: string,
-    controller?: CodexAnimationController,
+    controller?: StrxAnimationController,
   ) => void;
   /** Looks up an event-playable animation target by `strxId`. */
-  getPlayable: (strxId: string) => CodexAnimationController | undefined;
+  getPlayable: (strxId: string) => StrxAnimationController | undefined;
   /** Returns aggregate debug information for development overlays. */
-  getDebugSnapshot: () => StrxLayoutDebugSnapshot;
+  getDebugSnapshot: () => StrxTimelineDebugSnapshot;
   /** Records the latest timeline event for development overlays. */
   reportDebugEvent: (event: string) => void;
   /** Records a development warning for overlays and the console. */
@@ -45,9 +45,8 @@ export interface StrxLayoutContextType {
 
 const MAX_DEBUG_WARNINGS = 4;
 
-export const StrxLayoutContext = createContext<StrxLayoutContextType | null>(
-  null,
-);
+export const TimelineRegistryContext =
+  createContext<StrxTimelineRegistry | null>(null);
 
 /**
  * Root provider for event timeline targets.
@@ -55,8 +54,8 @@ export const StrxLayoutContext = createContext<StrxLayoutContextType | null>(
  * `Strx.Provider` already includes it. Use it directly when you need
  * `Strx.useTimeline` and `strxId` without the rest of the provider.
  */
-export function StrxLayoutRoot({ children }: { children: ReactNode }) {
-  const playablesRef = useRef(new Map<string, CodexAnimationController>());
+export function StrxTimelineRoot({ children }: { children: ReactNode }) {
+  const playablesRef = useRef(new Map<string, StrxAnimationController>());
   const lastDebugEventRef = useRef<string | null>(null);
   const debugWarningsRef = useRef<string[]>([]);
 
@@ -78,7 +77,7 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
   }, []);
 
   const registerPlayable = useCallback(
-    (strxId: string, controller: CodexAnimationController) => {
+    (strxId: string, controller: StrxAnimationController) => {
       const existing = playablesRef.current.get(strxId);
 
       if (existing && existing !== controller) {
@@ -93,7 +92,7 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
   );
 
   const unregisterPlayable = useCallback(
-    (strxId: string, controller?: CodexAnimationController) => {
+    (strxId: string, controller?: StrxAnimationController) => {
       if (
         controller === undefined ||
         playablesRef.current.get(strxId) === controller
@@ -109,7 +108,7 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
     [],
   );
 
-  const getDebugSnapshot = useCallback<() => StrxLayoutDebugSnapshot>(
+  const getDebugSnapshot = useCallback<() => StrxTimelineDebugSnapshot>(
     () => ({
       playableCount: playablesRef.current.size,
       lastEvent: lastDebugEventRef.current,
@@ -118,7 +117,7 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
     [],
   );
 
-  const value = useMemo<StrxLayoutContextType>(
+  const value = useMemo<StrxTimelineRegistry>(
     () => ({
       registerPlayable,
       unregisterPlayable,
@@ -138,12 +137,12 @@ export function StrxLayoutRoot({ children }: { children: ReactNode }) {
   );
 
   return (
-    <StrxLayoutContext.Provider value={value}>
+    <TimelineRegistryContext.Provider value={value}>
       {children}
-    </StrxLayoutContext.Provider>
+    </TimelineRegistryContext.Provider>
   );
 }
 
-export function useStrxLayout(): StrxLayoutContextType | null {
-  return useContext(StrxLayoutContext);
+export function useTimelineRegistry(): StrxTimelineRegistry | null {
+  return useContext(TimelineRegistryContext);
 }

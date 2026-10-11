@@ -113,7 +113,6 @@ export default function App() {
   return (
     <Strx.Provider
       motionPreset={{ duration: 260, easing: "ease-out", reduceMotion: "system" }}
-      debug={__DEV__}
     >
       <Strx.View animate="fade-in layout-spring">
         <Strx.Text>Hello STRX</Strx.Text>
@@ -164,8 +163,7 @@ The built-in namespace includes:
 - `Strx.TextInput`
 - `Strx.Timeline`
 - `Strx.Provider`
-- `Strx.DebugOverlay`
-- `Strx.LayoutRoot`
+- `Strx.TimelineRoot`
 - `Strx.LayoutGroup`
 - `Strx.useTimeline`
 
@@ -182,7 +180,7 @@ Common STRX props:
 
 ### `Strx.Provider`
 
-The recommended app or screen root. It installs global motion defaults, OS Reduce Motion handling, event timeline registry, layout registry, and an optional debug overlay.
+The recommended app or screen root. It installs global motion defaults, OS Reduce Motion handling, and the event timeline registry.
 
 ```tsx
 <Strx.Provider
@@ -191,9 +189,6 @@ The recommended app or screen root. It installs global motion defaults, OS Reduc
     easing: "ease-out",
     reduceMotion: "system",
   }}
-  debug={__DEV__}
-  debugPosition="bottom-right"
-  debugInitialExpanded={false}
 >
   <AppScreens />
 </Strx.Provider>
@@ -203,29 +198,32 @@ The recommended app or screen root. It installs global motion defaults, OS Reduc
 | -------------- | --------------------------------- | ----------- | ----------------------------------------------------------------------- |
 | `motionPreset` | `{ duration?, easing?: StrxEasingName, reduceMotion? }` | `undefined` | Global fallback motion settings used when tokens do not override them. |
 | `reduceMotion` | `system`, `always`, or `never`    | `system`    | Overrides `motionPreset.reduceMotion` for the subtree.                 |
-| `debug`        | `boolean`                         | `false`     | Shows `Strx.DebugOverlay` with aggregate runtime counts.               |
-| `debugPosition` | `top-left`, `top-right`, `bottom-left`, or `bottom-right` | `bottom-right` | Chooses the debug overlay corner. |
-| `debugInitialExpanded` | `boolean` | `false` | Starts the overlay expanded instead of as a compact pill. |
-| `debugShowMotionPreview` | `boolean` | `true` | Shows a tiny visual timing/easing preview. |
 
 `StrxEasingName` autocompletes `linear`, `ease`, `ease-in`, `ease-out`, and `ease-in-out`, while still allowing custom string names for userland easing adapters.
 
 When Reduce Motion is enabled, STRX shortens explicit/style animation duration, removes delay/repeat, and turns layout transitions into stable no-op transitions. This keeps the UI accessible without changing component code.
 
-### `Strx.DebugOverlay`
+### Debug overlay
 
-`Strx.Provider debug` renders this automatically. The overlay starts collapsed so it does not cover the screen; tap the STRX pill to expand the full HUD. You can also mount it manually under a provider:
+The development overlay lives in a separate entry point so it never ships in the main bundle. Render it inside `Strx.Provider`:
 
 ```tsx
-<Strx.DebugOverlay
-  enabled={__DEV__}
-  position="bottom-left"
-  initialExpanded={false}
-  showMotionPreview
-/>
+import { StrxDebugOverlay } from "react-native-strx/debug";
+
+<Strx.Provider>
+  <AppScreens />
+  {__DEV__ && <StrxDebugOverlay position="bottom-left" />}
+</Strx.Provider>;
 ```
 
-The expanded HUD shows aggregate counts, the last sanitized STRX event, dev warnings, parser cache size, active motion policy, and a tiny visual timing/easing preview. It intentionally avoids exposing coordinates, node IDs, or user-provided target names.
+| Prop                | Type                                                       | Default        | Meaning                                       |
+| ------------------- | ---------------------------------------------------------- | -------------- | --------------------------------------------- |
+| `enabled`           | `boolean`                                                  | `true`         | Renders nothing and stops polling when false. |
+| `position`          | `top-left`, `top-right`, `bottom-left`, or `bottom-right` | `bottom-right` | Screen corner.                                |
+| `initialExpanded`   | `boolean`                                                  | `false`        | Starts expanded instead of as a compact pill. |
+| `showMotionPreview` | `boolean`                                                  | `true`         | Shows a small easing/timing preview.          |
+
+The expanded HUD shows the number of timeline targets, the latest timeline event, recent dev warnings, the parser cache size, the active motion policy, and an easing preview.
 
 ### `Strx.View`
 
@@ -319,14 +317,14 @@ A wrapper for entrance choreography. It injects timing into child `animate` prop
 | `playCount` | `number` or `infinite`             | `undefined` | Repeats the whole child choreography a fixed number of total plays, or indefinitely.    |
 | `children`  | `ReactNode`                        | required    | Child elements whose `animate` props should be orchestrated.                            |
 
-### `Strx.LayoutRoot`
+### `Strx.TimelineRoot`
 
-Low-level root provider for the event timeline registry (`strxId` + `Strx.useTimeline`). Most apps should use `Strx.Provider`, which includes it; use `Strx.LayoutRoot` directly only when you want the registry without global motion settings.
+Low-level root provider for the event timeline registry (`strxId` + `Strx.useTimeline`). Most apps should use `Strx.Provider`, which includes it; use `Strx.TimelineRoot` directly only when you want the registry without global motion settings.
 
 ```tsx
-<Strx.LayoutRoot>
+<Strx.TimelineRoot>
   <ScreenContent />
-</Strx.LayoutRoot>
+</Strx.TimelineRoot>
 ```
 
 ### `Strx.LayoutGroup`
@@ -385,7 +383,7 @@ import { Strx } from "react-native-strx";
 <Strx.View animate="fade-in" />;
 ```
 
-Alias exports are also available: `StrxView`, `StrxText`, `StrxPressable`, `StrxImage`, `StrxScrollView`, and `StrxTextInput`. The plain component exports remain for backward compatibility.
+Named exports are also available for teams that prefer them: `StrxView`, `StrxText`, `StrxPressable`, `StrxImage`, `StrxScrollView`, `StrxTextInput`, `StrxTimeline`, `StrxProvider`, `StrxLayoutGroup`, and `StrxTimelineRoot`. Components are not exported under React Native's own names (`View`, `Text`, ...) to avoid shadowing them.
 
 ```tsx
 <Strx.View animate="fade-in layout-spring transition-all duration-300 ease-out" />
@@ -651,7 +649,7 @@ Returned controller:
 | `timeline.reset()`   | Immediately returns all configured targets to their declared `from` frames. |
 | `timeline.stop()`    | Cancels pending starts and freezes running animations in place.          |
 
-`Strx.useTimeline` must run under `Strx.Provider` or `Strx.LayoutRoot`, because the root owns the target registry.
+`Strx.useTimeline` must run under `Strx.Provider` or `Strx.TimelineRoot`, because the root owns the target registry.
 
 `timeline.reverse()` uses the same playback schedule, interval, and play count as `timeline.play()`. If a target is currently showing this timeline's animation, it reverses from its current position; otherwise it plays the full `to -> from` pass.
 
@@ -793,9 +791,9 @@ import Animated, { LinearTransition } from "react-native-reanimated";
 
 ## Production notes
 
-- Use `Strx.Provider` (or `Strx.LayoutRoot`) near the app root when using `strxId` and `Strx.useTimeline`.
+- Use `Strx.Provider` (or `Strx.TimelineRoot`) near the app root when using `strxId` and `Strx.useTimeline`.
 - Prefer the namespace API, such as `Strx.View`, `Strx.Text`, `Strx.Pressable`, `Strx.Image`, `Strx.ScrollView`, and `Strx.TextInput`, for animated regions.
-- Alias exports are also available for teams that prefer named imports.
+- Named `Strx*` exports are also available for teams that prefer named imports.
 - Keep `react-native-worklets/plugin` last in your Babel plugins.
 - Run `pod install` for iOS after installing Reanimated.
 - Reset Metro cache after installation or Babel changes.

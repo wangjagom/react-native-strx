@@ -11,7 +11,7 @@ export interface PresetMotionOptions {
   mass?: number;
 }
 
-export interface CodexAnimationPreset {
+export interface StrxPreset {
   initial: Partial<Record<AnimatableChannel, number>>;
   target: Partial<Record<AnimatableChannel, number>>;
   options: PresetMotionOptions;
@@ -80,21 +80,21 @@ const builtInAnimationPresets = {
       mass: 0.9,
     },
   },
-} satisfies Record<string, CodexAnimationPreset>;
+} satisfies Record<string, StrxPreset>;
 
 /**
  * Registry of preset animations available to `animate` tokens.
  *
  * Read-only for app code; register custom presets with `definePreset`.
  */
-export const animationPresets: Record<string, CodexAnimationPreset> = {
+export const animationPresets: Record<string, StrxPreset> = {
   ...builtInAnimationPresets,
 };
 
 let presetRegistryVersion = 0;
 
 /** Looks up a registered preset without reading inherited object keys. */
-export function getPreset(name: string): CodexAnimationPreset | undefined {
+export function getPreset(name: string): StrxPreset | undefined {
   return Object.prototype.hasOwnProperty.call(animationPresets, name)
     ? animationPresets[name]
     : undefined;
@@ -113,7 +113,7 @@ export function getPreset(name: string): CodexAnimationPreset | undefined {
  * });
  * ```
  */
-export function definePreset(name: string, preset: CodexAnimationPreset): void {
+export function definePreset(name: string, preset: StrxPreset): void {
   if (!/^[a-z][a-z0-9-]*$/.test(name)) {
     throw new Error(
       `[react-native-strx] Invalid preset name "${name}". Use lowercase letters, digits, and dashes.`,

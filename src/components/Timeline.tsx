@@ -15,7 +15,7 @@ import type {
   AnimateProp,
   PlaybackMode,
 } from '../types/animate';
-import { View, type CodexViewProps } from './View';
+import { View, type StrxViewProps } from './View';
 
 /**
  * Props for `Strx.Timeline`.
@@ -25,8 +25,8 @@ import { View, type CodexViewProps } from './View';
  * several child components should appear together, one after another, or with a
  * staggered delay.
  */
-export interface TimelineProps extends Omit<
-  CodexViewProps,
+export interface StrxTimelineProps extends Omit<
+  StrxViewProps,
   'animate' | 'children' | 'playback' | 'interval'
 > {
   /**
@@ -81,7 +81,7 @@ export function Timeline({
   playCount,
   children,
   ...props
-}: TimelineProps) {
+}: StrxTimelineProps) {
   const orchestratedChildren = useMemo(() => {
     const childList = Children.toArray(children);
     const childOffsets: number[] = [];
@@ -147,7 +147,7 @@ export function Timeline({
   return <View {...props}>{orchestratedChildren}</View>;
 }
 
-Timeline.displayName = 'StrxTimeline';
+Timeline.displayName = 'Strx.Timeline';
 
 function createTimelineAnimate(
   animate: AnimateProp | undefined,

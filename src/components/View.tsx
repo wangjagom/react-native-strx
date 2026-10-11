@@ -15,7 +15,7 @@ export type { LayoutPropagationMode } from '../core/layout';
  * as `style`, `children`, `onLayout`, and accessibility props, and adds STRX
  * animation props for declarative entrance, exit, style, and layout motion.
  */
-export interface CodexViewProps extends StrxComponentProps<RNViewProps> {}
+export interface StrxViewProps extends StrxComponentProps<RNViewProps> {}
 
 /**
  * Animated STRX container component.

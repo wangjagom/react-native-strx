@@ -28,7 +28,7 @@ import {
 
 export type AnimationDriver = 'timing' | 'spring';
 
-export interface CodexCompileOptions {
+export interface StrxCompileOptions {
   duration?: number;
   easing?: string;
   reduceMotionEnabled?: boolean;
@@ -68,7 +68,7 @@ export interface PlaybackPhase {
  * timeline integrations that want to compile an `animate` value once and play
  * it later through a controller.
  */
-export interface CodexCompiledAnimation {
+export interface StrxCompiledAnimation {
   /** Normalized animation plan used by the runtime controller. */
   plan: AnimationPlan;
 }
@@ -117,10 +117,10 @@ export const DEFAULT_MOTION_OPTIONS: MotionRuntimeOptions = Object.freeze({
  * Returns `null` when the value does not contain a runnable explicit
  * animation.
  */
-export function compileCodexAnimation(
+export function compileAnimation(
   animate?: AnimateProp | null,
-  options: CodexCompileOptions = {},
-): CodexCompiledAnimation | null {
+  options: StrxCompileOptions = {},
+): StrxCompiledAnimation | null {
   const plan = createAnimationPlan(
     normalizeAnimate(animate),
     normalizeCompileOptions(options),
@@ -135,9 +135,9 @@ export function compileCodexAnimation(
  * Timing, easing, driver, spring, and play-count metadata are preserved while
  * the runtime frames are swapped from `to -> from`.
  */
-export function reverseCodexAnimation(
-  animation: CodexCompiledAnimation,
-): CodexCompiledAnimation {
+export function reverseAnimation(
+  animation: StrxCompiledAnimation,
+): StrxCompiledAnimation {
   return {
     plan: {
       ...animation.plan,
@@ -151,8 +151,8 @@ export function reverseCodexAnimation(
  * Estimates the total duration of a compiled animation, including delay and
  * repeat/play count where applicable.
  */
-export function estimateCodexAnimationDuration(
-  animation: CodexCompiledAnimation,
+export function estimateAnimationDuration(
+  animation: StrxCompiledAnimation,
 ): number {
   return estimatePlanTotalDuration(animation.plan);
 }
@@ -160,8 +160,8 @@ export function estimateCodexAnimationDuration(
 /**
  * Returns the non-negative delay configured on a compiled animation.
  */
-export function estimateCodexAnimationDelay(
-  animation: CodexCompiledAnimation,
+export function estimateAnimationDelay(
+  animation: StrxCompiledAnimation,
 ): number {
   return Math.max(0, animation.plan.delay);
 }
@@ -518,7 +518,7 @@ export function createMotionRuntimeOptions(
 }
 
 export function normalizeCompileOptions(
-  options: CodexCompileOptions,
+  options: StrxCompileOptions,
 ): MotionRuntimeOptions {
   const duration =
     typeof options.duration === 'number' &&

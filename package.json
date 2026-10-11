@@ -89,6 +89,11 @@
       "types": "./lib/typescript/src/index.d.ts",
       "default": "./lib/module/index.js"
     },
+    "./debug": {
+      "source": "./src/debug/index.ts",
+      "types": "./lib/typescript/src/debug/index.d.ts",
+      "default": "./lib/module/debug/index.js"
+    },
     "./package.json": "./package.json"
   },
   "react-native-builder-bob": {

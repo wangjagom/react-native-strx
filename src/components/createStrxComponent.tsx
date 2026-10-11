@@ -29,6 +29,13 @@ export interface StrxComponentOptions {
    * If omitted, STRX derives a name from the wrapped component.
    */
   displayName?: string;
+  /**
+   * Whether the wrapped component renders a native view that can be
+   * flattened away (View, Image, ScrollView, ...). STRX then sets
+   * `collapsable={false}` so animations always target a real native view.
+   * Default is `true`; use `false` for components such as `Text`.
+   */
+  nativeView?: boolean;
 }
 
 /**
@@ -83,6 +90,8 @@ export function createStrxComponent<Props extends object, RefType = unknown>(
   const AnimatedComponent = Animated.createAnimatedComponent(
     BaseComponent as ComponentType<any>,
   );
+  const nativeViewProps =
+    options.nativeView === false ? null : { collapsable: false };
   const displayName =
     options.displayName ??
     `Strx.${BaseComponent.displayName ?? BaseComponent.name ?? 'Component'}`;
@@ -127,7 +136,7 @@ export function createStrxComponent<Props extends object, RefType = unknown>(
           <AnimatedComponent
             {...props}
             ref={combinedRef}
-            collapsable={false}
+            {...nativeViewProps}
             layout={motion.layout}
             exiting={motion.exiting}
             style={mergedStyle}

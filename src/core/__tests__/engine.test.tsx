@@ -261,9 +261,9 @@ describe('timeline controller', () => {
     const ref = React.createRef<StrxTimelineController>();
 
     await render(
-      <Strx.LayoutRoot>
+      <Strx.TimelineRoot>
         <Harness controllerRef={ref} onComplete={onComplete} />
-      </Strx.LayoutRoot>,
+      </Strx.TimelineRoot>,
     );
 
     return () => ref.current!;

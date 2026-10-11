@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import type { ViewStyle } from 'react-native';
 
-import { useStrxLayout } from '../context/StrxLayoutContext';
+import { useTimelineRegistry } from '../context/TimelineRegistry';
 import { useStrxMotion } from '../context/StrxMotionContext';
 import { stableSerialize } from '../core/engine/plan';
 import { getExitAnimation, getExitTokenState } from '../core/exit';
@@ -10,9 +10,9 @@ import {
   type LayoutPropagationMode,
 } from '../core/layout';
 import {
-  useCodexAnimationEngine,
-  type CodexAnimationEngine,
-} from '../core/useCodexAnimation';
+  useStrxAnimationEngine,
+  type StrxAnimationEngine,
+} from '../core/engine';
 import type { AnimatableStaticStyle } from '../core/engine/frames';
 import type { LayoutNodeContextType } from '../context/LayoutNodeContext';
 import type { AnimateProp, PlaybackMode } from '../types/animate';
@@ -31,7 +31,7 @@ export interface StrxMotionOptions {
 }
 
 export interface StrxMotionProps {
-  animatedStyle: CodexAnimationEngine['animatedStyle'];
+  animatedStyle: StrxAnimationEngine['animatedStyle'];
   /** Reanimated `layout` prop. */
   layout: LayoutNodeContextType['inheritedTransition'];
   /** Reanimated `exiting` prop. */
@@ -55,9 +55,9 @@ export function useStrxMotionProps({
   layoutClip = false,
   layoutPropagation = 'auto',
 }: StrxMotionOptions): StrxMotionProps {
-  const strxLayout = useStrxLayout();
+  const strxLayout = useTimelineRegistry();
   const motion = useStrxMotion();
-  const engine = useCodexAnimationEngine(animate, style, playback, interval);
+  const engine = useStrxAnimationEngine(animate, style, playback, interval);
   const layout = useLayoutTransition(animate, layoutPropagation);
 
   const exitState = getExitTokenState(animate);

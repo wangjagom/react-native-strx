@@ -16,7 +16,7 @@ import {
  * `onChangeText`, `onFocus`, `onBlur`, `placeholder`, and `style`, plus STRX
  * animation props.
  */
-export type CodexTextInputProps = StrxComponentProps<RNTextInputProps>;
+export type StrxTextInputProps = StrxComponentProps<RNTextInputProps>;
 
 /**
  * Animated STRX text input component.
@@ -27,4 +27,4 @@ export type CodexTextInputProps = StrxComponentProps<RNTextInputProps>;
 export const TextInput = createStrxComponent<
   RNTextInputProps,
   React.ElementRef<typeof RNTextInput>
->(RNTextInput, { displayName: 'CodexAnimatedTextInput' });
+>(RNTextInput, { displayName: 'Strx.TextInput' });

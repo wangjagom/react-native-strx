@@ -1,6 +1,7 @@
-import React, { forwardRef, useMemo } from 'react';
+import React, { forwardRef, useCallback, useMemo, useState } from 'react';
 import {
   Pressable as RNPressable,
+  type GestureResponderEvent,
   type PressableProps as RNPressableProps,
   type PressableStateCallbackType,
 } from 'react-native';
@@ -8,7 +9,8 @@ import Animated from 'react-native-reanimated';
 
 import type { LayoutPropagationMode } from '../core/layout';
 import type { AnimateProp, PlaybackMode } from '../types/animate';
-import { useStrxMotionProps } from './useStrxMotionProps';
+import { LayoutNodeContext } from '../context/LayoutNodeContext';
+import { LAYOUT_CLIP_STYLE, useStrxMotionProps } from './useStrxMotionProps';
 
 const AnimatedPressable = Animated.createAnimatedComponent(RNPressable);
 
@@ -19,23 +21,19 @@ const AnimatedPressable = Animated.createAnimatedComponent(RNPressable);
  * `onPress`, `onPressIn`, `onPressOut`, `onLongPress`, `disabled`, and
  * function-style `style`, plus STRX animation props.
  */
-export interface CodexPressableProps extends RNPressableProps {
+export interface StrxPressableProps extends RNPressableProps {
   /**
    * Animation declaration for this pressable.
    *
    * Use presets for entrance motion and `transition-*` tokens to animate
-   * supported style changes caused by pressed, selected, or disabled state.
+   * style changes caused by pressed, selected, or disabled state. Function
+   * styles such as `({ pressed }) => ...` are resolved on every press so
+   * transitions see the pressed style.
    */
   animate?: AnimateProp;
-  /**
-   * Accepted for API symmetry. Pressable is not clipped directly; wrap it in
-   * `Strx.View layoutClip` when content should be clipped during layout motion.
-   */
+  /** Clips overflowing children while a layout transition applies to this node. */
   layoutClip?: boolean;
-  /**
-   * Accepted for API symmetry. Use `layoutPropagation="none"` on a parent
-   * `Strx.View` or custom STRX wrapper to isolate a subtree.
-   */
+  /** `none` ignores layout transitions inherited from ancestors. */
   layoutPropagation?: LayoutPropagationMode;
   /** Orchestrates array `animate` entries as `parallel`, `serial`, or `stagger`. */
   playback?: PlaybackMode;
@@ -54,47 +52,86 @@ export interface CodexPressableProps extends RNPressableProps {
  */
 export const Pressable = forwardRef<
   React.ElementRef<typeof RNPressable>,
-  CodexPressableProps
->(function CodexAnimatedPressable(
+  StrxPressableProps
+>(function StrxPressable(
   {
     animate,
-    layoutClip: _layoutClip,
-    layoutPropagation: _layoutPropagation,
+    layoutClip,
+    layoutPropagation,
     playback,
     interval,
     strxId,
     style,
+    onPressIn,
+    onPressOut,
+    children,
     ...props
   },
   ref,
 ) {
+  const [pressed, setPressed] = useState(false);
+  const isFunctionStyle = typeof style === 'function';
+
+  const handlePressIn = useCallback(
+    (event: GestureResponderEvent) => {
+      if (isFunctionStyle) {
+        setPressed(true);
+      }
+
+      onPressIn?.(event);
+    },
+    [isFunctionStyle, onPressIn],
+  );
+  const handlePressOut = useCallback(
+    (event: GestureResponderEvent) => {
+      if (isFunctionStyle) {
+        setPressed(false);
+      }
+
+      onPressOut?.(event);
+    },
+    [isFunctionStyle, onPressOut],
+  );
+
+  // Resolve function styles here so the engine sees pressed-state changes
+  // as ordinary style changes, which `transition-*` tokens can animate.
+  const resolvedStyle = useMemo(
+    () =>
+      typeof style === 'function'
+        ? style({ pressed } as PressableStateCallbackType)
+        : style,
+    [pressed, style],
+  );
   const motion = useStrxMotionProps({
     animate,
-    style: typeof style === 'function' ? undefined : style,
+    style: resolvedStyle,
     playback,
     interval,
     strxId,
+    layoutClip,
+    layoutPropagation,
   });
-  const { animatedStyle } = motion;
-  const mergedStyle = useMemo(() => {
-    if (typeof style === 'function') {
-      return (state: PressableStateCallbackType) => [
-        style(state),
-        animatedStyle,
-      ];
-    }
-
-    return [style, animatedStyle];
-  }, [animatedStyle, style]);
-
+  const mergedStyle = useMemo(
+    () =>
+      motion.clip
+        ? [resolvedStyle, LAYOUT_CLIP_STYLE, motion.animatedStyle]
+        : [resolvedStyle, motion.animatedStyle],
+    [motion.animatedStyle, motion.clip, resolvedStyle],
+  );
   return (
-    <AnimatedPressable
-      {...props}
-      ref={ref}
-      layout={motion.layout}
-      exiting={motion.exiting}
-      style={mergedStyle}
-    />
+    <LayoutNodeContext.Provider value={motion.nodeContextValue}>
+      <AnimatedPressable
+        {...props}
+        ref={ref}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        layout={motion.layout}
+        exiting={motion.exiting}
+        style={mergedStyle}
+      >
+        {children}
+      </AnimatedPressable>
+    </LayoutNodeContext.Provider>
   );
 });
 

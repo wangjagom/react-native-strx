@@ -25,20 +25,17 @@ export interface StrxMotionContextValue {
   easing?: StrxEasingName;
   reduceMotion: StrxReduceMotionMode;
   isReduceMotionEnabled: boolean;
-  debug: boolean;
 }
 
 export interface StrxMotionProviderProps {
   children: ReactNode;
   motionPreset?: StrxMotionPreset;
   reduceMotion?: StrxReduceMotionMode;
-  debug?: boolean;
 }
 
 const DEFAULT_MOTION_CONTEXT: StrxMotionContextValue = Object.freeze({
   reduceMotion: 'system',
   isReduceMotionEnabled: false,
-  debug: false,
 });
 
 export const StrxMotionContext = createContext<StrxMotionContextValue>(
@@ -49,7 +46,6 @@ export function StrxMotionProvider({
   children,
   motionPreset,
   reduceMotion,
-  debug = false,
 }: StrxMotionProviderProps) {
   const systemReduceMotion = useReducedMotion();
   const resolvedReduceMotion = normalizeReduceMotionMode(
@@ -67,9 +63,8 @@ export function StrxMotionProvider({
       ...(easing === undefined ? null : { easing }),
       reduceMotion: resolvedReduceMotion,
       isReduceMotionEnabled,
-      debug,
     }),
-    [debug, duration, easing, isReduceMotionEnabled, resolvedReduceMotion],
+    [duration, easing, isReduceMotionEnabled, resolvedReduceMotion],
   );
 
   return (

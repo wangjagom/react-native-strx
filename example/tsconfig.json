@@ -5,6 +5,9 @@
     "paths": {
       "react-native-strx": [
         "../src/index"
+      ],
+      "react-native-strx/debug": [
+        "../src/debug/index"
       ]
     }
   },

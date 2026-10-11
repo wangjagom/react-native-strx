@@ -4,29 +4,29 @@ import { render } from '@testing-library/react-native';
 import { View } from '../../components/View';
 import { resetWarnings } from '../../utils/warn';
 import {
-  StrxLayoutRoot,
-  useStrxLayout,
-  type StrxLayoutContextType,
-} from '../StrxLayoutContext';
+  StrxTimelineRoot,
+  useTimelineRegistry,
+  type StrxTimelineRegistry,
+} from '../TimelineRegistry';
 
-describe('StrxLayoutRoot', () => {
+describe('StrxTimelineRoot', () => {
   it('keeps the live target when a duplicate strxId unmounts', async () => {
     resetWarnings();
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    let registry: StrxLayoutContextType | null = null;
+    let registry: StrxTimelineRegistry | null = null;
 
     function Capture() {
-      registry = useStrxLayout();
+      registry = useTimelineRegistry();
       return null;
     }
 
     function Tree({ showFirst }: { showFirst: boolean }) {
       return (
-        <StrxLayoutRoot>
+        <StrxTimelineRoot>
           <Capture />
           {showFirst ? <View strxId="card" /> : null}
           <View strxId="card" />
-        </StrxLayoutRoot>
+        </StrxTimelineRoot>
       );
     }
 

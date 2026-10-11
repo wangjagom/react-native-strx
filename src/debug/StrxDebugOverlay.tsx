@@ -11,7 +11,7 @@ import {
 
 import strxLogo from '../assets/logo.png';
 import { getNormalizeAnimateCacheSize } from '../parser/normalize';
-import { useStrxLayout } from '../context/StrxLayoutContext';
+import { useTimelineRegistry } from '../context/TimelineRegistry';
 import { useStrxMotion } from '../context/StrxMotionContext';
 
 export type StrxDebugOverlayPosition =
@@ -56,18 +56,29 @@ const CURVE_LINE_THICKNESS = 3;
 const GRAPH_GRID_STEPS = [0, 1, 2, 3, 4];
 
 /**
- * Lightweight development overlay for STRX runtime diagnostics.
+ * Development overlay for STRX runtime diagnostics: timeline targets, parse
+ * cache size, the latest timeline event, recent warnings, and a preview of
+ * the provider's easing.
  *
- * It intentionally shows aggregate counts only. It does not expose component
- * coordinates, node IDs, or user-provided target names.
+ * Import it from `react-native-strx/debug` and render it inside
+ * `Strx.Provider`, typically only in development:
+ *
+ * ```tsx
+ * import { StrxDebugOverlay } from 'react-native-strx/debug';
+ *
+ * <Strx.Provider>
+ *   <App />
+ *   {__DEV__ && <StrxDebugOverlay />}
+ * </Strx.Provider>
+ * ```
  */
-export function DebugOverlay({
+export function StrxDebugOverlay({
   enabled = true,
   position = 'bottom-right',
   initialExpanded = false,
   showMotionPreview = true,
 }: StrxDebugOverlayProps) {
-  const layout = useStrxLayout();
+  const layout = useTimelineRegistry();
   const motion = useStrxMotion();
   const [expanded, setExpanded] = useState(initialExpanded);
   const [renderExpanded, setRenderExpanded] = useState(initialExpanded);
@@ -115,22 +126,33 @@ export function DebugOverlay({
     }
 
     const update = () => {
-      const layoutSnapshot = layout?.getDebugSnapshot?.() ?? EMPTY_SNAPSHOT;
-      setSnapshot({
-        playableCount: layoutSnapshot.playableCount,
+      const registrySnapshot = layout?.getDebugSnapshot() ?? EMPTY_SNAPSHOT;
+      const next: DebugSnapshot = {
+        playableCount: registrySnapshot.playableCount,
         normalizeCacheSize: getNormalizeAnimateCacheSize(),
-        lastEvent: layoutSnapshot.lastEvent,
-        warnings: layoutSnapshot.warnings,
-      });
+        lastEvent: registrySnapshot.lastEvent,
+        warnings: registrySnapshot.warnings,
+      };
+
+      // Skip re-rendering the overlay when nothing changed.
+      setSnapshot(current =>
+        current.playableCount === next.playableCount &&
+        current.normalizeCacheSize === next.normalizeCacheSize &&
+        current.lastEvent === next.lastEvent &&
+        current.warnings === next.warnings
+          ? current
+          : next,
+      );
     };
 
     update();
-    const timer = setInterval(update, 500);
+    // The collapsed badge only shows counts, so it can refresh less often.
+    const timer = setInterval(update, expanded ? 500 : 2000);
 
     return () => {
       clearInterval(timer);
     };
-  }, [enabled, layout]);
+  }, [enabled, expanded, layout]);
 
   useEffect(() => {
     if (!isTimingPreviewVisible) {

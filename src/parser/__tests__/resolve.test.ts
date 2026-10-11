@@ -1,5 +1,5 @@
 import { definePreset } from '../../core/presets';
-import { compileCodexAnimation } from '../../core/useCodexAnimation';
+import { compileAnimation } from '../../core/engine';
 import { resetWarnings } from '../../utils/warn';
 import { clearParseCache, parseAnimate } from '../resolve';
 import { applyUtility, parseUnsignedNumber } from '../tokens';
@@ -140,7 +140,7 @@ describe('definePreset', () => {
       options: { driver: 'timing', duration: 120 },
     });
 
-    const plan = compileCodexAnimation('test-pop')?.plan;
+    const plan = compileAnimation('test-pop')?.plan;
 
     expect(plan?.duration).toBe(120);
     expect(plan?.from.transform).toEqual({ scale: 0.5 });
@@ -162,6 +162,6 @@ describe('preset lookup', () => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     expect(parseAnimate('constructor').invalidTokens).toEqual(['constructor']);
-    expect(compileCodexAnimation('constructor')).toBeNull();
+    expect(compileAnimation('constructor')).toBeNull();
   });
 });

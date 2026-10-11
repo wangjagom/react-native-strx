@@ -2,6 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Strx } from 'react-native-strx';
+import { StrxDebugOverlay } from 'react-native-strx/debug';
 
 import { EntranceScreen } from './src/screens/EntranceScreen';
 import { LayoutScreen } from './src/screens/LayoutScreen';
@@ -26,7 +27,7 @@ export default function App() {
   const Screen = SCREENS[screen];
 
   return (
-    <Strx.Provider reduceMotion={reduceMotion ? 'always' : 'system'} debug={__DEV__}>
+    <Strx.Provider reduceMotion={reduceMotion ? 'always' : 'system'}>
       <StatusBar style="dark" />
       <View style={styles.header}>
         <Text style={styles.title}>react-native-strx</Text>
@@ -51,6 +52,7 @@ export default function App() {
       <ScrollView style={styles.body} contentContainerStyle={styles.content}>
         <Screen key={screen} />
       </ScrollView>
+      {__DEV__ ? <StrxDebugOverlay /> : null}
     </Strx.Provider>
   );
 }
