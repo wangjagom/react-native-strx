@@ -20,6 +20,10 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = path.join(ROOT, 'website');
 const OUT = path.join(SITE, 'dist');
 const REPO = 'https://github.com/wangjagom/react-native-strx';
+// Absolute URL the site is served from. Used for canonical links, social
+// cards and the sitemap. Override with SITE_URL when using a custom domain.
+const SITE_URL = (process.env.SITE_URL || 'https://wangjagom.github.io/react-native-strx/').replace(/\/?$/, '/');
+const BUILD_DATE = new Date().toISOString().slice(0, 10);
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 const tokens = JSON.parse(fs.readFileSync(path.join(ROOT, 'tokens.json'), 'utf8'));
 
@@ -506,7 +510,13 @@ const ICONS = {
 const THEME_SCRIPT =
   "(function(){var t;try{t=localStorage.getItem('strx-theme')}catch(e){}if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)})();";
 
-function head({ title, description, base }) {
+function head({ title, description, base, path: pagePath = '', type = 'website', jsonLd, noindex }) {
+  const url = SITE_URL + pagePath;
+  const image = `${SITE_URL}assets/og.png`;
+  const structured = jsonLd
+    ? `\n<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>`
+    : '';
+
   return `<!doctype html>
 <html lang="en" data-theme="light">
 <head>
@@ -514,9 +524,21 @@ function head({ title, description, base }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
+${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" href="${url}">`}
+<meta property="og:site_name" content="react-native-strx">
 <meta property="og:title" content="${escapeHtml(title)}">
 <meta property="og:description" content="${escapeHtml(description)}">
-<meta property="og:type" content="website">
+<meta property="og:type" content="${type}">
+<meta property="og:url" content="${url}">
+<meta property="og:image" content="${image}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="react-native-strx: motion for React Native, written as tokens">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${escapeHtml(title)}">
+<meta name="twitter:description" content="${escapeHtml(description)}">
+<meta name="twitter:image" content="${image}">
+<link rel="apple-touch-icon" href="${base}assets/logo.png">${structured}
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b0e17" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="${base}assets/logo.png">
@@ -604,10 +626,39 @@ function docPage(page, pages) {
         .join('')}</ul>`
     : '';
 
+  const title = stripTags(renderInline(page.meta.title));
+  const description = page.meta.description ? stripTags(renderInline(page.meta.description)) : pkg.description;
+  const pageUrl = `${SITE_URL}docs/${page.slug}.html`;
+
   return `${head({
-    title: `${page.meta.title} · react-native-strx`,
-    description: page.meta.description || pkg.description,
+    title: `${title} · react-native-strx`,
+    description,
     base,
+    path: `docs/${page.slug}.html`,
+    type: 'article',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'TechArticle',
+          headline: title,
+          description,
+          url: pageUrl,
+          dateModified: BUILD_DATE,
+          inLanguage: 'en',
+          isPartOf: { '@type': 'WebSite', name: 'react-native-strx', url: SITE_URL },
+          about: { '@type': 'SoftwareSourceCode', name: 'react-native-strx', codeRepository: REPO },
+        },
+        {
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'react-native-strx', item: SITE_URL },
+            { '@type': 'ListItem', position: 2, name: section.title, item: `${SITE_URL}docs/${section.pages[0]}.html` },
+            { '@type': 'ListItem', position: 3, name: title, item: pageUrl },
+          ],
+        },
+      ],
+    },
   })}
 <body data-base="${base}">
 <a class="sr-only" href="#main">Skip to content</a>
@@ -661,9 +712,32 @@ function renderLanding() {
 
   const replacements = {
     HEAD: head({
-      title: 'react-native-strx — motion for React Native, written as tokens',
-      description: pkg.description,
+      title: 'react-native-strx — Tailwind-style animations for React Native',
+      description:
+        'Animate React Native with tokens like animate="fade-in layout-spring". Entrances, exits, style and layout transitions and timelines, powered by Reanimated 4.',
       base,
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'WebSite',
+            name: 'react-native-strx',
+            url: SITE_URL,
+          },
+          {
+            '@type': 'SoftwareSourceCode',
+            name: 'react-native-strx',
+            description: pkg.description,
+            url: SITE_URL,
+            codeRepository: REPO,
+            programmingLanguage: 'TypeScript',
+            runtimePlatform: 'React Native',
+            license: 'https://opensource.org/licenses/MIT',
+            version: pkg.version,
+            keywords: (pkg.keywords || []).join(', '),
+          },
+        ],
+      },
     }),
     NAV: topNav({ base, active: 'home', withMenu: false }),
     FOOTER: footer(base),
@@ -797,7 +871,7 @@ function build() {
   const first = NAV[0].pages[0];
   files.set(
     'docs/index.html',
-    `<!doctype html><meta charset="utf-8"><link rel="icon" href="../assets/logo.png"><meta http-equiv="refresh" content="0; url=${first}.html"><link rel="canonical" href="${first}.html"><a href="${first}.html" id="redirect">Documentation</a>`,
+    `<!doctype html><meta charset="utf-8"><title>Documentation · react-native-strx</title><meta name="robots" content="noindex"><link rel="icon" href="../assets/logo.png"><meta http-equiv="refresh" content="0; url=${first}.html"><link rel="canonical" href="${SITE_URL}docs/${first}.html"><a href="${first}.html" id="redirect">Documentation</a>`,
   );
   files.set('index.html', renderLanding());
 
@@ -823,9 +897,22 @@ function build() {
   fs.writeFileSync(path.join(OUT, 'assets/tokens-data.js'), `globalThis.STRX_TOKENS = ${JSON.stringify(tokens)};\n`);
   fs.writeFileSync(path.join(OUT, 'assets/search-index.js'), `window.STRX_SEARCH = ${JSON.stringify(searchIndex(pages))};\n`);
   fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
+
+  const indexable = ['', ...[...pages.keys()].map(slug => `docs/${slug}.html`)];
+  fs.writeFileSync(
+    path.join(OUT, 'sitemap.xml'),
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${indexable
+      .map(item => `  <url><loc>${SITE_URL}${item}</loc><lastmod>${BUILD_DATE}</lastmod></url>`)
+      .join('\n')}\n</urlset>\n`,
+  );
+  fs.writeFileSync(path.join(OUT, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}sitemap.xml\n`);
+
+  if (process.env.SITE_CNAME) {
+    fs.writeFileSync(path.join(OUT, 'CNAME'), `${process.env.SITE_CNAME}\n`);
+  }
   fs.writeFileSync(
     path.join(OUT, '404.html'),
-    `${head({ title: 'Not found · react-native-strx', description: pkg.description, base: './' })}<body>${topNav({ base: './', active: '', withMenu: false })}<main class="frame cta"><h1 class="h-section">Page not found</h1><p>That page doesn't exist. Try the <a href="./docs/introduction.html">documentation</a>.</p></main>${searchDialog()}${scripts('./')}</body></html>`,
+    `${head({ title: 'Not found · react-native-strx', description: pkg.description, base: SITE_URL, noindex: true })}<body data-base="${SITE_URL}">${topNav({ base: SITE_URL, active: '', withMenu: false })}<main class="frame cta"><h1 class="h-section">Page not found</h1><p>That page doesn't exist. Try the <a href="${SITE_URL}docs/introduction.html">documentation</a>.</p></main>${searchDialog()}${scripts(SITE_URL)}</body></html>`,
   );
 
   console.log(`Built ${files.size} pages into ${path.relative(ROOT, OUT)}/`);
