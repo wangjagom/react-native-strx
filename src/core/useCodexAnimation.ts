@@ -15,13 +15,17 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 
-import { animationPresets } from './presets';
+import { applyEasing } from './easing';
+import { getPreset, getPresetRegistryVersion } from './presets';
 import type { AnimatableChannel, PresetMotionOptions } from './presets';
 import {
   useStrxMotion,
   type StrxMotionContextValue,
 } from '../context/StrxMotionContext';
 import { normalizeAnimate } from '../parser/normalize';
+import { parseAnimate } from '../parser/resolve';
+import type { TransitionKind } from '../parser/tokens';
+import { LruCache } from '../utils/lru';
 import type { StandardAnimConfig } from '../parser/normalize';
 import type { AnimateProp, AnimateStyle, PlaybackMode } from '../types/animate';
 
@@ -163,10 +167,6 @@ const DEFAULT_DURATION = 300;
 const DEFAULT_DELAY = 0;
 const DEFAULT_EASING = 'ease-out';
 const PLAN_CACHE_LIMIT = 256;
-const TRANSITION_CACHE_LIMIT = 256;
-
-type TransitionKind =
-  'all' | 'colors' | 'opacity' | 'transform' | 'spacing' | 'layout';
 
 interface TransitionSpec {
   enabled: boolean;
@@ -239,8 +239,7 @@ type TransformKey = (typeof TRANSFORM_KEYS)[number];
 
 const ANIMATABLE_STYLE_KEY_SET = new Set<string>(ANIMATABLE_STYLE_KEYS);
 const TRANSFORM_KEY_SET = new Set<string>(TRANSFORM_KEYS);
-const PLAN_CACHE = new Map<string, AnimationPlan | null>();
-const TRANSITION_SPEC_CACHE = new Map<string, TransitionSpec>();
+const PLAN_CACHE = new LruCache<string, AnimationPlan | null>(PLAN_CACHE_LIMIT);
 
 const DISABLED_TRANSITION_SPEC: TransitionSpec = Object.freeze({
   enabled: false,
@@ -300,14 +299,18 @@ export function useCodexAnimationEngine(
     () => createMotionRuntimeOptions(motion),
     [motion],
   );
+  // Inline array/object `animate` values change identity every render, so the
+  // spec is memoized by its serialized value rather than by reference.
+  const nextTransitionSpec = getTransitionSpec(animate, motionOptions);
+  const transitionSpecKey = stableSerialize(nextTransitionSpec);
   const transitionSpec = useMemo(
-    () => getTransitionSpec(animate, motionOptions),
-    [animate, motionOptions],
+    () => nextTransitionSpec,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [transitionSpecKey],
   );
-  const explicitAnimate = useMemo(
-    () => removeTransitionTokensFromAnimate(animate),
-    [animate],
-  );
+  // `normalizeAnimate` ignores transition, layout, and exit tokens, so the
+  // full value can drive explicit animations directly.
+  const explicitAnimate = animate;
   const flattenedStyle = useMemo(() => flattenAnimatableStyle(style), [style]);
   const styleKey = useMemo(
     () => stableSerialize(flattenedStyle),
@@ -323,6 +326,7 @@ export function useCodexAnimationEngine(
         playback,
         interval,
         motionOptions,
+        presets: getPresetRegistryVersion(),
       }),
     [explicitAnimate, interval, motionOptions, playback],
   );
@@ -802,7 +806,7 @@ function getCachedAnimationPlan(
 
   const configs = normalizeAnimate(animate);
   const plan = createAnimationPlan(configs, motionOptions);
-  setCappedMapValue(PLAN_CACHE, animationKey, plan, PLAN_CACHE_LIMIT);
+  PLAN_CACHE.set(animationKey, plan);
 
   return plan;
 }
@@ -1031,191 +1035,30 @@ function flattenAnimatableStyle(style?: AnimatableStaticStyle): AnimateStyle {
 }
 
 function getTransitionSpec(
-  animate?: AnimateProp | null,
+  animate: AnimateProp | null | undefined,
   motionOptions: MotionRuntimeOptions = DEFAULT_MOTION_OPTIONS,
 ): TransitionSpec {
-  if (typeof animate !== 'string' || animate.length > 512) {
+  const transition = parseAnimate(animate).transition;
+
+  if (!transition) {
     return DISABLED_TRANSITION_SPEC;
   }
 
-  const cacheKey = stableSerialize({ animate, motionOptions });
-  const cached = TRANSITION_SPEC_CACHE.get(cacheKey);
+  const { timing } = transition;
+  const reduceMotion = motionOptions.reduceMotionEnabled;
 
-  if (cached) {
-    return cached;
-  }
-
-  const spec = parseTransitionSpec(animate, motionOptions);
-  setCappedMapValue(
-    TRANSITION_SPEC_CACHE,
-    cacheKey,
-    spec,
-    TRANSITION_CACHE_LIMIT,
-  );
-
-  return spec;
-}
-
-function parseTransitionSpec(
-  animate: string,
-  motionOptions: MotionRuntimeOptions = DEFAULT_MOTION_OPTIONS,
-): TransitionSpec {
-  let enabled = false;
-  let kind: TransitionKind = 'all';
-  let duration = motionOptions.duration ?? DEFAULT_DURATION;
-  let delay = DEFAULT_DELAY;
-  let easing = motionOptions.easing ?? DEFAULT_EASING;
-
-  forEachToken(animate, token => {
-    if (token === 'transition' || token === 'transition-all') {
-      enabled = true;
-      kind = 'all';
-      return;
-    }
-
-    if (token === 'transition-colors') {
-      enabled = true;
-      kind = 'colors';
-      return;
-    }
-
-    if (token === 'transition-opacity') {
-      enabled = true;
-      kind = 'opacity';
-      return;
-    }
-
-    if (token === 'transition-transform') {
-      enabled = true;
-      kind = 'transform';
-      return;
-    }
-
-    if (token === 'transition-spacing') {
-      enabled = true;
-      kind = 'spacing';
-      return;
-    }
-
-    if (token === 'transition-layout') {
-      enabled = true;
-      kind = 'layout';
-      return;
-    }
-
-    if (token.startsWith('duration-')) {
-      duration = getNumericValue(
-        Number(token.slice('duration-'.length)),
-        duration,
-      );
-      return;
-    }
-
-    if (token.startsWith('delay-')) {
-      delay = getNumericValue(Number(token.slice('delay-'.length)), delay);
-      return;
-    }
-
-    if (
-      token === 'linear' ||
-      token === 'ease' ||
-      token === 'ease-in' ||
-      token === 'ease-out' ||
-      token === 'ease-in-out'
-    ) {
-      easing = token;
-    }
-  });
-
-  if (!enabled) {
-    return DISABLED_TRANSITION_SPEC;
-  }
-
-  return Object.freeze({
-    enabled,
-    kind,
-    duration: motionOptions.reduceMotionEnabled ? 0 : duration,
-    delay: motionOptions.reduceMotionEnabled ? 0 : delay,
-    easing,
-  });
-}
-
-function removeTransitionTokensFromAnimate(
-  animate?: AnimateProp | null,
-): AnimateProp | null | undefined {
-  if (typeof animate !== 'string' || animate.length > 512) {
-    return animate;
-  }
-
-  let result = '';
-
-  forEachToken(animate, token => {
-    if (isTransitionToken(token)) {
-      return;
-    }
-
-    result = result.length === 0 ? token : `${result} ${token}`;
-  });
-
-  return result.length > 0 ? result : undefined;
-}
-
-function forEachToken(input: string, visitor: (token: string) => void): void {
-  let tokenStart = -1;
-
-  for (let index = 0; index <= input.length; index += 1) {
-    const charCode = index < input.length ? input.charCodeAt(index) : 32;
-    const isBoundary =
-      charCode === 32 ||
-      charCode === 9 ||
-      charCode === 10 ||
-      charCode === 13 ||
-      charCode === 44;
-
-    if (!isBoundary && tokenStart === -1) {
-      tokenStart = index;
-    }
-
-    if ((isBoundary || index === input.length) && tokenStart !== -1) {
-      visitor(input.slice(tokenStart, index));
-      tokenStart = -1;
-    }
-  }
-}
-
-function isTransitionToken(token: string): boolean {
-  return (
-    token === 'transition' ||
-    token === 'transition-all' ||
-    token === 'transition-colors' ||
-    token === 'transition-opacity' ||
-    token === 'transition-transform' ||
-    token === 'transition-spacing' ||
-    token === 'transition-layout'
-  );
-}
-
-function setCappedMapValue<Key, Value>(
-  cache: Map<Key, Value>,
-  key: Key,
-  value: Value,
-  limit: number,
-): void {
-  if (cache.has(key)) {
-    cache.delete(key);
-  }
-
-  while (cache.size >= limit) {
-    const firstKey = cache.keys().next().value as Key | undefined;
-
-    if (firstKey === undefined) {
-      break;
-    }
-
-    cache.delete(firstKey);
-  }
-
-  cache.set(key, value);
+  return {
+    enabled: true,
+    kind: transition.kind,
+    duration: reduceMotion
+      ? 0
+      : getNumericValue(
+          timing.duration,
+          motionOptions.duration ?? DEFAULT_DURATION,
+        ),
+    delay: reduceMotion ? 0 : getNumericValue(timing.delay, DEFAULT_DELAY),
+    easing: getEasingName(timing.easing, motionOptions),
+  };
 }
 
 function createPresetAnimationPlan(
@@ -1226,7 +1069,7 @@ function createPresetAnimationPlan(
     return null;
   }
 
-  const preset = animationPresets[config.type];
+  const preset = getPreset(config.type);
 
   if (!preset) {
     return null;
@@ -1276,7 +1119,7 @@ function createCustomAnimationPlan(
     delay: getDelay(config, motionOptions),
     easing: getEasingName(config.easing, motionOptions),
     repeat: getConfigPlayCount(config, motionOptions),
-    driver: 'timing',
+    driver: getAnimationDriver(config),
     spring: getSpringConfig(config),
     from: pair.from,
     to: pair.to,
@@ -1537,24 +1380,7 @@ function animateValue(value: AnimatableValue, config: RuntimeConfig) {
           duration: config.duration,
           easing: (t: number) => {
             'worklet';
-
-            if (config.easing === 'linear') {
-              return t;
-            }
-
-            if (config.easing === 'ease-in') {
-              return t * t * t;
-            }
-
-            if (config.easing === 'ease-out') {
-              return 1 - Math.pow(1 - t, 3);
-            }
-
-            if (config.easing === 'ease-in-out') {
-              return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-            }
-
-            return t * t * (3 - 2 * t);
+            return applyEasing(config.easing, t);
           },
         });
 
@@ -1592,9 +1418,10 @@ function getDuration(
     return 0;
   }
 
+  // Precedence: token/object > preset default > provider default > library.
   return getNumericValue(
     config?.duration,
-    motionOptions.duration ?? presetOptions?.duration ?? DEFAULT_DURATION,
+    presetOptions?.duration ?? motionOptions.duration ?? DEFAULT_DURATION,
   );
 }
 
@@ -1614,9 +1441,18 @@ function getSpringConfig(
   presetOptions?: PresetMotionOptions,
 ): AnimationPlan['spring'] {
   return {
-    damping: getNumericValue(presetOptions?.damping, 10),
-    stiffness: getNumericValue(presetOptions?.stiffness, 100),
-    mass: getNumericValue(presetOptions?.mass, 1),
+    damping: getNumericValue(
+      config?.damping,
+      getNumericValue(presetOptions?.damping, 10),
+    ),
+    stiffness: getNumericValue(
+      config?.stiffness,
+      getNumericValue(presetOptions?.stiffness, 100),
+    ),
+    mass: getNumericValue(
+      config?.mass,
+      getNumericValue(presetOptions?.mass, 1),
+    ),
   };
 }
 

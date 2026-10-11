@@ -64,7 +64,7 @@ export type {
   LayoutGroupTransition,
   LayoutTransitionBuilder,
 } from './context/LayoutGroupContext';
-export { animationPresets } from './core/presets';
+export { animationPresets, definePreset } from './core/presets';
 export type {
   AnimatableChannel,
   BuiltInAnimationPreset,

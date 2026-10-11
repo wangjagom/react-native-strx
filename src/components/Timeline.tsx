@@ -7,8 +7,9 @@ import React, {
   type ReactNode,
 } from 'react';
 
-import { animationPresets } from '../core/presets';
+import { getPreset } from '../core/presets';
 import { normalizeAnimate, type StandardAnimConfig } from '../parser/normalize';
+import { parseUnsignedNumber } from '../parser/tokens';
 import type {
   AnimateObject,
   AnimateProp,
@@ -208,22 +209,57 @@ function applyTimelineControls(
   return animate;
 }
 
+/**
+ * Adds timeline controls to every comma-separated group of a token string.
+ *
+ * The delay offset is added to a group's own `delay-*` value instead of
+ * replacing it, matching how object entries are offset.
+ */
 function appendControlTokens(
   animate: string,
   delayOffset: number,
   playCount: number | 'infinite' | undefined,
 ): string {
-  let result = animate;
+  return animate
+    .split(',')
+    .map(part => {
+      const tokens = part.split(/\s+/).filter(token => token.length > 0);
 
-  if (delayOffset > 0) {
-    result = `${result} delay-${Math.round(delayOffset)}`;
-  }
+      if (tokens.length === 0) {
+        return '';
+      }
 
-  if (playCount !== undefined) {
-    result = `${result} ${playCount === 'infinite' ? 'play-infinite' : `play-${playCount}`}`;
-  }
+      let ownDelay = 0;
+      const kept =
+        delayOffset > 0
+          ? tokens.filter(token => {
+              const delay = token.startsWith('delay-')
+                ? parseUnsignedNumber(token.slice('delay-'.length))
+                : undefined;
 
-  return result;
+              if (delay === undefined) {
+                return true;
+              }
+
+              ownDelay = delay;
+              return false;
+            })
+          : tokens;
+
+      if (delayOffset > 0) {
+        kept.push(`delay-${Math.round(ownDelay + delayOffset)}`);
+      }
+
+      if (playCount !== undefined) {
+        kept.push(
+          playCount === 'infinite' ? 'play-infinite' : `play-${playCount}`,
+        );
+      }
+
+      return kept.join(' ');
+    })
+    .filter(part => part.length > 0)
+    .join(', ');
 }
 
 function estimateAnimateDuration(
@@ -293,8 +329,7 @@ function getConfigDuration(config: StandardAnimConfig): number {
 
   if ('type' in config && typeof config.type === 'string') {
     return (
-      animationPresets[config.type]?.options.duration ??
-      DEFAULT_TIMELINE_DURATION
+      getPreset(config.type)?.options.duration ?? DEFAULT_TIMELINE_DURATION
     );
   }
 

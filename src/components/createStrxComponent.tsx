@@ -29,7 +29,6 @@ import {
   getExitTokenState,
   getLayoutTokenState,
   getLayoutTransition,
-  getStyleAnimateProp,
   LAYOUT_CLIP_STYLE,
   mergeRefs,
   stableNoOpTransition,
@@ -135,10 +134,6 @@ export function createStrxComponent<Props extends object, RefType = unknown>(
         () => getLayoutTokenState(animate),
         [animate],
       );
-      const styleAnimateProp = useMemo(
-        () => getStyleAnimateProp(animate),
-        [animate],
-      );
       const exitTokenState = useMemo(
         () => getExitTokenState(animate),
         [animate],
@@ -148,7 +143,7 @@ export function createStrxComponent<Props extends object, RefType = unknown>(
         [exitTokenState],
       );
       const animationEngine = useCodexAnimationEngine(
-        styleAnimateProp,
+        animate,
         style,
         playback,
         interval,
@@ -174,14 +169,6 @@ export function createStrxComponent<Props extends object, RefType = unknown>(
           parentNode?.inheritedTransition ??
           layoutGroup?.defaultLayoutTransition ??
           stableNoOpTransition);
-
-      useEffect(() => {
-        if (typeof animate === 'string' && animate.length > 512) {
-          strxLayout?.reportDebugWarning(
-            'animate string exceeded 512 characters and was ignored.',
-          );
-        }
-      }, [animate, strxLayout]);
 
       useEffect(() => {
         if (!strxLayout) {

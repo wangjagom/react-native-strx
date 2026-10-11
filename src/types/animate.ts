@@ -70,6 +70,10 @@ export type AnimateTimingToken =
   | 'repeat-infinite'
   | `play-${number}`
   | 'play-infinite'
+  | 'spring'
+  | `damping-${number}`
+  | `stiffness-${number}`
+  | `mass-${number}`
   | AnimateEasingToken;
 
 /** Tailwind-like utilities that can be used with `from:`, `to:`, or `exit:` prefixes. */
@@ -215,12 +219,21 @@ export interface AnimateTimingOptions {
   duration?: number;
   /** Delay before the animation starts, in milliseconds. */
   delay?: number;
-  /** Easing token. Unknown values fall back to STRX's safe default easing. */
-  easing?: AnimateEasingToken | (string & {});
+  /**
+   * Easing token, or `"spring"` to use the spring driver. Unknown values fall
+   * back to STRX's default easing.
+   */
+  easing?: AnimateEasingToken | 'spring' | (string & {});
   /** Legacy repeat count. Prefer `playCount` for new code. */
   repeat?: number | 'infinite';
   /** Total number of times to play the animation. */
   playCount?: number | 'infinite';
+  /** Spring damping. Used when the preset or `easing: "spring"` selects the spring driver. */
+  damping?: number;
+  /** Spring stiffness. */
+  stiffness?: number;
+  /** Spring mass. */
+  mass?: number;
 }
 
 /**

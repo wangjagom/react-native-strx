@@ -73,6 +73,17 @@ describe('Strx.Timeline', () => {
     ]);
   });
 
+  it('offsets every comma group and adds to existing delays', async () => {
+    const [, second] = await collect({ playback: 'stagger', interval: 100 }, [
+      'fade-in',
+      'fade-in delay-50, slide-up layout-spring',
+    ]);
+
+    expect(second?.animate).toBe(
+      'fade-in delay-150, slide-up layout-spring delay-100',
+    );
+  });
+
   it('adds delay to object animations', async () => {
     const [, second] = await collect({ playback: 'stagger', interval: 80 }, [
       { type: 'fade-in' },

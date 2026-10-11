@@ -405,11 +405,22 @@ Alias exports are also available: `StrxView`, `StrxText`, `StrxPressable`, `Strx
 
 ### Composition rules
 
-Use spaces to combine one preset with timing, layout, transition, and keyframe tokens:
+Use spaces to combine one preset with timing, layout, transition, and keyframe tokens. Token order inside a group does not matter:
 
 ```tsx
 <Strx.View animate="fade-in layout-spring duration-300 ease-out" />
 ```
+
+Each comma-separated part is a **group**. Timing tokens (`duration-*`, `delay-*`, easing, ...) apply to the preset, keyframes, `exit:`, and `transition-*` tokens in their own group.
+
+A group may combine a preset with `from:/to:` keyframes. Keyframes override the preset per channel:
+
+```tsx
+// fade-in, but slide from 8px below instead of the default
+<Strx.View animate="fade-in from:translate-y-8" />
+```
+
+Only one preset is allowed per group. Unknown or invalid tokens are ignored and reported once with a `console.warn` in development builds, including a suggestion when a close match exists (for example `fade-inn` → `fade-in`).
 
 Use commas when you want multiple presets to participate in one animation plan:
 
@@ -448,6 +459,22 @@ Preset tokens create an explicit animation plan with predefined `from` and `to` 
 
 The `Default motion` values below are STRX preset defaults, not Reanimated defaults. They were chosen as opinionated starter timings for each motion family, and you can override them with tokens such as `duration-500`, `ease-out`, `linear`, or object configs.
 
+Duration precedence is: token or object value → the preset's own default → `Strx.Provider` `motionPreset.duration` → `300ms`.
+
+Register your own presets with `definePreset` at module scope, before components using them render:
+
+```tsx
+import { definePreset } from "react-native-strx";
+
+definePreset("pop-in", {
+  initial: { opacity: 0, scale: 0.8 },
+  target: { opacity: 1, scale: 1 },
+  options: { driver: "spring", damping: 12, stiffness: 200 },
+});
+
+<Strx.View animate="pop-in" />;
+```
+
 | Token         | Starts from                      | Animates to                 | Default motion                             |
 | ------------- | -------------------------------- | --------------------------- | ------------------------------------------ |
 | `fade-in`     | `opacity: 0`                     | `opacity: 1`                | timing, 300ms                              |
@@ -468,8 +495,8 @@ Timing tokens configure preset, `from:/to:`, `exit:`, and `transition-*` animati
 
 | Token             | Meaning                                                                |
 | ----------------- | ---------------------------------------------------------------------- |
-| `duration-300`    | Sets duration to `300` milliseconds. Any finite number is accepted.    |
-| `delay-100`       | Delays animation by `100` milliseconds. Any finite number is accepted. |
+| `duration-300`    | Sets duration to `300` milliseconds. Accepts unsigned decimals.        |
+| `delay-100`       | Delays animation by `100` milliseconds. Accepts unsigned decimals.     |
 | `repeat-2`        | Repeats explicit preset/from-to animation 2 times.                     |
 | `repeat-infinite` | Repeats explicit preset/from-to animation indefinitely.                |
 | `play-3`          | Plays the full animation 3 total times, then stops.                    |
@@ -479,6 +506,8 @@ Timing tokens configure preset, `from:/to:`, `exit:`, and `transition-*` animati
 | `ease-in`         | Cubic ease-in.                                                         |
 | `ease-out`        | Cubic ease-out.                                                        |
 | `ease-in-out`     | Cubic ease-in-out.                                                     |
+| `spring`          | Uses the spring driver for numeric channels.                           |
+| `damping-12`      | Spring damping. Also `stiffness-*` and `mass-*`.                       |
 
 ### Explicit keyframe prefixes
 

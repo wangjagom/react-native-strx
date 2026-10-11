@@ -1,3 +1,4 @@
+import { resetWarnings } from '../../utils/warn';
 import {
   clearNormalizeAnimateCache,
   getNormalizeAnimateCacheSize,
@@ -5,15 +6,21 @@ import {
 } from '../normalize';
 
 /**
- * Characterization tests for the 0.1.x `normalizeAnimate` parser.
- *
- * They pin down current behavior before the v1 parser rewrite. Cases marked
- * `it.failing` document known bugs from the v1 plan; flip them to `it` once
- * the rewrite fixes them.
+ * `normalizeAnimate` is the explicit-animation view of the unified parser.
+ * These cases started as characterization tests for 0.1.x; intentional
+ * behavior changes from the v1 plan are noted inline.
  */
 describe('normalizeAnimate', () => {
+  let warn: jest.SpyInstance;
+
   beforeEach(() => {
     clearNormalizeAnimateCache();
+    resetWarnings();
+    warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warn.mockRestore();
   });
 
   it('returns an empty list for nullish input', () => {
@@ -43,7 +50,11 @@ describe('normalizeAnimate', () => {
     ['fade-in play-0', [{ type: 'fade-in' }]],
     ['fade-in play-1.5', [{ type: 'fade-in' }]],
     ['fade-in duration-abc', [{ type: 'fade-in' }]],
-    ['fade-in spring', [{ type: 'fade-in' }]],
+    ['fade-in spring', [{ type: 'fade-in', easing: 'spring' }]],
+    [
+      'bounce damping-20 stiffness-200 mass-0.5',
+      [{ type: 'bounce', damping: 20, stiffness: 200, mass: 0.5 }],
+    ],
     [
       'fade-in, slide-up duration-400',
       [{ type: 'fade-in' }, { type: 'slide-up', duration: 400 }],
@@ -59,10 +70,10 @@ describe('normalizeAnimate', () => {
     ).toEqual([{ type: 'fade-in', duration: 300 }]);
   });
 
-  it('treats a leading layout token as the preset type', () => {
-    // Current quirk: the first non-control token always becomes `type`.
-    expect(normalizeAnimate('layout-spring fade-in')).toEqual([
-      { type: 'layout-spring' },
+  it('finds the preset regardless of token order', () => {
+    // 0.1.x treated the first non-timing token, e.g. `layout-spring`, as the preset.
+    expect(normalizeAnimate('layout-spring transition-all fade-in')).toEqual([
+      { type: 'fade-in' },
     ]);
   });
 
@@ -101,14 +112,19 @@ describe('normalizeAnimate', () => {
     ]);
   });
 
-  it('drops the preset type when keyframe tokens are present', () => {
-    expect(normalizeAnimate('fade-in from:opacity-50')).toEqual([
-      { from: { opacity: 0.5 }, to: {} },
+  it('keeps the preset alongside keyframes so keyframes override per channel', () => {
+    // 0.1.x silently dropped the preset when keyframes were present.
+    expect(
+      normalizeAnimate('fade-in from:translate-y-10 duration-200'),
+    ).toEqual([
+      { type: 'fade-in', duration: 200 },
+      { from: { translateY: 10 }, to: {}, duration: 200 },
     ]);
   });
 
-  it('silently drops unknown keyframe utilities', () => {
+  it('drops unknown keyframe utilities with a dev warning', () => {
     expect(normalizeAnimate('from:blur-4')).toEqual([]);
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it('flattens nested arrays and keeps objects', () => {
@@ -127,8 +143,13 @@ describe('normalizeAnimate', () => {
     ]);
   });
 
-  it('ignores strings longer than 512 characters', () => {
-    expect(normalizeAnimate(`fade-in ${'x'.repeat(600)}`)).toEqual([]);
+  it('parses long strings instead of silently ignoring them', () => {
+    // 0.1.x returned [] for strings over 512 characters.
+    const padding = ' duration-300'.repeat(50);
+
+    expect(normalizeAnimate(`fade-in${padding}`)).toEqual([
+      { type: 'fade-in', duration: 300 },
+    ]);
   });
 
   it('returns fresh copies so callers cannot mutate the cache', () => {
@@ -149,21 +170,21 @@ describe('normalizeAnimate', () => {
     expect(getNormalizeAnimateCacheSize()).toBe(256);
   });
 
-  // Known bugs (v1 plan) ------------------------------------------------------
+  // Fixed bugs from the v1 plan ----------------------------------------------
 
-  it.failing('B3: keeps exit: utilities out of the to frame', () => {
+  it('B3: keeps exit: utilities out of the to frame', () => {
     expect(normalizeAnimate('from:opacity-0 exit:opacity-50')).toEqual([
       { from: { opacity: 0 }, to: {} },
     ]);
   });
 
-  it.failing('B8: clamps opacity to 0..1 like the View parser', () => {
+  it('B8: clamps opacity to 0..1 like the View parser', () => {
     expect(normalizeAnimate('from:opacity-150')).toEqual([
       { from: { opacity: 1 }, to: {} },
     ]);
   });
 
-  it.failing('B8: rejects exponent notation like the View parser', () => {
+  it('B8: rejects exponent notation like the View parser', () => {
     expect(normalizeAnimate('from:translate-x-1e3')).toEqual([]);
   });
 });

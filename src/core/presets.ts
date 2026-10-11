@@ -82,7 +82,54 @@ const builtInAnimationPresets = {
   },
 } satisfies Record<string, CodexAnimationPreset>;
 
-export const animationPresets: Record<string, CodexAnimationPreset> =
-  builtInAnimationPresets;
+/**
+ * Registry of preset animations available to `animate` tokens.
+ *
+ * Read-only for app code; register custom presets with `definePreset`.
+ */
+export const animationPresets: Record<string, CodexAnimationPreset> = {
+  ...builtInAnimationPresets,
+};
+
+let presetRegistryVersion = 0;
+
+/** Looks up a registered preset without reading inherited object keys. */
+export function getPreset(name: string): CodexAnimationPreset | undefined {
+  return Object.prototype.hasOwnProperty.call(animationPresets, name)
+    ? animationPresets[name]
+    : undefined;
+}
+
+/**
+ * Registers or replaces a preset so it can be used as an `animate` token.
+ *
+ * Call this at module scope, before components using the preset render:
+ *
+ * ```ts
+ * definePreset('pop-in', {
+ *   initial: { opacity: 0, scale: 0.8 },
+ *   target: { opacity: 1, scale: 1 },
+ *   options: { driver: 'spring', damping: 12, stiffness: 200 },
+ * });
+ * ```
+ */
+export function definePreset(name: string, preset: CodexAnimationPreset): void {
+  if (!/^[a-z][a-z0-9-]*$/.test(name)) {
+    throw new Error(
+      `[react-native-strx] Invalid preset name "${name}". Use lowercase letters, digits, and dashes.`,
+    );
+  }
+
+  animationPresets[name] = preset;
+  presetRegistryVersion += 1;
+}
+
+/**
+ * Monotonic counter bumped by `definePreset`, used to invalidate caches that
+ * depend on preset definitions.
+ */
+export function getPresetRegistryVersion(): number {
+  return presetRegistryVersion;
+}
 
 export type BuiltInAnimationPreset = keyof typeof builtInAnimationPresets;

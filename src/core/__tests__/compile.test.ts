@@ -7,8 +7,7 @@ import {
 import type { AnimateProp } from '../../types/animate';
 
 /**
- * Characterization tests for `compileCodexAnimation`, the path used by
- * `Strx.useTimeline`. `it.failing` marks known bugs from the v1 plan.
+ * Tests for `compileCodexAnimation`, the path used by `Strx.useTimeline`.
  */
 function compile(animate: AnimateProp, options = {}) {
   const compiled = compileCodexAnimation(animate, options);
@@ -21,6 +20,16 @@ function compile(animate: AnimateProp, options = {}) {
 }
 
 describe('compileCodexAnimation', () => {
+  let warn: jest.SpyInstance;
+
+  beforeEach(() => {
+    warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warn.mockRestore();
+  });
+
   it('returns null for empty or unknown animations', () => {
     expect(compileCodexAnimation(undefined)).toBeNull();
     expect(compileCodexAnimation('not-a-preset')).toBeNull();
@@ -77,8 +86,32 @@ describe('compileCodexAnimation', () => {
     expect(plan.to).toEqual({ style: { opacity: 1 }, transform: { scale: 1 } });
   });
 
-  it('uses the provider duration over preset defaults (current behavior)', () => {
-    expect(compile('slide-up', { duration: 200 }).duration).toBe(200);
+  it('uses the provider duration when neither token nor preset sets one', () => {
+    expect(compile('bounce', { duration: 200 }).duration).toBe(200);
+    expect(
+      compile({ from: { opacity: 0 }, to: { opacity: 1 } }, { duration: 200 })
+        .duration,
+    ).toBe(200);
+  });
+
+  it('switches keyframes to the spring driver with the spring token', () => {
+    const plan = compile('from:scale-90 spring damping-12');
+
+    expect(plan.driver).toBe('spring');
+    expect(plan.spring).toEqual({ damping: 12, stiffness: 100, mass: 1 });
+  });
+
+  it('merges a preset with keyframe overrides in one group', () => {
+    const plan = compile('fade-in from:translate-y-10');
+
+    expect(plan.from).toEqual({
+      style: { opacity: 0 },
+      transform: { translateY: 10 },
+    });
+    expect(plan.to).toEqual({
+      style: { opacity: 1 },
+      transform: { translateY: 0 },
+    });
   });
 
   it('zeroes timing under reduce motion', () => {
@@ -121,19 +154,19 @@ describe('compileCodexAnimation', () => {
     expect(reversed.duration).toBe(200);
   });
 
-  // Known bugs (v1 plan) ------------------------------------------------------
+  // Fixed bugs from the v1 plan ----------------------------------------------
 
-  it.failing('B3: does not treat exit: tokens as the to frame', () => {
+  it('B3: does not treat exit: tokens as the to frame', () => {
     expect(compile('from:opacity-0 exit:opacity-50').to.style.opacity).toBe(1);
   });
 
-  it.failing('B4: respects spring options on animation objects', () => {
+  it('B4: respects spring options on animation objects', () => {
     const plan = compile({ type: 'bounce', damping: 20 } as AnimateProp);
 
     expect(plan.spring.damping).toBe(20);
   });
 
-  it.failing('B9: preset durations win over the provider default', () => {
+  it('B9: preset durations win over the provider default', () => {
     expect(compile('slide-up', { duration: 200 }).duration).toBe(320);
   });
 });

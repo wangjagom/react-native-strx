@@ -8,11 +8,7 @@ import { useLayoutNode } from '../context/LayoutNodeContext';
 import { useStrxLayout } from '../context/StrxLayoutContext';
 import { useStrxMotion } from '../context/StrxMotionContext';
 import type { AnimateProp, PlaybackMode } from '../types/animate';
-import {
-  getStyleAnimateProp,
-  stableNoOpTransition,
-  type LayoutPropagationMode,
-} from './View';
+import { stableNoOpTransition, type LayoutPropagationMode } from './View';
 
 /**
  * Props for `Strx.Text`.
@@ -91,25 +87,13 @@ export const Text = forwardRef<React.ElementRef<typeof RNText>, CodexTextProps>(
       inheritedTransition,
       motion.isReduceMotionEnabled,
     ]);
-    const styleAnimateProp = useMemo(
-      () => getStyleAnimateProp(animate),
-      [animate],
-    );
     const animationEngine = useCodexAnimationEngine(
-      styleAnimateProp,
+      animate,
       style,
       playback,
       interval,
     );
     const animatedStyle = animationEngine.animatedStyle;
-
-    useEffect(() => {
-      if (typeof animate === 'string' && animate.length > 512) {
-        strxLayout?.reportDebugWarning(
-          'animate string exceeded 512 characters and was ignored.',
-        );
-      }
-    }, [animate, strxLayout]);
 
     useEffect(() => {
       if (!strxLayout || !strxId) {

@@ -1,13 +1,5 @@
-import {
-  getExitTokenState,
-  getLayoutTokenState,
-  getStyleAnimateProp,
-} from '../View';
+import { getExitTokenState, getLayoutTokenState } from '../View';
 
-/**
- * Characterization tests for the token parsers embedded in `View.tsx`.
- * `it.failing` marks known bugs from the v1 plan.
- */
 describe('getLayoutTokenState', () => {
   it.each([
     ['fade-in', null],
@@ -23,68 +15,16 @@ describe('getLayoutTokenState', () => {
     expect(getLayoutTokenState(input).explicitTransitionType).toBe(expected);
   });
 
-  it('ignores non-string and oversized input', () => {
+  it('reads layout tokens from array entries', () => {
+    expect(
+      getLayoutTokenState(['fade-in', 'layout-spring']).explicitTransitionType,
+    ).toBe('spring');
+  });
+
+  it('ignores animation objects', () => {
     expect(
       getLayoutTokenState({ type: 'fade-in' }).explicitTransitionType,
     ).toBeNull();
-    expect(
-      getLayoutTokenState(`layout-spring ${'x'.repeat(600)}`)
-        .explicitTransitionType,
-    ).toBeNull();
-  });
-});
-
-describe('getStyleAnimateProp', () => {
-  it('strips layout and exit tokens from preset strings', () => {
-    expect(
-      getStyleAnimateProp('fade-in layout-spring exit:opacity-0 duration-300'),
-    ).toBe('fade-in duration-300');
-  });
-
-  it('returns undefined when only layout tokens remain', () => {
-    expect(getStyleAnimateProp('layout-spring')).toBeUndefined();
-  });
-
-  it('keeps transition tokens for the engine', () => {
-    expect(getStyleAnimateProp('transition-colors duration-250')).toBe(
-      'transition-colors duration-250',
-    );
-  });
-
-  it('converts from:/to: tokens into a completed keyframe object', () => {
-    expect(
-      getStyleAnimateProp(
-        'from:opacity-0 from:-translate-y-20 to:opacity-100 duration-300 ease-in play-2',
-      ),
-    ).toEqual({
-      from: { opacity: 0, translateY: -20 },
-      to: { opacity: 1, translateY: 0 },
-      duration: 300,
-      easing: 'ease-in',
-      playCount: 2,
-    });
-  });
-
-  it('fills neutral values for missing keyframe channels', () => {
-    expect(getStyleAnimateProp('from:scale-90 from:rotate-10')).toEqual({
-      from: { scale: 0.9, rotate: '10deg' },
-      to: { scale: 1, rotate: '0deg' },
-    });
-  });
-
-  it('clamps opacity to 0..100', () => {
-    expect(getStyleAnimateProp('from:opacity-150')).toEqual({
-      from: { opacity: 1 },
-      to: { opacity: 1 },
-    });
-  });
-
-  it('passes objects and arrays through unchanged', () => {
-    const object = { type: 'fade-in' };
-    const array = ['fade-in', 'slide-up'];
-
-    expect(getStyleAnimateProp(object)).toBe(object);
-    expect(getStyleAnimateProp(array)).toBe(array);
   });
 });
 
@@ -106,11 +46,13 @@ describe('getExitTokenState', () => {
     });
   });
 
-  it('ignores exit tokens inside object input', () => {
-    expect(getExitTokenState(['exit:opacity-0']).hasExitToken).toBe(false);
+  it('reads exit tokens from array entries', () => {
+    expect(getExitTokenState(['fade-in', 'exit:opacity-0']).hasExitToken).toBe(
+      true,
+    );
   });
 
-  it.failing('B7: carries easing into the exit animation', () => {
+  it('B7: carries easing into the exit animation', () => {
     expect(getExitTokenState('exit:opacity-0 ease-in')).toMatchObject({
       easing: 'ease-in',
     });
