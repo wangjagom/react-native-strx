@@ -314,6 +314,25 @@ kbd,
   }
 }
 
+@media (max-width: 380px) {
+  .topnav-inner {
+    padding: 0 10px;
+    gap: 4px;
+  }
+
+  .topnav-links {
+    gap: 0;
+  }
+
+  .brand {
+    gap: 8px;
+  }
+
+  .brand-name {
+    font-size: 14px;
+  }
+}
+
 /* ---------------------------------------------------------------- Buttons */
 
 .btn {
@@ -1381,7 +1400,7 @@ a.card:hover {
   background: var(--bg-inset);
   border-radius: 5px;
   padding: 2px 6px;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .article a code {
@@ -1492,6 +1511,85 @@ a.card:hover {
 
 .edit-link a {
   color: var(--fg-faint);
+}
+
+/* Phones: each table row becomes a card, and each value gets its column
+   name as a label (data-label is added by the site build). */
+@media (max-width: 720px) {
+  .table-wrap {
+    border: 0;
+    border-radius: 0;
+    overflow: visible;
+    background: none !important;
+  }
+
+  .table-wrap table,
+  .table-wrap tbody,
+  .table-wrap tr,
+  .table-wrap td {
+    display: block;
+    width: 100%;
+  }
+
+  .table-wrap thead {
+    display: none;
+  }
+
+  .table-wrap tr {
+    margin-bottom: 10px;
+    padding: 4px 14px 10px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--card);
+  }
+
+  .table-wrap tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .table-wrap td,
+  .table-wrap tr:last-child td {
+    display: grid;
+    grid-template-columns: minmax(84px, 32%) minmax(0, 1fr);
+    gap: 12px;
+    align-items: baseline;
+    padding: 5px 0;
+    border: 0;
+    font-size: 14px;
+  }
+
+  .table-wrap td::before {
+    content: attr(data-label);
+    font-family: var(--font);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--fg-faint);
+  }
+
+  .table-wrap td:first-child,
+  .table-wrap td[data-label=''],
+  .table-wrap tr:last-child td:first-child,
+  .table-wrap tr:last-child td[data-label=''] {
+    display: block;
+  }
+
+  .table-wrap td:first-child {
+    padding: 8px 0;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+    color: var(--fg);
+    font-weight: 600;
+  }
+
+  .table-wrap td:first-child::before,
+  .table-wrap td[data-label='']::before {
+    content: none;
+  }
+
+  .table-wrap td:first-child code {
+    white-space: normal;
+  }
 }
 
 @media (max-width: 1180px) {

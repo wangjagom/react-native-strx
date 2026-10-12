@@ -236,7 +236,7 @@ function tokenCode(token, kind) {
 function frame(values) {
   return Object.entries(values)
     .map(([key, value]) => `<code>${key}: ${value}</code>`)
-    .join(' ');
+    .join(', ');
 }
 
 function inlineMarkdown(text) {
@@ -831,6 +831,31 @@ function searchIndex(pages) {
   return entries;
 }
 
+/**
+ * Adds each column's header text to its cells as `data-label`, so phones can
+ * show tables as labelled cards (see site.css).
+ */
+function labelTableCells(html) {
+  return html.replace(/<table>([\s\S]*?)<\/table>/g, (table, inner) => {
+    const head = /<thead>([\s\S]*?)<\/thead>/.exec(inner);
+
+    if (!head) return table;
+
+    const labels = [...head[1].matchAll(/<th[^>]*>([\s\S]*?)<\/th>/g)].map(match =>
+      escapeHtml(stripTags(match[1]).trim()),
+    );
+
+    return table.replace(/<tr>([\s\S]*?)<\/tr>/g, (row, cells) => {
+      let index = 0;
+      const labelled = cells.replace(
+        /<td>([\s\S]*?)<\/td>/g,
+        (_, content) => `<td data-label="${labels[index++] ?? ''}"><div class="cell">${content}</div></td>`,
+      );
+      return `<tr>${labelled}</tr>`;
+    });
+  });
+}
+
 function checkLinks(files) {
   const ids = new Map();
 
@@ -889,7 +914,7 @@ function build() {
   fs.mkdirSync(path.join(OUT, 'assets'), { recursive: true });
 
   for (const [file, html] of files) {
-    fs.writeFileSync(path.join(OUT, file), html);
+    fs.writeFileSync(path.join(OUT, file), labelTableCells(html));
   }
 
   for (const asset of fs.readdirSync(path.join(SITE, 'static'))) {
