@@ -11,6 +11,54 @@
   var root = document.documentElement;
   var reduceQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 
+  /* UI text for the page's language; English strings are the keys. */
+  var LANG = (root.getAttribute('lang') || 'en').slice(0, 2);
+  var MESSAGES = {
+    ko: {
+      'Switch to light mode': '라이트 모드로 전환',
+      'Switch to dark mode': '다크 모드로 전환',
+      'Copy code': '코드 복사',
+      Replay: '다시 재생',
+      Unmount: '언마운트',
+      Mount: '마운트',
+      'Play exit': '퇴장 재생',
+      'animate tokens': 'animate 토큰',
+      'Each dot runs duration-900 with its easing token.': '점마다 duration-900 동안 해당 이징 토큰으로 움직입니다.',
+      'Simulated with the same damping / stiffness / mass the tokens set.': '토큰에 지정한 damping / stiffness / mass 값으로 그대로 시뮬레이션합니다.',
+      Active: '활성',
+      Inactive: '비활성',
+      'Toggle style': '스타일 바꾸기',
+      'Click twice quickly: it reverses from where it is.': '빠르게 두 번 눌러 보세요. 지금 위치에서 바로 되돌아갑니다.',
+      'Press and hold': '길게 눌러 보세요',
+      'Focus me': '여기를 눌러 보세요',
+      'Example input': '예시 입력창',
+      Expand: '펼치기',
+      Collapse: '접기',
+      'Remove item': '항목 삭제',
+      Item: '항목',
+      'Add item': '항목 추가',
+      Shuffle: '섞기',
+      entry: '항목',
+      'starts at': '시작 시점',
+      'Transfer complete': '송금 완료',
+      Done: '확인',
+      idle: '대기 중',
+      'idle — press play()': '대기 중 — play()를 눌러 보세요',
+      'reset() → back to from frames': 'reset() → from 프레임으로 돌아감',
+      'reverse() → from the current position': 'reverse() → 현재 위치에서 되감기',
+      'stop() → frozen in place': 'stop() → 그 자리에서 멈춤',
+      'Reduce Motion: off': '동작 줄이기: 끔',
+      'Reduce Motion: on': '동작 줄이기: 켬',
+      'layout-* animates size and position changes; see the layout demo.': 'layout-* 토큰은 크기와 위치 변화를 애니메이션합니다. 레이아웃 데모에서 확인해 보세요.',
+      'transition-* animates later style changes, not the entrance.': 'transition-* 토큰은 등장이 아니라 나중에 바뀌는 스타일을 애니메이션합니다.',
+    },
+  };
+
+  function t(text) {
+    var table = MESSAGES[LANG];
+    return (table && table[text]) || text;
+  }
+
   function $(selector, scope) {
     return (scope || document).querySelector(selector);
   }
@@ -66,7 +114,7 @@
     }
 
     $all('.theme-toggle').forEach(function (button) {
-      button.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+      button.setAttribute('aria-label', theme === 'dark' ? t('Switch to light mode') : t('Switch to dark mode'));
     });
   }
 
@@ -127,7 +175,7 @@
     var button = el('button', {
       type: 'button',
       class: 'icon-btn copy-code',
-      'aria-label': 'Copy code',
+      'aria-label': t('Copy code'),
       html: COPY_ICON,
     });
     button.addEventListener('click', function () {
@@ -260,7 +308,12 @@
       activeIndex = 0;
 
       if (!results.length) {
-        list.innerHTML = '<li class="search-empty">No results for “' + escapeHtml(input.value) + '”</li>';
+        list.innerHTML =
+          '<li class="search-empty">' +
+          (LANG === 'ko'
+            ? '“' + escapeHtml(input.value) + '”에 대한 검색 결과가 없습니다'
+            : 'No results for “' + escapeHtml(input.value) + '”') +
+          '</li>';
         return;
       }
 
@@ -611,17 +664,20 @@
       var line = el('div', { class: 'warn' });
 
       if (item.reason === 'second-preset') {
-        line.textContent = '“' + item.token + '” ignored: one preset per group. Use a comma, e.g. “fade-in, ' + item.token + '”.';
+        line.textContent =
+          LANG === 'ko'
+            ? '“' + item.token + '”는 무시됩니다. 그룹당 프리셋은 하나만 쓸 수 있어요. 쉼표로 나눠 주세요. 예: “fade-in, ' + item.token + '”'
+            : '“' + item.token + '” ignored: one preset per group. Use a comma, e.g. “fade-in, ' + item.token + '”.';
       } else {
-        line.appendChild(document.createTextNode('Unknown token “' + item.token + '”'));
+        line.appendChild(document.createTextNode((LANG === 'ko' ? '알 수 없는 토큰 “' : 'Unknown token “') + item.token + '”'));
         if (item.suggestion) {
-          line.appendChild(document.createTextNode(' — did you mean '));
+          line.appendChild(document.createTextNode(LANG === 'ko' ? ' — 혹시 ' : ' — did you mean '));
           var fix = el('button', { type: 'button', text: item.suggestion });
           fix.addEventListener('click', function () {
             onFix(item.token, item.suggestion);
           });
           line.appendChild(fix);
-          line.appendChild(document.createTextNode('?'));
+          line.appendChild(document.createTextNode(LANG === 'ko' ? '인가요?' : '?'));
         }
       }
 
@@ -632,8 +688,8 @@
     resolved.notes.forEach(function (note) {
       notes[note] = true;
     });
-    if (notes.layout) box.appendChild(el('div', { text: 'layout-* animates size and position changes; see the layout demo.' }));
-    if (notes.transition) box.appendChild(el('div', { text: 'transition-* animates later style changes, not the entrance.' }));
+    if (notes.layout) box.appendChild(el('div', { text: t('layout-* animates size and position changes; see the layout demo.') }));
+    if (notes.transition) box.appendChild(el('div', { text: t('transition-* animates later style changes, not the entrance.') }));
 
     return box;
   }
@@ -775,7 +831,7 @@
       onclick: onClick,
       html:
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 3v6h6"></path></svg>' +
-        escapeHtml(label || 'Replay'),
+        escapeHtml(t(label || 'Replay')),
     });
   }
 
@@ -815,15 +871,15 @@
     var footer = el('div', { class: 'demo-bar' }, [el('span', { class: 'grow' }, [code])]);
 
     if (exit) {
-      var exitButton = el('button', { type: 'button', class: 'ghost', text: 'Unmount' });
+      var exitButton = el('button', { type: 'button', class: 'ghost', text: t('Unmount') });
       exitButton.addEventListener('click', function () {
         if (gone) {
-          exitButton.textContent = 'Unmount';
+          exitButton.textContent = t('Unmount');
           play();
           return;
         }
         gone = true;
-        exitButton.textContent = 'Mount';
+        exitButton.textContent = t('Mount');
         playAnimate(box, current, {
           kind: 'exit',
           reduce: reduceQuery.matches,
@@ -845,7 +901,7 @@
   /** Editable sandbox: type any token string. */
   demos.sandbox = function (container) {
     var initial = container.getAttribute('data-animate') || 'fade-in from:translate-y-16';
-    var input = el('input', { class: 'pg-input', value: initial, 'aria-label': 'animate tokens', spellcheck: 'false', autocomplete: 'off' });
+    var input = el('input', { class: 'pg-input', value: initial, 'aria-label': t('animate tokens'), spellcheck: 'false', autocomplete: 'off' });
     var tokens = el('div', { class: 'pg-tokens' });
     var messages = el('div', { class: 'pg-messages' });
     var box = el('div', { class: 'box' });
@@ -880,7 +936,7 @@
       el('button', {
         type: 'button',
         class: 'ghost',
-        text: 'Play exit',
+        text: t('Play exit'),
         onclick: function () {
           playAnimate(box, input.value, { kind: 'exit', reduce: reduceQuery.matches });
         },
@@ -938,7 +994,7 @@
 
     var stage = el('div', { class: 'demo-stage' }, [grid]);
     var bar = el('div', { class: 'demo-bar' }, [
-      el('span', { class: 'grow', text: 'Each dot runs duration-900 with its easing token.' }),
+      el('span', { class: 'grow', text: t('Each dot runs duration-900 with its easing token.') }),
       replayButton('Replay', play),
     ]);
     demoShell(container, stage, bar);
@@ -981,7 +1037,7 @@
 
     var stage = el('div', { class: 'demo-stage' }, [lanes]);
     var bar = el('div', { class: 'demo-bar' }, [
-      el('span', { class: 'grow', text: 'Simulated with the same damping / stiffness / mass the tokens set.' }),
+      el('span', { class: 'grow', text: t('Simulated with the same damping / stiffness / mass the tokens set.') }),
       replayButton('Replay', play),
     ]);
     demoShell(container, stage, bar);
@@ -1007,7 +1063,7 @@
         code.innerHTML = 'animate="' + highlightAnimate('transition-all duration-300') + '" style={{ width: ' + (on ? 220 : 120) + ', … }}';
       } else if (variant === 'colors') {
         target.style.backgroundColor = on ? 'var(--t-trans)' : 'var(--t-exit)';
-        target.textContent = on ? 'Active' : 'Inactive';
+        target.textContent = on ? t('Active') : t('Inactive');
         target.style.color = '#fff';
         code.innerHTML = 'animate="' + highlightAnimate('transition-colors duration-250') + '" backgroundColor: ' + (on ? 'green' : 'red');
       }
@@ -1022,7 +1078,7 @@
     trigger = el('button', {
       type: 'button',
       class: 'ghost',
-      text: 'Toggle style',
+      text: t('Toggle style'),
       'aria-pressed': 'false',
       onclick: function () {
         on = !on;
@@ -1034,7 +1090,7 @@
     stage.appendChild(target);
     stage.appendChild(trigger);
     apply();
-    demoShell(container, stage, el('div', { class: 'demo-bar' }, [el('span', { class: 'grow' }, [code]), el('span', { text: 'Click twice quickly: it reverses from where it is.' })]));
+    demoShell(container, stage, el('div', { class: 'demo-bar' }, [el('span', { class: 'grow' }, [code]), el('span', { text: t('Click twice quickly: it reverses from where it is.') })]));
   };
 
   /** Pressable scale on press with transition-transform. */
@@ -1042,7 +1098,7 @@
     var button = el('button', {
       type: 'button',
       class: 'btn',
-      text: 'Press and hold',
+      text: t('Press and hold'),
       style: 'transition: transform 150ms ' + EASING_CSS['ease-out'] + ', background-color 150ms',
     });
     function down() {
@@ -1066,8 +1122,8 @@
   demos.focus = function (container) {
     var input = el('input', {
       class: 'demo-input',
-      placeholder: 'Focus me',
-      'aria-label': 'Example input',
+      placeholder: t('Focus me'),
+      'aria-label': t('Example input'),
       style: 'transition: border-color 200ms ' + EASING_CSS['ease-out'],
     });
     input.addEventListener('focus', function () {
@@ -1093,7 +1149,7 @@
     ]);
     var card = el('div', { class: 'expander' }, [el('div', { class: 'bar head' }), el('div', { class: 'bar', style: 'width:75%' }), extra]);
     var below = el('div', { class: 'row-item', style: 'width:260px' }, [el('i', {}), el('b', {})]);
-    var toggle = el('button', { type: 'button', class: 'ghost', text: 'Expand', 'aria-expanded': 'false' });
+    var toggle = el('button', { type: 'button', class: 'ghost', text: t('Expand'), 'aria-expanded': 'false' });
     var code = el('code', {});
 
     function renderCode() {
@@ -1108,7 +1164,7 @@
         function () {
           open = !open;
           extra.style.display = open ? 'flex' : 'none';
-          toggle.textContent = open ? 'Collapse' : 'Expand';
+          toggle.textContent = open ? t('Collapse') : t('Expand');
           toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
         },
         token,
@@ -1152,8 +1208,8 @@
     function makeRow() {
       var id = next;
       next += 1;
-      var remove = el('button', { type: 'button', 'aria-label': 'Remove item ' + id, text: '✕' });
-      var row = el('div', { class: 'row-item' }, [el('i', { style: 'background:' + colors[id % colors.length] }), el('span', { text: 'Item ' + id }), el('b', {}), remove]);
+      var remove = el('button', { type: 'button', 'aria-label': t('Remove item') + ' ' + id, text: '✕' });
+      var row = el('div', { class: 'row-item' }, [el('i', { style: 'background:' + colors[id % colors.length] }), el('span', { text: t('Item') + ' ' + id }), el('b', {}), remove]);
       remove.addEventListener('click', function () {
         playAnimate(row, enter + ' ' + exit, {
           kind: 'exit',
@@ -1173,7 +1229,7 @@
     var add = el('button', {
       type: 'button',
       class: 'ghost',
-      text: 'Add item',
+      text: t('Add item'),
       onclick: function () {
         var row = makeRow();
         animateLayout(rows, function () {
@@ -1185,7 +1241,7 @@
     var shuffle = el('button', {
       type: 'button',
       class: 'ghost',
-      text: 'Shuffle',
+      text: t('Shuffle'),
       onclick: function () {
         animateLayout(rows, function () {
           var items = rows();
@@ -1217,7 +1273,7 @@
     entries.forEach(function (entry, index) {
       var box = el('div', { class: 'box sm' });
       boxes.push(box);
-      lanes.appendChild(el('div', { class: 'lane' }, [el('span', { text: 'entry ' + (index + 1) }), el('div', { class: 'lane-track', style: 'background:transparent;border-style:dashed' }, [box])]));
+      lanes.appendChild(el('div', { class: 'lane' }, [el('span', { text: t('entry') + ' ' + (index + 1) }), el('div', { class: 'lane-track', style: 'background:transparent;border-style:dashed' }, [box])]));
     });
 
     function offsets() {
@@ -1241,7 +1297,7 @@
 
     function play() {
       var starts = offsets();
-      code.innerHTML = 'playback="' + mode + '"' + (mode === 'stagger' ? ' interval={' + interval + '}' : '') + ' → starts at ' + starts.map(function (s) { return s + 'ms'; }).join(', ');
+      code.innerHTML = 'playback="' + mode + '"' + (mode === 'stagger' ? ' interval={' + interval + '}' : '') + ' → ' + t('starts at') + ' ' + starts.map(function (s) { return s + 'ms'; }).join(', ');
       boxes.forEach(function (box, index) {
         var resolved = T.resolve(entries[index]);
         resolved.groups.forEach(function (group) {
@@ -1274,12 +1330,12 @@
   demos.timeline = function (container) {
     var targets = [
       { node: el('div', { class: 'coin' }), animate: 'scale-in from:opacity-0 duration-280 delay-300' },
-      { node: el('div', { class: 'scene-title', text: 'Transfer complete' }), animate: 'fade-in from:translate-y-12 duration-260' },
-      { node: el('div', { class: 'scene-btn', text: 'Done' }), animate: 'fade-in from:translate-y-12 duration-240' },
+      { node: el('div', { class: 'scene-title', text: t('Transfer complete') }), animate: 'fade-in from:translate-y-12 duration-260' },
+      { node: el('div', { class: 'scene-btn', text: t('Done') }), animate: 'fade-in from:translate-y-12 duration-240' },
     ];
     var mode = container.getAttribute('data-mode') || 'stagger';
     var interval = 80;
-    var status = el('code', { text: 'idle' });
+    var status = el('code', { text: t('idle') });
     var animations = [];
     var scene = el('div', { class: 'timeline-scene' }, targets.map(function (target) { return target.node; }));
 
@@ -1295,7 +1351,7 @@
       targets.forEach(function (target) {
         Object.assign(target.node.style, fromFrame(target));
       });
-      status.textContent = 'reset() → back to from frames';
+      status.textContent = t('reset() → back to from frames');
     }
 
     function play() {
@@ -1327,14 +1383,14 @@
       animations.forEach(function (animation) {
         animation.reverse();
       });
-      status.textContent = 'reverse() → from the current position';
+      status.textContent = t('reverse() → from the current position');
     }
 
     function stop() {
       animations.forEach(function (animation) {
         animation.pause();
       });
-      status.textContent = 'stop() → frozen in place';
+      status.textContent = t('stop() → frozen in place');
     }
 
     var buttons = el('div', { class: 'pg-actions' }, [
@@ -1346,7 +1402,7 @@
 
     demoShell(container, el('div', { class: 'demo-stage', style: 'min-height:240px' }, [scene]), el('div', { class: 'demo-bar' }, [buttons, el('span', { class: 'grow' }), status]));
     reset();
-    status.textContent = 'idle — press play()';
+    status.textContent = t('idle — press play()');
   };
 
   /** Reduce Motion on/off. */
@@ -1355,7 +1411,7 @@
     var animate = container.getAttribute('data-animate') || 'fade-in from:translate-y-24 duration-600 delay-200';
     var box = el('div', { class: 'box' });
     var code = el('code', {});
-    var toggle = el('button', { type: 'button', class: 'chip', 'aria-pressed': 'false', text: 'Reduce Motion: off' });
+    var toggle = el('button', { type: 'button', class: 'chip', 'aria-pressed': 'false', text: t('Reduce Motion: off') });
 
     function play() {
       code.textContent = reduce ? 'duration → 0, delay → 0, play → 1' : 'animate="' + animate + '"';
@@ -1365,7 +1421,7 @@
     toggle.addEventListener('click', function () {
       reduce = !reduce;
       toggle.setAttribute('aria-pressed', reduce ? 'true' : 'false');
-      toggle.textContent = 'Reduce Motion: ' + (reduce ? 'on' : 'off');
+      toggle.textContent = reduce ? t('Reduce Motion: on') : t('Reduce Motion: off');
       play();
     });
 
@@ -1401,7 +1457,7 @@
       animateLayout(function () { return [card]; }, function () {
         open = !open;
         extra.style.display = open ? 'flex' : 'none';
-        button.textContent = open ? 'Collapse' : 'Expand';
+        button.textContent = open ? t('Collapse') : t('Expand');
         button.setAttribute('aria-expanded', open ? 'true' : 'false');
       }, 'layout-spring');
     });

@@ -2212,3 +2212,82 @@ a.card:hover {
 .feature-body .codeblock {
   margin: 0;
 }
+
+/* ---------------------------------------------------------------- Languages */
+
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--fg-muted);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.lang-switch:hover {
+  color: var(--fg);
+  border-color: var(--line-strong);
+}
+
+@media (max-width: 860px) {
+  .lang-switch {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+    border: 0;
+  }
+
+  .lang-switch span {
+    display: none;
+  }
+}
+
+.lang-notice {
+  font-size: 14px;
+}
+
+/* Korean: Pretendard for Hangul, no breaks inside words, gentler tracking */
+:root:lang(ko) {
+  --font: 'Geist', 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+}
+
+:lang(ko) body,
+:lang(ko) .article,
+:lang(ko) .lead,
+:lang(ko) .card p,
+:lang(ko) .section-head p {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+:lang(ko) .h-display {
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+}
+
+:lang(ko) .h-section,
+:lang(ko) .article h1 {
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+
+:lang(ko) .article p,
+:lang(ko) .article li {
+  line-height: 1.8;
+}
+
+/* Korean labels: monospace and wide tracking don't suit Hangul */
+:lang(ko) .eyebrow,
+:lang(ko) .sidebar h5,
+:lang(ko) .toc h5 {
+  font-family: var(--font);
+  letter-spacing: 0;
+  font-weight: 600;
+}
