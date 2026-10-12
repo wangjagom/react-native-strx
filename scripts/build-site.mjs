@@ -476,10 +476,46 @@ const GENERATED_KO = {
   'from:': '애니메이션을 시작하기 전 모습이에요.',
   'to:': '애니메이션이 도착할 모습이에요.',
   'exit:': '컴포넌트가 사라질 때 도착할 모습이에요.',
+  'Linear easing.': '일정한 속도로 움직여요.',
+  'Smoothstep easing.': '부드럽게 시작하고 부드럽게 멈춰요(smoothstep).',
+  'Cubic ease-in.': '천천히 시작해서 빨라져요(cubic).',
+  'Cubic ease-out. Default when no easing is set.': '빠르게 시작해서 천천히 멈춰요(cubic). easing을 정하지 않으면 이 값을 써요.',
+  'Cubic ease-in-out.': '천천히 시작하고 천천히 멈춰요(cubic).',
+  'Uses the spring driver for numeric channels.': '숫자 값을 스프링으로 움직여요.',
+  'Duration in milliseconds. Precedence: token or object → preset default → Strx.Provider duration → 300ms.':
+    '지속 시간(ms)이에요. 우선순위: 토큰이나 객체 → 프리셋 기본값 → Strx.Provider 지속 시간 → 300ms',
+  'Delay in milliseconds before the animation starts.': '애니메이션이 시작하기 전에 기다리는 시간(ms)이에요.',
+  'Spring damping. Default 10.': '스프링 감쇠(damping)예요. 기본값은 10이에요.',
+  'Spring stiffness. Default 100.': '스프링 강성(stiffness)이에요. 기본값은 100이에요.',
+  'Spring mass. Default 1.': '스프링 질량(mass)이에요. 기본값은 1이에요.',
+  'Total number of plays, or `play-infinite`.': '전체 재생 횟수예요. 계속 반복하려면 `play-infinite`를 써요.',
+  'Same as `play-*`; kept for compatibility.': '`play-*`와 같아요. 호환성을 위해 남겨 뒀어요.',
+  'All supported numeric, color, and transform channels.': '지원하는 숫자, 색, transform 값 전부',
+  'Color keys such as `backgroundColor` and `borderColor`.': '`backgroundColor`, `borderColor` 같은 색 키',
+  '`opacity` only.': '`opacity`만',
+  'Transform channels such as `translateX`, `scale`, and `rotate`.': '`translateX`, `scale`, `rotate` 같은 transform 값',
+  '`margin*` and `padding*` keys.': '`margin*`, `padding*` 키',
+  '`width`, `height`, min/max sizes, and `top`/`right`/`bottom`/`left`.':
+    '`width`, `height`, 최소/최대 크기, `top`/`right`/`bottom`/`left`',
+  'Timing transition.': '타이밍으로 움직여요.',
+  'Spring transition.': '스프링으로 움직여요.',
+  'Timing transition that also fades the view in.': '타이밍으로 움직이면서 뷰가 서서히 나타나요.',
+  'Stiffer spring transition.': '더 단단한 스프링으로 움직여요.',
+  'Bouncier spring transition.': '더 통통 튀는 스프링으로 움직여요.',
+  '(legacy)': '(이전 방식)',
 };
 
 function translateGenerated(lang, text) {
   return lang === 'ko' && GENERATED_KO[text] ? GENERATED_KO[text] : text;
+}
+
+function describe(lang, text) {
+  return inlineMarkdown(translateGenerated(lang, text));
+}
+
+function layoutMotion(lang, motion) {
+  if (lang !== 'ko') return inlineMarkdown(motion);
+  return inlineMarkdown(motion.replace(/^(\d+ms), or (.+) \/ provider duration$/, '$1, 또는 $2 / Provider 지속 시간'));
 }
 
 function presetMotion(lang, motion) {
@@ -502,18 +538,18 @@ const GENERATED = {
     table(
       ['Token', 'Curve'].map(text => translateGenerated(lang, text)),
       tokens.easings
-        .map(easing => [tokenCode(easing.token, 'timing'), inlineMarkdown(easing.description)])
-        .concat([[tokenCode(tokens.spring.token, 'timing'), inlineMarkdown(tokens.spring.description)]]),
+        .map(easing => [tokenCode(easing.token, 'timing'), describe(lang, easing.description)])
+        .concat([[tokenCode(tokens.spring.token, 'timing'), describe(lang, tokens.spring.description)]]),
     ),
   timing: (lang = 'en') =>
     table(
       ['Token', 'Meaning'].map(text => translateGenerated(lang, text)),
       tokens.numericTiming
-        .map(item => [tokenCode(item.example, 'timing'), inlineMarkdown(item.description)])
+        .map(item => [tokenCode(item.example, 'timing'), describe(lang, item.description)])
         .concat(
           tokens.countTiming.map(item => [
             `${tokenCode(item.example, 'timing')} ${tokenCode(item.prefix + 'infinite', 'timing')}`,
-            inlineMarkdown(item.description) + (item.legacy ? ' <em>(legacy)</em>' : ''),
+            describe(lang, item.description) + (item.legacy ? ` <em>${translateGenerated(lang, '(legacy)')}</em>` : ''),
           ]),
         ),
     ),
@@ -549,15 +585,15 @@ const GENERATED = {
   transitions: (lang = 'en') =>
     table(
       ['Token', 'Animated style subset'].map(text => translateGenerated(lang, text)),
-      tokens.transitions.map(item => [tokenCode(item.token, 'transition'), inlineMarkdown(item.description)]),
+      tokens.transitions.map(item => [tokenCode(item.token, 'transition'), describe(lang, item.description)]),
     ),
   layout: (lang = 'en') =>
     table(
       ['Token', 'Behavior', 'Motion'].map(text => translateGenerated(lang, text)),
       tokens.layout.map(item => [
         tokenCode(item.token, 'layout'),
-        inlineMarkdown(item.description),
-        inlineMarkdown(item.motion),
+        describe(lang, item.description),
+        layoutMotion(lang, item.motion),
       ]),
     ),
 };

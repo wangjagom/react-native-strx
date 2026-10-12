@@ -241,8 +241,15 @@
 
   if (scrim) scrim.addEventListener('click', closeNav);
 
+  // Bring the current page's link into view inside the sidebar only.
+  // scrollIntoView() would also scroll the window, so pages listed low in
+  // the sidebar would open scrolled down instead of at the top.
+  var sidebarNav = $('.sidebar');
   var current = $('.sidebar a[aria-current="page"]');
-  if (current && current.scrollIntoView) current.scrollIntoView({ block: 'center' });
+  if (sidebarNav && current) {
+    var linkTop = current.getBoundingClientRect().top - sidebarNav.getBoundingClientRect().top + sidebarNav.scrollTop;
+    sidebarNav.scrollTop = Math.max(0, linkTop - sidebarNav.clientHeight / 2);
+  }
 
   var tocLinks = $all('.toc a');
 
