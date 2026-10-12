@@ -1441,6 +1441,20 @@
     if (demo) demo(container);
   });
 
+  // The editor page runs the VS Code extension's own logic; load it only there.
+  if ($('[data-editor-demo]')) {
+    var assets = (document.body.getAttribute('data-base') || '') + 'assets/';
+    var load = function (file, next) {
+      var script = document.createElement('script');
+      script.src = assets + file;
+      script.onload = next;
+      document.body.appendChild(script);
+    };
+    load('editor-extension.js', function () {
+      load('editor-demo.js');
+    });
+  }
+
   /* ------------------------------------------------------------ Landing extras */
 
   $all('[data-landing-transition]').forEach(function (stage) {
