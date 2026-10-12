@@ -126,7 +126,7 @@
       '<div class="ed-line"><span class="ed-ln">12</span><span class="ed-pun">&lt;</span><span class="ed-comp">Strx.View</span></div>' +
       '<div class="ed-line ed-flow"><span class="ed-ln">13</span><span class="ed-code"><span class="ed-ind"></span><span class="ed-attr">animate</span><span class="ed-pun">=</span><span class="ed-str">"</span>' +
       '<span class="ed-field"><span class="ed-marks" aria-hidden="true"></span>' +
-      '<textarea rows="1" aria-label="' + TEXT.value + '" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">duration-800 delay-200 </textarea></span></span></div>' +
+      '<textarea rows="1" aria-label="' + TEXT.value + '" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">slide-up duration-1000 </textarea></span></span></div>' +
       '<div class="ed-line"><span class="ed-ln">14</span><span class="ed-ind"></span><span class="ed-attr">style</span><span class="ed-pun">={</span>styles.card<span class="ed-pun">}</span></div>' +
       '<div class="ed-line"><span class="ed-ln">15</span><span class="ed-pun">/&gt;</span></div>' +
       '<div class="ed-suggest" hidden><div class="ed-list" role="listbox" aria-label="' + TEXT.suggestions + '"></div><div class="ed-details ed-md"></div></div>' +
@@ -369,12 +369,12 @@
       if (state.open) renderSuggest();
     });
 
-    // Start in a realistic state: a slow, delayed group with slide-up selected.
+    // Start in a realistic state: slide-up duration-1000 with delay-200 selected.
     renderMarks();
     input.setSelectionRange(input.value.length, input.value.length);
     openSuggest();
     state.items.some(function (item, index) {
-      if (item.label === 'slide-up') {
+      if (item.label === 'delay-200') {
         state.index = index;
         return true;
       }
@@ -400,7 +400,7 @@
   // ----------------------------------------------------------------- hover
 
   var EXAMPLES = [
-    'slide-up duration-800 delay-200 ease-in-out',
+    'slide-up duration-1000 delay-200 ease-in-out play-2',
     'fade-in from:translate-y-12 spring',
     'fade-in duration-200, slide-up delay-150 duration-500 ease-in-out',
     'scale-in spring damping-4 stiffness-180',
@@ -424,7 +424,7 @@
     var line = container.querySelector('.ed-hover-line');
     var card = container.querySelector('.ed-hovercard');
     var value = EXAMPLES[0];
-    var current = 0;
+    var current = 2;
 
     function renderLine() {
       var analyzed = X.analyze(value, context);

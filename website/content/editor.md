@@ -13,7 +13,15 @@ Typing a quote, space, comma or `:` inside an `animate` string opens suggestions
 
 <div data-editor-demo="completion"></div>
 
-Previews **follow the rest of the comma group**. With `duration-800 delay-200` already in the group, as above, `slide-up` waits 0.2s and then moves for 0.8s. Picking a `duration-*` or easing token shows its chart, then the group's motion with that value, so you can see what changing it does.
+Previews **connect to the rest of the comma group**:
+
+- `slide-up` next to `duration-1000 delay-200` waits 200ms and then moves for 1000ms.
+- Picking `delay-200` in `slide-up duration-1000`, as above, shows the wait and then **1000ms of motion from `duration-1000`**, ending at 1200ms.
+- A `duration-*` chart starts after the group's delay and is compared with the preset's own length (`slide-up` is 320ms), not a fixed default.
+- Easing curves are drawn over the group's delay and duration, and `play-*` multiplies the group's duration.
+- In a spring group, `duration-*` and easing are marked as ignored, and a delay is shown with the spring's settle time.
+
+Under each timing chart, the group's motion with that value shows what changing it does.
 
 Suggestions follow the grammar:
 
