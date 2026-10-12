@@ -59,6 +59,7 @@ ${parts.join('\n\n')}
     computeCompletions: modules.completion.computeCompletions,
     computeHover: modules.hover.computeHover,
     tokenPreviewSvg: modules.preview.tokenPreviewSvg,
+    tokenPreviewMarkdown: modules.preview.tokenPreviewMarkdown,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 `;
