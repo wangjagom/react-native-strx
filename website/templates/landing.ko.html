@@ -1,0 +1,357 @@
+{{HEAD}}
+<body data-base="">
+<a class="sr-only" href="#main">본문으로 건너뛰기</a>
+{{NAV}}
+<main id="main">
+
+<!-- Hero -->
+<section class="band" id="top">
+<div class="frame">
+<div class="hero-top">
+<p class="eyebrow">React Native · Reanimated 4</p>
+<h1 class="h-display">React Native 애니메이션,<br><span class="dim">이제 토큰 한 줄로.</span></h1>
+<p class="lead">Tailwind로 스타일을 적듯, 등장·퇴장·스타일 트랜지션·레이아웃 모션을 컴포넌트에 바로 적어 보세요. STRX가 이 문자열을 UI 스레드에서 도는 Reanimated 애니메이션으로 바꿔 드려요.</p>
+<div class="hero-tokens" aria-label="예시: fade-in from:translate-y-12 layout-spring duration-400 ease-out exit:opacity-0">
+<span class="tok preset" style="animation-delay: 80ms">fade-in</span>
+<span class="tok keyframe" style="animation-delay: 160ms">from:translate-y-12</span>
+<span class="tok layout" style="animation-delay: 240ms">layout-spring</span>
+<span class="tok timing" style="animation-delay: 320ms">duration-400</span>
+<span class="tok timing" style="animation-delay: 400ms">ease-out</span>
+<span class="tok exit" style="animation-delay: 480ms">exit:opacity-0</span>
+</div>
+</div>
+<div class="hero-actions">
+<a href="docs/quick-start.html" class="btn">시작하기 {{ICON_ARROW}}</a>
+<div class="install">
+<span class="dollar">$</span><span>npm i react-native-strx</span>
+<button type="button" class="icon-btn copy" data-copy="npm i react-native-strx react-native-reanimated react-native-worklets" aria-label="설치 명령어 복사">{{ICON_COPY}}</button>
+</div>
+<span class="muted-note">v{{VERSION}} · Reanimated 4.1+ · New Architecture</span>
+</div>
+</div>
+</section>
+
+<!-- Playground -->
+<section class="band subtle" id="playground">
+<div class="frame band-pad" style="display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px">
+<div class="section-head">
+<p class="eyebrow">직접 해 보기</p>
+<h2 class="h-section">토큰을 입력하면 바로 움직여요.</h2>
+<p>미리보기는 라이브러리와 똑같은 토큰 데이터, 이징 곡선, 스프링 값으로 움직여요. 오타를 내면 개발할 때와 같은 수정 제안이 나타나요.</p>
+</div>
+</div>
+
+<div class="playground" data-playground>
+<div class="pg-controls">
+<label class="pg-row">
+<span>animate</span>
+<input class="pg-input" value="slide-up from:opacity-0 duration-600 ease-out exit:opacity-0 exit:scale-90" spellcheck="false" autocomplete="off">
+</label>
+<div class="pg-tokens" aria-live="polite"></div>
+<div class="pg-messages" aria-live="polite"></div>
+<div class="pg-row">
+<span>프리셋 <small>· 그룹당 하나</small></span>
+<div class="pg-chips">
+<button type="button" class="chip" data-group="preset" data-token="fade-in">fade-in</button>
+<button type="button" class="chip" data-group="preset" data-token="slide-up">slide-up</button>
+<button type="button" class="chip" data-group="preset" data-token="slide-down">slide-down</button>
+<button type="button" class="chip" data-group="preset" data-token="slide-left">slide-left</button>
+<button type="button" class="chip" data-group="preset" data-token="slide-right">slide-right</button>
+<button type="button" class="chip" data-group="preset" data-token="scale-in">scale-in</button>
+<button type="button" class="chip" data-group="preset" data-token="scale-down">scale-down</button>
+<button type="button" class="chip" data-group="preset" data-token="bounce">bounce</button>
+</div>
+</div>
+<div class="pg-row">
+<span>키프레임 <small>· 프리셋 값을 채널별로 덮어써요</small></span>
+<div class="pg-chips">
+<button type="button" class="chip" data-toggle data-token="from:opacity-0">from:opacity-0</button>
+<button type="button" class="chip" data-toggle data-token="from:rotate-6">from:rotate-6</button>
+<button type="button" class="chip" data-toggle data-token="from:scale-80">from:scale-80</button>
+<button type="button" class="chip" data-toggle data-token="exit:opacity-0">exit:opacity-0</button>
+<button type="button" class="chip" data-toggle data-token="exit:scale-90">exit:scale-90</button>
+</div>
+</div>
+<div class="pg-inline">
+<div class="pg-row">
+<span>지속 시간</span>
+<div class="pg-chips">
+<button type="button" class="chip" data-group="duration" data-token="duration-150">150</button>
+<button type="button" class="chip" data-group="duration" data-token="duration-300">300</button>
+<button type="button" class="chip" data-group="duration" data-token="duration-600">600</button>
+<button type="button" class="chip" data-group="duration" data-token="duration-1000">1000</button>
+</div>
+</div>
+<div class="pg-row">
+<span>지연</span>
+<div class="pg-chips">
+<button type="button" class="chip" data-group="delay" data-token="delay-0">0</button>
+<button type="button" class="chip" data-group="delay" data-token="delay-150">150</button>
+<button type="button" class="chip" data-group="delay" data-token="delay-300">300</button>
+</div>
+</div>
+</div>
+<div class="pg-row">
+<span>이징</span>
+<div class="pg-chips">
+<button type="button" class="chip" data-group="easing" data-token="linear">linear</button>
+<button type="button" class="chip" data-group="easing" data-token="ease">ease</button>
+<button type="button" class="chip" data-group="easing" data-token="ease-in">ease-in</button>
+<button type="button" class="chip" data-group="easing" data-token="ease-out">ease-out</button>
+<button type="button" class="chip" data-group="easing" data-token="ease-in-out">ease-in-out</button>
+<button type="button" class="chip" data-group="easing" data-token="spring">spring</button>
+</div>
+</div>
+<div class="codeblock" style="margin:4px 0 0"><pre><code><span class="hl-p">&lt;</span><span class="hl-t">Strx.View</span>
+  animate=<span class="hl-s">"</span><span class="pg-code"></span><span class="hl-s">"</span>
+<span class="hl-p">/&gt;</span></code></pre></div>
+</div>
+<div class="pg-preview">
+<div class="phone" role="img" aria-label="휴대폰 화면에서 본 애니메이션 미리보기">
+<div class="phone-screen">
+<div class="bar" style="width:72px;align-self:center"></div>
+<div class="bar strong" style="width:55%;margin-top:12px"></div>
+<div class="bar" style="width:80%"></div>
+<div class="demo-card">
+<div class="icon"></div>
+<div class="title">다시 오신 걸 환영해요</div>
+<div class="line" style="width:70%"></div>
+<div class="line" style="width:50%;opacity:.7"></div>
+</div>
+<div class="phone-cta">계속하기</div>
+</div>
+</div>
+<div class="pg-actions">
+<button type="button" class="btn btn-sm" data-action="replay">다시 재생</button>
+<button type="button" class="ghost" data-action="exit">언마운트 / 마운트</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Get started -->
+<section class="band" id="start">
+<div class="frame band-pad split">
+<div class="section-head" style="flex:1 1 300px">
+<p class="eyebrow">시작하기</p>
+<h2 class="h-section">세 단계면 첫 애니메이션이 완성돼요.</h2>
+<p>STRX는 Reanimated 위에서 동작해요. 그래서 Reanimated 설정에 Provider 하나만 더하면 준비가 끝나요.</p>
+<p><a href="docs/installation.html">설치 가이드 보기 →</a></p>
+</div>
+<ol class="steps" style="flex:2 1 540px">
+<li>
+<div class="step-head"><span>01</span><h3>Reanimated 4와 함께 설치하기</h3></div>
+<pre data-hl="sh">npm i react-native-strx react-native-reanimated react-native-worklets</pre>
+<p>Expo 앱은 Reanimated 패키지를 <code>npx expo install</code>로 설치해 주세요. Bare 앱은 Babel 플러그인 목록 맨 끝에 <code>react-native-worklets/plugin</code>을 넣어 주세요.</p>
+</li>
+<li>
+<div class="step-head"><span>02</span><h3>앱을 Provider로 감싸기</h3></div>
+<pre data-hl="tsx">import { Strx } from "react-native-strx";
+
+&lt;Strx.Provider motionPreset={{ duration: 300 }}&gt;
+  &lt;App /&gt;
+&lt;/Strx.Provider&gt;</pre>
+<p>기본 타이밍을 정하고, OS의 동작 줄이기 설정을 따르고, 이벤트 타임라인을 이어 줘요.</p>
+</li>
+<li>
+<div class="step-head"><span>03</span><h3>animate 추가하기</h3></div>
+<pre data-hl="tsx">&lt;Strx.View animate="fade-in from:translate-y-12 layout-spring"&gt;
+  &lt;Strx.Text&gt;Hello STRX&lt;/Strx.Text&gt;
+&lt;/Strx.View&gt;</pre>
+<p>View, Text, Pressable, Image, ScrollView, TextInput, 그리고 <code>createStrxComponent</code>로 만든 컴포넌트까지, 모든 STRX 컴포넌트가 같은 <code>animate</code> prop을 받아요.</p>
+</li>
+</ol>
+</div>
+</section>
+
+<!-- Grammar -->
+<section class="band subtle" id="tokens">
+<div class="frame band-pad" style="display:flex;flex-direction:column;gap:36px">
+<div class="section-head">
+<p class="eyebrow">문법</p>
+<h2 class="h-section">문장처럼 읽혀요.</h2>
+<p>토큰 하나는 한 가지 일만 해요. 그룹 안에서는 순서를 신경 쓰지 않아도 되고, 쉼표를 찍으면 타이밍을 따로 가진 새 그룹이 시작돼요.</p>
+</div>
+<div class="legend">
+<div class="legend-item"><span class="tok preset">fade-in</span><span>프리셋</span></div>
+<div class="legend-item"><span class="tok keyframe">from:translate-y-12</span><span>키프레임</span></div>
+<div class="legend-item"><span class="tok exit">exit:opacity-0</span><span>퇴장</span></div>
+<div class="legend-item"><span class="tok transition">transition-colors</span><span>스타일 트랜지션</span></div>
+<div class="legend-item"><span class="tok layout">layout-spring</span><span>레이아웃</span></div>
+<div class="legend-item"><span class="tok timing">duration-400</span><span>타이밍</span></div>
+<div class="legend-item"><span class="tok timing">ease-out</span><span>이징</span></div>
+</div>
+<div class="card-grid">
+<div class="card">
+<p class="mono" style="color:var(--t-preset);font-weight:600;font-size:13.5px">fade-in, slide-up duration-500</p>
+<p>두 그룹이 함께 재생돼요. <code>duration-500</code>은 <code>slide-up</code>에만 적용돼요.</p>
+</div>
+<div class="card">
+<p class="mono" style="color:var(--t-preset);font-weight:600;font-size:13.5px">bounce spring damping-12</p>
+<p>스프링으로 바꾸고, damping·stiffness·mass를 그 자리에서 바로 조절할 수 있어요.</p>
+</div>
+<div class="card">
+<p class="mono" style="color:var(--t-preset);font-weight:600;font-size:13.5px">from:opacity-0 to:opacity-100 play-infinite</p>
+<p>맞는 프리셋이 없다면 키프레임을 직접 쓰고, <code>play-*</code>로 반복해 보세요.</p>
+</div>
+</div>
+<p style="margin:0"><a href="docs/animate-prop.html">animate prop 자세히 보기 →</a></p>
+</div>
+</section>
+
+<!-- Features -->
+<section class="band">
+<div class="frame band-pad" style="display:flex;flex-direction:column;gap:40px">
+<div class="section-head">
+<p class="eyebrow">등장 그 이상</p>
+<h2 class="h-section">어떤 모션이든, prop 하나로.</h2>
+</div>
+<div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+
+<article class="feature">
+<div class="feature-stage" data-landing-transition>
+<div class="lt-target" style="height:56px;width:120px;background-color:var(--accent);border-radius:14px;transition:width 300ms cubic-bezier(.33,1,.68,1),background-color 300ms cubic-bezier(.33,1,.68,1)"></div>
+<button type="button" class="ghost" aria-pressed="false">스타일 바꾸기</button>
+</div>
+<div class="feature-body">
+<h3>스타일 트랜지션</h3>
+<p><code>style</code>이 바뀌면 지금 화면에 보이는 값에서 이어서 움직여요. 중간에 다시 바꿔도 튀지 않아요.</p>
+<pre data-hl="tsx">&lt;Strx.View animate="transition-all duration-300"
+  style={{ width: on ? 200 : 120 }} /&gt;</pre>
+<a class="card-link" href="docs/transitions.html">트랜지션 →</a>
+</div>
+</article>
+
+<article class="feature">
+<div class="feature-stage" data-landing-layout>
+<div class="expander" style="width:220px">
+<div class="bar head"></div>
+<div class="bar" style="width:90%"></div>
+<div class="extra" style="display:none;flex-direction:column;gap:8px">
+<div class="bar" style="width:80%"></div>
+<div class="bar" style="width:70%"></div>
+<div class="bar" style="width:85%"></div>
+</div>
+</div>
+<button type="button" class="ghost" aria-expanded="false">펼치기</button>
+</div>
+<div class="feature-body">
+<h3>레이아웃</h3>
+<p>크기와 위치가 바뀌면 스프링처럼 자연스럽게 자리를 잡아요. 자식 컴포넌트도 그대로 물려받고, 토큰이 없는 컴포넌트에는 비용이 들지 않아요.</p>
+<pre data-hl="tsx">&lt;Strx.View animate="layout-spring" layoutClip&gt;</pre>
+<a class="card-link" href="docs/layout.html">레이아웃 트랜지션 →</a>
+</div>
+</article>
+
+<article class="feature">
+<div class="feature-stage" data-landing-timeline>
+<div class="stack" style="max-width:220px">
+<div class="row-item"><i style="background:var(--t-preset)"></i><b></b></div>
+<div class="row-item"><i style="background:var(--t-key)"></i><b></b></div>
+<div class="row-item"><i style="background:var(--t-layout)"></i><b></b></div>
+</div>
+<button type="button" class="ghost">timeline.play()</button>
+</div>
+<div class="feature-body">
+<h3>타임라인</h3>
+<p>여러 대상을 동시에, 차례로, 또는 조금씩 시차를 두고 움직여요. <code>stop()</code>은 그 자리에서 멈추고, <code>reverse()</code>는 멈춘 곳에서부터 되감아요.</p>
+<pre data-hl="tsx">&lt;Strx.Timeline playback="stagger" interval={100}&gt;</pre>
+<a class="card-link" href="docs/use-timeline.html">타임라인 →</a>
+</div>
+</article>
+
+</div>
+</div>
+</section>
+
+<!-- Everything in the docs -->
+<section class="band subtle">
+<div class="frame band-pad" style="display:flex;flex-direction:column;gap:32px">
+<div class="section-head">
+<p class="eyebrow">문서</p>
+<h2 class="h-section">STRX로 할 수 있는 모든 것.</h2>
+<p>페이지마다 기능 하나를 실시간 미리보기와 바로 복사해 쓸 수 있는 코드로 알려 드려요.</p>
+</div>
+<div class="card-grid">
+<a class="card" href="docs/presets.html"><h3>프리셋</h3><p>기본 등장 프리셋 11개를 쓰거나, <code>definePreset</code>으로 직접 만들 수 있어요.</p><span class="card-link">프리셋 →</span></a>
+<a class="card" href="docs/keyframes.html"><h3>키프레임</h3><p><code>from:</code>·<code>to:</code> 유틸리티나 스타일 객체로 원하는 값을 직접 정해요.</p><span class="card-link">키프레임 →</span></a>
+<a class="card" href="docs/timing.html"><h3>타이밍과 이징</h3><p>지속 시간, 지연, 이징, 반복을 토큰으로 정하고, 어떤 값이 먼저인지 알아봐요.</p><span class="card-link">타이밍 →</span></a>
+<a class="card" href="docs/springs.html"><h3>스프링</h3><p><code>spring</code>, <code>damping-*</code>, <code>stiffness-*</code>, <code>mass-*</code>로 물리 법칙을 따르는 모션을 만들어요.</p><span class="card-link">스프링 →</span></a>
+<a class="card" href="docs/exit.html"><h3>퇴장 애니메이션</h3><p><code>exit:</code> 토큰으로 컴포넌트가 사라질 때의 모션을 정해요.</p><span class="card-link">퇴장 →</span></a>
+<a class="card" href="docs/layout-group.html"><h3>LayoutGroup</h3><p>리스트처럼 한 영역 전체에 레이아웃 트랜지션을 한 번에 적용해요.</p><span class="card-link">LayoutGroup →</span></a>
+<a class="card" href="docs/playback.html"><h3>배열 재생</h3><p>컴포넌트 하나에 여러 애니메이션을 동시에, 차례로, 시차를 두고 실행해요.</p><span class="card-link">배열 재생 →</span></a>
+<a class="card" href="docs/use-timeline.html"><h3>useTimeline</h3><p><code>play</code>, <code>reverse</code>, <code>stop</code>, <code>reset</code>으로 원하는 순간에 애니메이션을 제어해요.</p><span class="card-link">useTimeline →</span></a>
+<a class="card" href="docs/custom-components.html"><h3>커스텀 컴포넌트</h3><p><code>createStrxComponent</code>로 어떤 컴포넌트에든 <code>animate</code> prop을 붙일 수 있어요.</p><span class="card-link">createStrxComponent →</span></a>
+<a class="card" href="docs/accessibility.html"><h3>동작 줄이기</h3><p>OS 접근성 설정을 알아서 따르고, 필요하면 영역별로 직접 켜고 끌 수 있어요.</p><span class="card-link">접근성 →</span></a>
+<a class="card" href="docs/debugging.html"><h3>디버깅</h3><p>수정 제안이 담긴 개발 경고와, 기기 화면에 띄우는 디버그 오버레이를 제공해요.</p><span class="card-link">디버깅 →</span></a>
+<a class="card" href="docs/token-reference.html"><h3>토큰 레퍼런스</h3><p>파서가 쓰는 데이터로 만든 전체 토큰 목록이에요.</p><span class="card-link">레퍼런스 →</span></a>
+</div>
+</div>
+</section>
+
+<!-- Editor -->
+<section class="band">
+<div class="frame band-pad split" style="align-items:center">
+<div class="section-head" style="flex:1 1 320px">
+<p class="eyebrow">에디터 지원</p>
+<h2 class="h-section">모든 토큰을 자동 완성해 드려요.</h2>
+<p>VS Code 확장이 입력하는 대로 토큰을 제안하고, 마우스를 올리면 설명을 보여 주고, 오타는 클릭 한 번으로 고쳐 줘요. 토큰 목록은 설치한 버전에서 그대로 읽어 와요.</p>
+<p><a href="docs/editor.html" style="font-weight:600">확장 설치하기 →</a></p>
+</div>
+<div class="editor" style="flex:1 1 460px">
+<div class="editor-bar"><i></i><i></i><i></i><span>Card.tsx</span></div>
+<div class="editor-body">
+<div><span class="hl-p">&lt;</span><span class="hl-t">Strx.View</span></div>
+<div style="padding-left:18px">animate=<span class="hl-s">"</span><span class="tk-preset">fade-in</span> <span class="squiggle">layout-sprng</span> dur<span class="caret"></span><span class="hl-s">"</span></div>
+<div><span class="hl-p">/&gt;</span></div>
+<div class="suggest">
+<div><span>duration-{number}</span><span>timing</span></div>
+<div><span>duration-300</span><span>timing</span></div>
+<div><span>duration-500</span><span>timing</span></div>
+<p>밀리초 단위 지속 시간이에요. 토큰 → 프리셋 기본값 → Provider → 300ms 순서로 적용돼요.</p>
+</div>
+<div class="editor-warn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Unknown animate token "layout-sprng". Did you mean "layout-spring"?</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- Presets -->
+<section class="band subtle">
+<div class="frame band-pad" style="display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px">
+<div class="section-head">
+<p class="eyebrow">레퍼런스</p>
+<h2 class="h-section">바로 쓰는 프리셋.</h2>
+</div>
+<a href="docs/token-reference.html" style="font-weight:600">전체 토큰 레퍼런스 →</a>
+</div>
+<div class="table-wrap" style="margin:0;background:var(--bg)">
+<table>
+<thead><tr><th scope="col">토큰</th><th scope="col">시작 값</th><th scope="col">도착 값</th><th scope="col">기본 모션</th></tr></thead>
+<tbody>{{PRESET_ROWS}}</tbody>
+</table>
+</div>
+</div>
+</section>
+
+<!-- CTA -->
+<section class="band">
+<div class="frame cta">
+<h2 class="h-section">1분이면 애니메이션을 시작할 수 있어요.</h2>
+<p>0.1 버전을 쓰고 있나요? 마이그레이션 가이드에 이름이 바뀐 API와 달라진 동작을 모두 정리해 두었어요.</p>
+<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px">
+<a href="docs/introduction.html" class="btn">문서 보기</a>
+<a href="docs/migration.html" class="ghost ghost-lg">마이그레이션 가이드</a>
+</div>
+</div>
+</section>
+
+</main>
+{{FOOTER}}
+{{SEARCH}}
+{{SCRIPTS}}
+</body>
+</html>

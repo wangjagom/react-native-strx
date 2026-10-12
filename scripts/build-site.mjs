@@ -59,6 +59,106 @@ const NAV = [
   },
 ];
 
+// ------------------------------------------------------------- locales
+
+/**
+ * Site languages. English lives at the root; other languages live under
+ * their prefix and fall back to the English body for untranslated pages
+ * (content/<code>/<slug>.md overrides content/<slug>.md).
+ */
+const LOCALES = {
+  en: {
+    code: 'en',
+    prefix: '',
+    ogLocale: 'en_US',
+    name: 'English',
+    ui: {
+      skip: 'Skip to content',
+      openNav: 'Open navigation',
+      searchDocs: 'Search docs',
+      searchPlaceholder: 'Search the docs…',
+      docs: 'Docs',
+      playground: 'Playground',
+      tokens: 'Tokens',
+      switchTheme: 'Switch theme',
+      onThisPage: 'On this page',
+      previous: 'Previous',
+      next: 'Next',
+      editPage: 'Edit this page on GitHub',
+      changelog: 'Changelog',
+      license: 'MIT License',
+      untranslated: '',
+      sections: {},
+      navTitles: {},
+    },
+  },
+  ko: {
+    code: 'ko',
+    prefix: 'ko/',
+    ogLocale: 'ko_KR',
+    name: '한국어',
+    ui: {
+      skip: '본문으로 건너뛰기',
+      openNav: '메뉴 열기',
+      searchDocs: '문서 검색',
+      searchPlaceholder: '문서 검색…',
+      docs: '문서',
+      playground: '플레이그라운드',
+      tokens: '토큰',
+      switchTheme: '테마 전환',
+      onThisPage: '이 페이지에서',
+      previous: '이전',
+      next: '다음',
+      editPage: 'GitHub에서 이 페이지 수정하기',
+      changelog: '변경 내역',
+      license: 'MIT 라이선스',
+      untranslated: '이 페이지는 아직 번역하고 있어요. 우선 영어 원문으로 보여 드릴게요.',
+      sections: {
+        'Getting started': '시작하기',
+        'Core concepts': '핵심 개념',
+        'Interaction & layout': '인터랙션과 레이아웃',
+        Choreography: '연출',
+        'Components & app': '컴포넌트와 앱',
+        Tooling: '도구',
+        Reference: '레퍼런스',
+      },
+      navTitles: {
+        introduction: '소개',
+        installation: '설치',
+        'quick-start': '빠른 시작',
+        'animate-prop': 'animate prop',
+        presets: '프리셋',
+        keyframes: '키프레임',
+        timing: '타이밍과 이징',
+        springs: '스프링',
+        exit: '퇴장 애니메이션',
+        transitions: '스타일 트랜지션',
+        layout: '레이아웃 트랜지션',
+        'layout-group': 'LayoutGroup',
+        playback: '배열 재생',
+        timeline: 'Strx.Timeline',
+        'use-timeline': 'useTimeline',
+        components: '컴포넌트',
+        'custom-components': '커스텀 컴포넌트',
+        provider: 'Provider',
+        accessibility: '접근성',
+        debugging: '디버깅',
+        editor: '에디터 확장',
+        recipes: '레시피',
+        'token-reference': '토큰 레퍼런스',
+        'api-reference': 'API 레퍼런스',
+        migration: '0.1에서 마이그레이션',
+      },
+    },
+  },
+};
+
+/** Relative path from a file in `fromDir` (site-relative) to a site-relative target. */
+function relativeTo(fromDir, target) {
+  const relative = path.posix.relative(fromDir || '.', target);
+  return relative || './';
+}
+
 // ------------------------------------------------------------- token engine
 
 const engineSource = fs.readFileSync(path.join(SITE, 'static/token-engine.js'), 'utf8');
@@ -85,7 +185,7 @@ function slugify(text) {
     .replace(/<[^>]+>/g, '')
     .replace(/`/g, '')
     .replace(/&[a-z]+;/g, '')
-    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/[^a-z0-9\u3131-\u318e\uac00-\ud7a3\s-]/g, '')
     .trim()
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-');
@@ -353,72 +453,147 @@ function inlineMarkdown(text) {
     .join('');
 }
 
+/** Korean text for generated tables; keys are the English strings. */
+const GENERATED_KO = {
+  Token: '토큰',
+  'Starts from': '시작 값',
+  'Animates to': '도착 값',
+  'Default motion': '기본 모션',
+  Curve: '곡선',
+  Meaning: '의미',
+  Utility: '유틸리티',
+  Result: '결과',
+  'Negative form': '음수 형태',
+  Notes: '비고',
+  Prefix: '접두사',
+  'Animated style subset': '애니메이션되는 스타일',
+  Behavior: '동작',
+  Motion: '모션',
+  'Percent, clamped to 0–100': '퍼센트, 0–100 사이',
+  'Percent (100 = 1)': '퍼센트 (100 = 1)',
+  Degrees: '도(degree)',
+  Points: '포인트',
+  'from:': '애니메이션을 시작하기 전 모습이에요.',
+  'to:': '애니메이션이 도착할 모습이에요.',
+  'exit:': '컴포넌트가 사라질 때 도착할 모습이에요.',
+  'Linear easing.': '일정한 속도로 움직여요.',
+  'Smoothstep easing.': '부드럽게 시작하고 부드럽게 멈춰요(smoothstep).',
+  'Cubic ease-in.': '천천히 시작해서 빨라져요(cubic).',
+  'Cubic ease-out. Default when no easing is set.': '빠르게 시작해서 천천히 멈춰요(cubic). easing을 정하지 않으면 이 값을 써요.',
+  'Cubic ease-in-out.': '천천히 시작하고 천천히 멈춰요(cubic).',
+  'Uses the spring driver for numeric channels.': '숫자 값을 스프링으로 움직여요.',
+  'Duration in milliseconds. Precedence: token or object → preset default → Strx.Provider duration → 300ms.':
+    '지속 시간(ms)이에요. 우선순위: 토큰이나 객체 → 프리셋 기본값 → Strx.Provider 지속 시간 → 300ms',
+  'Delay in milliseconds before the animation starts.': '애니메이션이 시작하기 전에 기다리는 시간(ms)이에요.',
+  'Spring damping. Default 10.': '스프링 감쇠(damping)예요. 기본값은 10이에요.',
+  'Spring stiffness. Default 100.': '스프링 강성(stiffness)이에요. 기본값은 100이에요.',
+  'Spring mass. Default 1.': '스프링 질량(mass)이에요. 기본값은 1이에요.',
+  'Total number of plays, or `play-infinite`.': '전체 재생 횟수예요. 계속 반복하려면 `play-infinite`를 써요.',
+  'Same as `play-*`; kept for compatibility.': '`play-*`와 같아요. 호환성을 위해 남겨 뒀어요.',
+  'All supported numeric, color, and transform channels.': '지원하는 숫자, 색, transform 값 전부',
+  'Color keys such as `backgroundColor` and `borderColor`.': '`backgroundColor`, `borderColor` 같은 색 키',
+  '`opacity` only.': '`opacity`만',
+  'Transform channels such as `translateX`, `scale`, and `rotate`.': '`translateX`, `scale`, `rotate` 같은 transform 값',
+  '`margin*` and `padding*` keys.': '`margin*`, `padding*` 키',
+  '`width`, `height`, min/max sizes, and `top`/`right`/`bottom`/`left`.':
+    '`width`, `height`, 최소/최대 크기, `top`/`right`/`bottom`/`left`',
+  'Timing transition.': '타이밍으로 움직여요.',
+  'Spring transition.': '스프링으로 움직여요.',
+  'Timing transition that also fades the view in.': '타이밍으로 움직이면서 뷰가 서서히 나타나요.',
+  'Stiffer spring transition.': '더 단단한 스프링으로 움직여요.',
+  'Bouncier spring transition.': '더 통통 튀는 스프링으로 움직여요.',
+  '(legacy)': '(이전 방식)',
+};
+
+function translateGenerated(lang, text) {
+  return lang === 'ko' && GENERATED_KO[text] ? GENERATED_KO[text] : text;
+}
+
+function describe(lang, text) {
+  return inlineMarkdown(translateGenerated(lang, text));
+}
+
+function layoutMotion(lang, motion) {
+  if (lang !== 'ko') return inlineMarkdown(motion);
+  return inlineMarkdown(motion.replace(/^(\d+ms), or (.+) \/ provider duration$/, '$1, 또는 $2 / Provider 지속 시간'));
+}
+
+function presetMotion(lang, motion) {
+  if (lang !== 'ko') return escapeHtml(motion);
+  return escapeHtml(motion.replace(/^timing/, '타이밍').replace(/^spring/, '스프링'));
+}
+
 const GENERATED = {
-  presets: () =>
+  presets: (lang = 'en') =>
     table(
-      ['Token', 'Starts from', 'Animates to', 'Default motion'],
+      ['Token', 'Starts from', 'Animates to', 'Default motion'].map(text => translateGenerated(lang, text)),
       tokens.presets.map(preset => [
         tokenCode(preset.name, 'preset'),
         frame(preset.initial),
         frame(preset.target),
-        escapeHtml(preset.motion),
+        presetMotion(lang, preset.motion),
       ]),
     ),
-  easings: () =>
+  easings: (lang = 'en') =>
     table(
-      ['Token', 'Curve'],
+      ['Token', 'Curve'].map(text => translateGenerated(lang, text)),
       tokens.easings
-        .map(easing => [tokenCode(easing.token, 'timing'), inlineMarkdown(easing.description)])
-        .concat([[tokenCode(tokens.spring.token, 'timing'), inlineMarkdown(tokens.spring.description)]]),
+        .map(easing => [tokenCode(easing.token, 'timing'), describe(lang, easing.description)])
+        .concat([[tokenCode(tokens.spring.token, 'timing'), describe(lang, tokens.spring.description)]]),
     ),
-  timing: () =>
+  timing: (lang = 'en') =>
     table(
-      ['Token', 'Meaning'],
+      ['Token', 'Meaning'].map(text => translateGenerated(lang, text)),
       tokens.numericTiming
-        .map(item => [tokenCode(item.example, 'timing'), inlineMarkdown(item.description)])
+        .map(item => [tokenCode(item.example, 'timing'), describe(lang, item.description)])
         .concat(
           tokens.countTiming.map(item => [
             `${tokenCode(item.example, 'timing')} ${tokenCode(item.prefix + 'infinite', 'timing')}`,
-            inlineMarkdown(item.description) + (item.legacy ? ' <em>(legacy)</em>' : ''),
+            describe(lang, item.description) + (item.legacy ? ` <em>${translateGenerated(lang, '(legacy)')}</em>` : ''),
           ]),
         ),
     ),
-  utilities: () =>
+  utilities: (lang = 'en') =>
     table(
-      ['Utility', 'Result', 'Negative form', 'Notes'],
+      ['Utility', 'Result', 'Negative form', 'Notes'].map(text => translateGenerated(lang, text)),
       tokens.utilities.map(utility => [
         `<code>${escapeHtml(utility.example)}</code>`,
         `<code>${escapeHtml(utility.result)}</code>`,
         utility.signed ? `<code>-${escapeHtml(utility.example)}</code>` : '—',
-        utility.property === 'opacity'
-          ? 'Percent, clamped to 0–100'
-          : /^scale/.test(utility.property)
-            ? 'Percent (100 = 1)'
-            : utility.property === 'rotate'
-              ? 'Degrees'
-              : 'Points',
+        translateGenerated(
+          lang,
+          utility.property === 'opacity'
+            ? 'Percent, clamped to 0–100'
+            : /^scale/.test(utility.property)
+              ? 'Percent (100 = 1)'
+              : utility.property === 'rotate'
+                ? 'Degrees'
+                : 'Points',
+        ),
       ]),
     ),
-  prefixes: () =>
+  prefixes: (lang = 'en') =>
     table(
-      ['Prefix', 'Meaning'],
+      ['Prefix', 'Meaning'].map(text => translateGenerated(lang, text)),
       tokens.keyframePrefixes.map(prefix => [
         tokenCode(prefix.prefix + '*', prefix.prefix === 'exit:' ? 'exit' : 'keyframe'),
-        inlineMarkdown(prefix.description),
+        lang === 'ko' && GENERATED_KO[prefix.prefix]
+          ? escapeHtml(GENERATED_KO[prefix.prefix])
+          : inlineMarkdown(prefix.description),
       ]),
     ),
-  transitions: () =>
+  transitions: (lang = 'en') =>
     table(
-      ['Token', 'Animated style subset'],
-      tokens.transitions.map(item => [tokenCode(item.token, 'transition'), inlineMarkdown(item.description)]),
+      ['Token', 'Animated style subset'].map(text => translateGenerated(lang, text)),
+      tokens.transitions.map(item => [tokenCode(item.token, 'transition'), describe(lang, item.description)]),
     ),
-  layout: () =>
+  layout: (lang = 'en') =>
     table(
-      ['Token', 'Behavior', 'Motion'],
+      ['Token', 'Behavior', 'Motion'].map(text => translateGenerated(lang, text)),
       tokens.layout.map(item => [
         tokenCode(item.token, 'layout'),
-        inlineMarkdown(item.description),
-        inlineMarkdown(item.motion),
+        describe(lang, item.description),
+        layoutMotion(lang, item.motion),
       ]),
     ),
 };
@@ -528,19 +703,21 @@ function renderMarkdown(source, context) {
     const generated = /^<!--\s*strx:(\w+)\s*-->$/.exec(line.trim());
     if (generated) {
       if (!GENERATED[generated[1]]) errors.push(`${context.file}: unknown generated block ${generated[1]}`);
-      else html.push(GENERATED[generated[1]]());
+      else html.push(GENERATED[generated[1]](context.lang));
       i += 1;
       continue;
     }
 
-    const heading = /^(#{2,4})\s+(.*)$/.exec(line);
+    const heading = /^(#{2,4})\s+(.*?)(?:\s+\{#([a-z0-9-]+)\})?$/.exec(line);
     if (heading) {
       const depth = heading[1].length;
       const inner = renderInline(heading[2]);
-      let id = slugify(heading[2]);
+      // `## 제목 {#id}` keeps a translated heading's anchor equal to the English one.
+      const baseId = heading[3] || slugify(heading[2]);
+      let id = baseId;
       let n = 2;
       while (headings.some(item => item.id === id)) {
-        id = `${slugify(heading[2])}-${n}`;
+        id = `${baseId}-${n}`;
         n += 1;
       }
       headings.push({ depth, id, text: stripTags(inner) });
@@ -642,6 +819,8 @@ const ICONS = {
   search:
     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
   menu: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  globe:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18"/></svg>',
   arrow:
     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>',
   copy: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
@@ -650,23 +829,41 @@ const ICONS = {
 const THEME_SCRIPT =
   "(function(){var t;try{t=localStorage.getItem('strx-theme')}catch(e){}if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)})();";
 
-function head({ title, description, base, path: pagePath = '', type = 'website', jsonLd, noindex }) {
+function head({
+  title,
+  description,
+  base,
+  path: pagePath = '',
+  type = 'website',
+  jsonLd,
+  noindex,
+  locale = LOCALES.en,
+  alternates,
+}) {
   const url = SITE_URL + pagePath;
+  const hreflang = alternates
+    ? Object.entries(alternates)
+        .map(([code, target]) => `<link rel="alternate" hreflang="${code}" href="${SITE_URL}${target}">`)
+        .concat(`<link rel="alternate" hreflang="x-default" href="${SITE_URL}${alternates.en}">`)
+        .join('\n')
+    : '';
   const image = `${SITE_URL}assets/og.png`;
   const structured = jsonLd
     ? `\n<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>`
     : '';
 
   return `<!doctype html>
-<html lang="en" data-theme="light">
+<html lang="${locale.code}" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
+${hreflang}
 <meta name="description" content="${escapeHtml(description)}">
 <meta name="google-site-verification" content="${escapeHtml(GOOGLE_SITE_VERIFICATION)}">
 ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" href="${url}">`}
 <meta property="og:site_name" content="react-native-strx">
+<meta property="og:locale" content="${locale.ogLocale}">
 <meta property="og:title" content="${escapeHtml(title)}">
 <meta property="og:description" content="${escapeHtml(description)}">
 <meta property="og:type" content="${type}">
@@ -685,76 +882,97 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <link rel="icon" href="${base}assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">${
+  locale.code === 'ko'
+    ? '\n<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">'
+    : ''
+}
 <script>${THEME_SCRIPT}</script>
 <link rel="stylesheet" href="${base}assets/site.css">
 </head>`;
 }
 
-function topNav({ base, active, withMenu }) {
+/**
+ * `base` reaches the site root (assets), `home` reaches this language's
+ * root, and `alternate` is this page in the other language.
+ */
+function topNav({ base, home = base, active, withMenu, locale = LOCALES.en, alternate }) {
+  const ui = locale.ui;
+  const other = locale.code === 'en' ? LOCALES.ko : LOCALES.en;
   return `<header class="topnav">
 <div class="topnav-inner">
-${withMenu ? `<button type="button" class="icon-btn menu-btn" aria-label="Open navigation" aria-expanded="false">${ICONS.menu}</button>` : ''}
-<a class="brand" href="${base}index.html">
+${withMenu ? `<button type="button" class="icon-btn menu-btn" aria-label="${ui.openNav}" aria-expanded="false">${ICONS.menu}</button>` : ''}
+<a class="brand" href="${home}index.html">
 <img src="${base}assets/logo.png" alt="" width="28" height="28">
 <span class="brand-name">react-native-strx</span>
 <span class="pill">v${escapeHtml(pkg.version)}</span>
 </a>
 <nav class="topnav-links" aria-label="Main">
-<button type="button" class="search-btn">${ICONS.search}<span class="search-label">Search docs</span><kbd>⌘K</kbd></button>
-<a class="hide-sm" href="${base}docs/introduction.html"${active === 'docs' ? ' aria-current="page"' : ''}>Docs</a>
-<a class="hide-sm" href="${base}index.html#playground">Playground</a>
-<a class="hide-sm" href="${base}docs/token-reference.html">Tokens</a>
-<button type="button" class="icon-btn theme-toggle" aria-label="Switch theme">${ICONS.sun}${ICONS.moon}</button>
+<button type="button" class="search-btn">${ICONS.search}<span class="search-label">${ui.searchDocs}</span><kbd>⌘K</kbd></button>
+<a class="hide-sm" href="${home}docs/introduction.html"${active === 'docs' ? ' aria-current="page"' : ''}>${ui.docs}</a>
+<a class="hide-sm" href="${home}index.html#playground">${ui.playground}</a>
+<a class="hide-sm" href="${home}docs/token-reference.html">${ui.tokens}</a>
+${alternate ? `<a class="lang-switch" href="${alternate}" hreflang="${other.code}" lang="${other.code}">${ICONS.globe}<span>${other.name}</span></a>` : ''}
+<button type="button" class="icon-btn theme-toggle" aria-label="${ui.switchTheme}">${ICONS.sun}${ICONS.moon}</button>
 <a class="icon-btn" href="${REPO}" aria-label="GitHub repository">${ICONS.github}</a>
 </nav>
 </div>
 </header>`;
 }
 
-function searchDialog() {
-  return `<dialog class="search-dialog" aria-label="Search documentation">
-<div class="search-field">${ICONS.search}<input type="search" placeholder="Search the docs…" aria-label="Search the docs" autocomplete="off" spellcheck="false"><kbd class="mono" style="font-size:11px">Esc</kbd></div>
+function searchDialog(locale = LOCALES.en) {
+  const ui = locale.ui;
+  return `<dialog class="search-dialog" aria-label="${ui.searchDocs}">
+<div class="search-field">${ICONS.search}<input type="search" placeholder="${ui.searchPlaceholder}" aria-label="${ui.searchDocs}" autocomplete="off" spellcheck="false"><kbd class="mono" style="font-size:11px">Esc</kbd></div>
 <ul class="search-results" role="list"></ul>
 </dialog>`;
 }
 
-function scripts(base) {
+function scripts(base, locale = LOCALES.en) {
+  const index = locale.code === 'en' ? 'search-index.js' : `search-index.${locale.code}.js`;
   return `<script src="${base}assets/tokens-data.js"></script>
 <script src="${base}assets/token-engine.js"></script>
-<script src="${base}assets/search-index.js"></script>
+<script src="${base}assets/${index}"></script>
 <script src="${base}assets/site.js"></script>`;
 }
 
-function footer(base) {
+function footer(home, locale = LOCALES.en) {
+  const ui = locale.ui;
   return `<footer class="band"><div class="frame footer">
-<span>react-native-strx · MIT License</span>
+<span>react-native-strx · ${ui.license}</span>
 <nav aria-label="Footer">
-<a href="${base}docs/introduction.html">Docs</a>
+<a href="${home}docs/introduction.html">${ui.docs}</a>
 <a href="${REPO}">GitHub</a>
 <a href="https://www.npmjs.com/package/react-native-strx">npm</a>
-<a href="${REPO}/blob/main/CHANGELOG.md">Changelog</a>
+<a href="${REPO}/blob/main/CHANGELOG.md">${ui.changelog}</a>
 </nav>
 </div></footer>`;
 }
 
-function docPage(page, pages) {
-  const base = '../';
+function docPage(page, pages, locale = LOCALES.en) {
+  const ui = locale.ui;
+  const dir = `${locale.prefix}docs`;
+  const base = relativeTo(dir, '.').replace(/\/?$/, '/');
+  const home = '../';
   const flat = NAV.flatMap(section => section.pages);
   const index = flat.indexOf(page.slug);
   const prev = pages.get(flat[index - 1]);
   const next = pages.get(flat[index + 1]);
   const section = NAV.find(item => item.pages.includes(page.slug));
+  const sectionTitle = ui.sections[section.title] || section.title;
+  const navTitle = target => ui.navTitles[target.slug] || target.meta.nav || target.meta.title;
+  const other = locale.code === 'en' ? LOCALES.ko : LOCALES.en;
+  const alternate = relativeTo(dir, `${other.prefix}docs/${page.slug}.html`);
 
   const sidebar = NAV.map(
     item =>
-      `<h5>${escapeHtml(item.title)}</h5><ul>` +
+      `<h5>${escapeHtml(ui.sections[item.title] || item.title)}</h5><ul>` +
       item.pages
         .map(slug => {
           const target = pages.get(slug);
           if (!target) return '';
           const current = slug === page.slug ? ' aria-current="page"' : '';
-          return `<li><a href="${slug}.html"${current}>${escapeHtml(target.meta.nav || target.meta.title)}</a></li>`;
+          return `<li><a href="${slug}.html"${current}>${escapeHtml(navTitle(target))}</a></li>`;
         })
         .join('') +
       '</ul>',
@@ -762,21 +980,28 @@ function docPage(page, pages) {
 
   const toc = page.headings.filter(heading => heading.depth <= 3);
   const tocHtml = toc.length
-    ? `<h5>On this page</h5><ul>${toc
+    ? `<h5>${ui.onThisPage}</h5><ul>${toc
         .map(heading => `<li><a class="depth-${heading.depth}" href="#${heading.id}">${escapeHtml(heading.text)}</a></li>`)
         .join('')}</ul>`
     : '';
 
   const title = stripTags(renderInline(page.meta.title));
   const description = page.meta.description ? stripTags(renderInline(page.meta.description)) : pkg.description;
-  const pageUrl = `${SITE_URL}docs/${page.slug}.html`;
+  const pagePath = `${dir}/${page.slug}.html`;
+  const pageUrl = `${SITE_URL}${pagePath}`;
+  const source = page.meta.include || page.source;
+  const notice = page.fallback && ui.untranslated ? `<div class="callout lang-notice"><p>${ui.untranslated}</p></div>` : '';
 
   return `${head({
     title: `${title} · react-native-strx`,
     description,
     base,
-    path: `docs/${page.slug}.html`,
+    path: pagePath,
     type: 'article',
+    locale,
+    alternates: Object.fromEntries(
+      Object.values(LOCALES).map(item => [item.code, `${item.prefix}docs/${page.slug}.html`]),
+    ),
     jsonLd: {
       '@context': 'https://schema.org',
       '@graph': [
@@ -786,15 +1011,15 @@ function docPage(page, pages) {
           description,
           url: pageUrl,
           dateModified: BUILD_DATE,
-          inLanguage: 'en',
+          inLanguage: page.fallback ? 'en' : locale.code,
           isPartOf: { '@type': 'WebSite', name: 'react-native-strx', url: SITE_URL },
           about: { '@type': 'SoftwareSourceCode', name: 'react-native-strx', codeRepository: REPO },
         },
         {
           '@type': 'BreadcrumbList',
           itemListElement: [
-            { '@type': 'ListItem', position: 1, name: 'react-native-strx', item: SITE_URL },
-            { '@type': 'ListItem', position: 2, name: section.title, item: `${SITE_URL}docs/${section.pages[0]}.html` },
+            { '@type': 'ListItem', position: 1, name: 'react-native-strx', item: `${SITE_URL}${locale.prefix}` },
+            { '@type': 'ListItem', position: 2, name: sectionTitle, item: `${SITE_URL}${dir}/${section.pages[0]}.html` },
             { '@type': 'ListItem', position: 3, name: title, item: pageUrl },
           ],
         },
@@ -802,28 +1027,29 @@ function docPage(page, pages) {
     },
   })}
 <body data-base="${base}">
-<a class="sr-only" href="#main">Skip to content</a>
-${topNav({ base, active: 'docs', withMenu: true })}
+<a class="sr-only" href="#main">${ui.skip}</a>
+${topNav({ base, home, active: 'docs', withMenu: true, locale, alternate })}
 <div class="docs">
-<aside class="sidebar" aria-label="Documentation">${sidebar}</aside>
+<aside class="sidebar" aria-label="${ui.docs}">${sidebar}</aside>
 <main class="content" id="main">
-<article class="article">
-<p class="crumb">${escapeHtml(section.title)}</p>
+<article class="article"${page.fallback ? ' lang="en"' : ''}>
+<p class="crumb">${escapeHtml(sectionTitle)}</p>
 <h1>${renderInline(page.meta.title)}</h1>
 ${page.meta.description ? `<p class="description">${renderInline(page.meta.description)}</p>` : ''}
+${notice}
 ${page.html}
 <nav class="pager" aria-label="Pagination">
-${prev ? `<a class="prev" href="${prev.slug}.html"><span>Previous</span>${escapeHtml(prev.meta.nav || prev.meta.title)}</a>` : ''}
-${next ? `<a class="next" href="${next.slug}.html"><span>Next</span>${escapeHtml(next.meta.nav || next.meta.title)}</a>` : ''}
+${prev ? `<a class="prev" href="${prev.slug}.html"><span>${ui.previous}</span>${escapeHtml(navTitle(prev))}</a>` : ''}
+${next ? `<a class="next" href="${next.slug}.html"><span>${ui.next}</span>${escapeHtml(navTitle(next))}</a>` : ''}
 </nav>
-<p class="edit-link"><a href="${REPO}/edit/main/${page.meta.include || `website/content/${page.slug}.md`}">Edit this page on GitHub</a></p>
+<p class="edit-link"><a href="${REPO}/edit/main/${source}">${ui.editPage}</a></p>
 </article>
 </main>
-<aside class="toc" aria-label="On this page">${tocHtml}</aside>
+<aside class="toc" aria-label="${ui.onThisPage}">${tocHtml}</aside>
 </div>
 <div class="scrim"></div>
-${searchDialog()}
-${scripts(base)}
+${searchDialog(locale)}
+${scripts(base, locale)}
 </body>
 </html>
 `;
@@ -831,16 +1057,34 @@ ${scripts(base)}
 
 // ------------------------------------------------------------- landing
 
-function renderLanding() {
-  const base = '';
-  let html = fs.readFileSync(path.join(SITE, 'templates/landing.html'), 'utf8');
+const LANDING_COPY = {
+  en: {
+    title: 'react-native-strx — Tailwind-style animations for React Native',
+    description:
+      'Animate React Native with tokens like animate="fade-in layout-spring". Entrances, exits, style and layout transitions and timelines, powered by Reanimated 4.',
+  },
+  ko: {
+    title: 'react-native-strx — React Native를 위한 Tailwind 스타일 애니메이션',
+    description:
+      'animate="fade-in layout-spring"처럼 토큰만 적으면 React Native 애니메이션이 완성돼요. 등장, 퇴장, 스타일·레이아웃 트랜지션, 타임라인까지 Reanimated 4로 움직여요.',
+  },
+};
+
+function renderLanding(locale = LOCALES.en) {
+  // The landing page sits at the language root: `index.html` or `ko/index.html`.
+  const base = locale.prefix ? '../' : '';
+  const home = '';
+  const other = locale.code === 'en' ? LOCALES.ko : LOCALES.en;
+  const alternate = `${base}${other.prefix}index.html`;
+  const template = locale.code === 'en' ? 'templates/landing.html' : `templates/landing.${locale.code}.html`;
+  let html = fs.readFileSync(path.join(SITE, template), 'utf8');
 
   html = html.replace(/<pre data-hl="(\w+)">([\s\S]*?)<\/pre>/g, (_, lang, code) =>
     codeBlock(
       code.replace(/^\n/, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'),
       lang,
       '',
-      { file: 'templates/landing.html' },
+      { file: template },
     ),
   );
 
@@ -853,10 +1097,12 @@ function renderLanding() {
 
   const replacements = {
     HEAD: head({
-      title: 'react-native-strx — Tailwind-style animations for React Native',
-      description:
-        'Animate React Native with tokens like animate="fade-in layout-spring". Entrances, exits, style and layout transitions and timelines, powered by Reanimated 4.',
+      title: LANDING_COPY[locale.code].title,
+      description: LANDING_COPY[locale.code].description,
       base,
+      path: locale.prefix,
+      locale,
+      alternates: Object.fromEntries(Object.values(LOCALES).map(item => [item.code, item.prefix])),
       jsonLd: {
         '@context': 'https://schema.org',
         '@graph': [
@@ -870,6 +1116,7 @@ function renderLanding() {
             name: 'react-native-strx',
             description: pkg.description,
             url: SITE_URL,
+            inLanguage: locale.code,
             codeRepository: REPO,
             programmingLanguage: 'TypeScript',
             runtimePlatform: 'React Native',
@@ -880,10 +1127,10 @@ function renderLanding() {
         ],
       },
     }),
-    NAV: topNav({ base, active: 'home', withMenu: false }),
-    FOOTER: footer(base),
-    SEARCH: searchDialog(),
-    SCRIPTS: scripts(base),
+    NAV: topNav({ base, home, active: 'home', withMenu: false, locale, alternate }),
+    FOOTER: footer(home, locale),
+    SEARCH: searchDialog(locale),
+    SCRIPTS: scripts(base, locale),
     VERSION: escapeHtml(pkg.version),
     PRESET_ROWS: presetRows,
     ICON_ARROW: ICONS.arrow,
@@ -892,7 +1139,7 @@ function renderLanding() {
 
   return html.replace(/\{\{(\w+)\}\}/g, (match, key) => {
     if (!(key in replacements)) {
-      errors.push(`templates/landing.html: unknown placeholder ${match}`);
+      errors.push(`${template}: unknown placeholder ${match}`);
       return match;
     }
     return replacements[key];
@@ -901,19 +1148,22 @@ function renderLanding() {
 
 // ------------------------------------------------------------- build
 
-function loadPages() {
+function loadPages(locale = LOCALES.en) {
   const pages = new Map();
   const customPresets = [];
 
   for (const slug of NAV.flatMap(section => section.pages)) {
     const file = path.join(SITE, 'content', `${slug}.md`);
+    const translated = locale.prefix ? path.join(SITE, 'content', locale.code, `${slug}.md`) : null;
+    const useTranslation = translated && fs.existsSync(translated);
 
     if (!fs.existsSync(file)) {
       errors.push(`missing page website/content/${slug}.md`);
       continue;
     }
 
-    const parsed = parseFrontmatter(fs.readFileSync(file, 'utf8'));
+    const sourceFile = useTranslation ? translated : file;
+    const parsed = parseFrontmatter(fs.readFileSync(sourceFile, 'utf8'));
     const { meta } = parsed;
     let { body } = parsed;
 
@@ -927,18 +1177,30 @@ function loadPages() {
       customPresets.push(match[1]);
     }
 
-    pages.set(slug, { slug, meta, body });
+    pages.set(slug, {
+      slug,
+      meta,
+      body,
+      fallback: Boolean(locale.prefix) && !useTranslation,
+      source: path.relative(ROOT, sourceFile),
+    });
   }
 
-  for (const file of fs.readdirSync(path.join(SITE, 'content'))) {
+  const contentDir = path.join(SITE, 'content', locale.prefix ? locale.code : '');
+  for (const file of fs.readdirSync(contentDir)) {
+    if (!file.endsWith('.md')) continue;
     if (!pages.has(file.replace(/\.md$/, ''))) {
-      errors.push(`website/content/${file} is not listed in NAV`);
+      errors.push(`${path.relative(ROOT, path.join(contentDir, file))} is not listed in NAV`);
     }
   }
 
   for (const page of pages.values()) {
-    if (!page.meta.title) errors.push(`${page.slug}.md: missing title`);
-    const rendered = renderMarkdown(page.body, { file: `content/${page.slug}.md`, customPresets });
+    if (!page.meta.title) errors.push(`${page.source}: missing title`);
+    const rendered = renderMarkdown(page.body, {
+      file: page.source,
+      customPresets,
+      lang: page.fallback ? 'en' : locale.code,
+    });
     page.html = rendered.html;
     page.headings = rendered.headings;
   }
@@ -946,15 +1208,17 @@ function loadPages() {
   return pages;
 }
 
-function searchIndex(pages) {
+function searchIndex(pages, locale = LOCALES.en) {
+  const dir = `${locale.prefix}docs`;
+  const navTitle = page => locale.ui.navTitles[page.slug] || stripTags(renderInline(page.meta.title));
   const entries = [];
 
   for (const page of pages.values()) {
-    const title = stripTags(renderInline(page.meta.title));
+    const title = page.fallback ? navTitle(page) : stripTags(renderInline(page.meta.title));
     entries.push({
       title,
-      page: page.meta.description ? stripTags(renderInline(page.meta.description)) : title,
-      url: `docs/${page.slug}.html`,
+      page: page.meta.description && !page.fallback ? stripTags(renderInline(page.meta.description)) : title,
+      url: `${dir}/${page.slug}.html`,
       text: '',
     });
 
@@ -963,7 +1227,7 @@ function searchIndex(pages) {
       const heading = /^<h[23] id="([^"]+)">([\s\S]*?)<\/h[23]>/.exec(section);
       if (!heading) continue;
       const text = stripTags(section.slice(heading[0].length)).replace(/\s+/g, ' ').trim().slice(0, 240);
-      entries.push({ title: stripTags(heading[2]), page: title, url: `docs/${page.slug}.html#${heading[1]}`, text });
+      entries.push({ title: stripTags(heading[2]), page: title, url: `${dir}/${page.slug}.html#${heading[1]}`, text });
     }
   }
 
@@ -979,7 +1243,7 @@ function colorCell(content, label, column) {
     return content.replace(/^<code>([^<]*)<\/code>/, '<code class="prop">$1</code>');
   }
 
-  if (label === 'Type') {
+  if (label === 'Type' || label === '타입') {
     return content.replace(/<code>([^<]*)<\/code>/g, (_, inner) => {
       const parts = inner.split(/\s+\|\s+/);
       const pills = parts.map(part => `<code class="ty">${part}</code>`).join('');
@@ -987,7 +1251,7 @@ function colorCell(content, label, column) {
     });
   }
 
-  if (label === 'Default') {
+  if (label === 'Default' || label === '기본값') {
     return content.replace(/<code>(-?\d[\d.]*|true|false)<\/code>/g, '<code class="num">$1</code>');
   }
 
@@ -1052,19 +1316,28 @@ function checkLinks(files) {
 }
 
 function build() {
-  const pages = loadPages();
   const files = new Map();
-
-  for (const page of pages.values()) {
-    files.set(`docs/${page.slug}.html`, docPage(page, pages));
-  }
-
+  const indexes = new Map();
+  const indexable = [];
   const first = NAV[0].pages[0];
-  files.set(
-    'docs/index.html',
-    `<!doctype html><meta charset="utf-8"><title>Documentation · react-native-strx</title><meta name="robots" content="noindex"><link rel="icon" href="../assets/logo.png"><meta http-equiv="refresh" content="0; url=${first}.html"><link rel="canonical" href="${SITE_URL}docs/${first}.html"><a href="${first}.html" id="redirect">Documentation</a>`,
-  );
-  files.set('index.html', renderLanding());
+
+  for (const locale of Object.values(LOCALES)) {
+    const pages = loadPages(locale);
+    const dir = `${locale.prefix}docs`;
+
+    for (const page of pages.values()) {
+      files.set(`${dir}/${page.slug}.html`, docPage(page, pages, locale));
+      if (!page.fallback) indexable.push(`${dir}/${page.slug}.html`);
+    }
+
+    files.set(
+      `${dir}/index.html`,
+      `<!doctype html><meta charset="utf-8"><title>Documentation · react-native-strx</title><meta name="robots" content="noindex"><link rel="icon" href="${relativeTo(dir, 'assets/logo.png')}"><meta http-equiv="refresh" content="0; url=${first}.html"><link rel="canonical" href="${SITE_URL}${dir}/${first}.html"><a href="${first}.html" id="redirect">Documentation</a>`,
+    );
+    files.set(`${locale.prefix}index.html`, renderLanding(locale));
+    indexable.push(locale.prefix);
+    indexes.set(locale, searchIndex(pages, locale));
+  }
 
   checkLinks(files);
 
@@ -1074,10 +1347,10 @@ function build() {
   }
 
   fs.rmSync(OUT, { recursive: true, force: true });
-  fs.mkdirSync(path.join(OUT, 'docs'), { recursive: true });
   fs.mkdirSync(path.join(OUT, 'assets'), { recursive: true });
 
   for (const [file, html] of files) {
+    fs.mkdirSync(path.dirname(path.join(OUT, file)), { recursive: true });
     fs.writeFileSync(path.join(OUT, file), labelTableCells(html));
   }
 
@@ -1086,10 +1359,12 @@ function build() {
   }
 
   fs.writeFileSync(path.join(OUT, 'assets/tokens-data.js'), `globalThis.STRX_TOKENS = ${JSON.stringify(tokens)};\n`);
-  fs.writeFileSync(path.join(OUT, 'assets/search-index.js'), `window.STRX_SEARCH = ${JSON.stringify(searchIndex(pages))};\n`);
+  for (const [locale, entries] of indexes) {
+    const name = locale.code === 'en' ? 'search-index.js' : `search-index.${locale.code}.js`;
+    fs.writeFileSync(path.join(OUT, 'assets', name), `window.STRX_SEARCH = ${JSON.stringify(entries)};\n`);
+  }
   fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
 
-  const indexable = ['', ...[...pages.keys()].map(slug => `docs/${slug}.html`)];
   fs.writeFileSync(
     path.join(OUT, 'sitemap.xml'),
     `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${indexable
