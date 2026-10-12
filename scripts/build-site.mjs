@@ -112,7 +112,7 @@ const LOCALES = {
       editPage: 'GitHub에서 이 페이지 수정하기',
       changelog: '변경 내역',
       license: 'MIT 라이선스',
-      untranslated: '이 페이지는 아직 한국어로 번역되지 않아 영어 원문을 보여 드립니다.',
+      untranslated: '이 페이지는 아직 번역하고 있어요. 우선 영어 원문으로 보여 드릴게요.',
       sections: {
         'Getting started': '시작하기',
         'Core concepts': '핵심 개념',
@@ -469,13 +469,13 @@ const GENERATED_KO = {
   'Animated style subset': '애니메이션되는 스타일',
   Behavior: '동작',
   Motion: '모션',
-  'Percent, clamped to 0–100': '퍼센트, 0–100으로 제한',
+  'Percent, clamped to 0–100': '퍼센트, 0–100 사이',
   'Percent (100 = 1)': '퍼센트 (100 = 1)',
   Degrees: '도(degree)',
   Points: '포인트',
-  'from:': '애니메이션이 시작되기 전의 스타일.',
-  'to:': '애니메이션이 도달할 목표 스타일.',
-  'exit:': '컴포넌트가 언마운트될 때 도달할 스타일.',
+  'from:': '애니메이션을 시작하기 전 모습이에요.',
+  'to:': '애니메이션이 도착할 모습이에요.',
+  'exit:': '컴포넌트가 사라질 때 도착할 모습이에요.',
 };
 
 function translateGenerated(lang, text) {
@@ -1030,7 +1030,7 @@ const LANDING_COPY = {
   ko: {
     title: 'react-native-strx — React Native를 위한 Tailwind 스타일 애니메이션',
     description:
-      'animate="fade-in layout-spring"처럼 토큰만 적으면 React Native 애니메이션이 완성됩니다. 등장, 퇴장, 스타일·레이아웃 트랜지션, 타임라인까지 Reanimated 4로 동작합니다.',
+      'animate="fade-in layout-spring"처럼 토큰만 적으면 React Native 애니메이션이 완성돼요. 등장, 퇴장, 스타일·레이아웃 트랜지션, 타임라인까지 Reanimated 4로 움직여요.',
   },
 };
 

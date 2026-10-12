@@ -23,12 +23,12 @@
       Mount: '마운트',
       'Play exit': '퇴장 재생',
       'animate tokens': 'animate 토큰',
-      'Each dot runs duration-900 with its easing token.': '점마다 duration-900 동안 해당 이징 토큰으로 움직입니다.',
-      'Simulated with the same damping / stiffness / mass the tokens set.': '토큰에 지정한 damping / stiffness / mass 값으로 그대로 시뮬레이션합니다.',
+      'Each dot runs duration-900 with its easing token.': '점마다 duration-900 동안 각자의 이징으로 움직여요.',
+      'Simulated with the same damping / stiffness / mass the tokens set.': '토큰에 적은 damping / stiffness / mass 값 그대로 움직여요.',
       Active: '활성',
       Inactive: '비활성',
       'Toggle style': '스타일 바꾸기',
-      'Click twice quickly: it reverses from where it is.': '빠르게 두 번 눌러 보세요. 지금 위치에서 바로 되돌아갑니다.',
+      'Click twice quickly: it reverses from where it is.': '빠르게 두 번 눌러 보세요. 지금 위치에서 바로 되돌아가요.',
       'Press and hold': '길게 눌러 보세요',
       'Focus me': '여기를 눌러 보세요',
       'Example input': '예시 입력창',
@@ -49,8 +49,8 @@
       'stop() → frozen in place': 'stop() → 그 자리에서 멈춤',
       'Reduce Motion: off': '동작 줄이기: 끔',
       'Reduce Motion: on': '동작 줄이기: 켬',
-      'layout-* animates size and position changes; see the layout demo.': 'layout-* 토큰은 크기와 위치 변화를 애니메이션합니다. 레이아웃 데모에서 확인해 보세요.',
-      'transition-* animates later style changes, not the entrance.': 'transition-* 토큰은 등장이 아니라 나중에 바뀌는 스타일을 애니메이션합니다.',
+      'layout-* animates size and position changes; see the layout demo.': 'layout-* 토큰은 크기와 위치가 바뀔 때 움직여요. 레이아웃 데모에서 확인해 보세요.',
+      'transition-* animates later style changes, not the entrance.': 'transition-* 토큰은 등장할 때가 아니라 나중에 스타일이 바뀔 때 움직여요.',
     },
   };
 
@@ -311,7 +311,7 @@
         list.innerHTML =
           '<li class="search-empty">' +
           (LANG === 'ko'
-            ? '“' + escapeHtml(input.value) + '”에 대한 검색 결과가 없습니다'
+            ? '“' + escapeHtml(input.value) + '”에 대한 검색 결과가 없어요'
             : 'No results for “' + escapeHtml(input.value) + '”') +
           '</li>';
         return;
@@ -666,7 +666,7 @@
       if (item.reason === 'second-preset') {
         line.textContent =
           LANG === 'ko'
-            ? '“' + item.token + '”는 무시됩니다. 그룹당 프리셋은 하나만 쓸 수 있어요. 쉼표로 나눠 주세요. 예: “fade-in, ' + item.token + '”'
+            ? '“' + item.token + '”는 건너뛰었어요. 그룹마다 프리셋은 하나만 쓸 수 있어요. 쉼표로 나눠 주세요. 예: “fade-in, ' + item.token + '”'
             : '“' + item.token + '” ignored: one preset per group. Use a comma, e.g. “fade-in, ' + item.token + '”.';
       } else {
         line.appendChild(document.createTextNode((LANG === 'ko' ? '알 수 없는 토큰 “' : 'Unknown token “') + item.token + '”'));
