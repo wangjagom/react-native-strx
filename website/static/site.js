@@ -108,8 +108,22 @@
     });
   });
 
+  /** Text of a code block as shown: the visible variant, without line numbers. */
+  function codeText(block) {
+    var pre = $('pre:not([hidden])', block) || $('pre', block);
+    var lines = $all('.line', pre);
+
+    if (!lines.length) return pre.textContent;
+
+    return lines
+      .map(function (line) {
+        var number = $('.ln', line);
+        return line.textContent.slice(number ? number.textContent.length : 0);
+      })
+      .join('\n');
+  }
+
   $all('.codeblock').forEach(function (block) {
-    var pre = $('pre', block);
     var button = el('button', {
       type: 'button',
       class: 'icon-btn copy-code',
@@ -117,10 +131,47 @@
       html: COPY_ICON,
     });
     button.addEventListener('click', function () {
-      copyText(pre.textContent, button);
+      copyText(codeText(block), button);
     });
     block.appendChild(button);
   });
+
+  /* Package manager tabs on install commands; the choice is remembered. */
+  var pmBlocks = $all('[data-pm-block]');
+
+  function showPackageManager(name) {
+    pmBlocks.forEach(function (block) {
+      $all('.pm-tab', block).forEach(function (tab) {
+        tab.setAttribute('aria-pressed', tab.getAttribute('data-pm') === name ? 'true' : 'false');
+      });
+      $all('pre[data-pm]', block).forEach(function (pre) {
+        pre.hidden = pre.getAttribute('data-pm') !== name;
+      });
+    });
+  }
+
+  if (pmBlocks.length) {
+    try {
+      var savedPm = localStorage.getItem('strx-pm');
+      if (savedPm === 'npm' || savedPm === 'yarn' || savedPm === 'pnpm') showPackageManager(savedPm);
+    } catch (error) {
+      /* storage unavailable */
+    }
+
+    pmBlocks.forEach(function (block) {
+      $all('.pm-tab', block).forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          var name = tab.getAttribute('data-pm');
+          showPackageManager(name);
+          try {
+            localStorage.setItem('strx-pm', name);
+          } catch (error) {
+            /* storage unavailable */
+          }
+        });
+      });
+    });
+  }
 
   /* ------------------------------------------------------------ Docs nav */
 

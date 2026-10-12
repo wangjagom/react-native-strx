@@ -18,18 +18,36 @@
   --accent-fg: #ffffff;
   --accent-soft: #eef1ff;
   --link: #2f4fe0;
-  --t-preset: #2f4fe0;
-  --t-preset-bg: #eef1ff;
-  --t-key: #6a3bd6;
-  --t-key-bg: #f3eeff;
-  --t-layout: #0b7480;
-  --t-layout-bg: #e5f6f7;
-  --t-time: #8f5200;
-  --t-time-bg: #fff3dc;
-  --t-exit: #b0204f;
-  --t-exit-bg: #ffecf2;
-  --t-trans: #1d7a3a;
-  --t-trans-bg: #e8f7ec;
+  --t-preset: #1d4ed8;
+  --t-preset-bg: #eff4ff;
+  --t-key: #7c3aed;
+  --t-key-bg: #f5f0ff;
+  --t-layout: #0f766e;
+  --t-layout-bg: #ecfbf8;
+  --t-time: #b45309;
+  --t-time-bg: #fff7e6;
+  --t-exit: #be123c;
+  --t-exit-bg: #fff0f3;
+  --t-trans: #15803d;
+  --t-trans-bg: #eefbf2;
+  --t-preset-ring: #c9d9ff;
+  --t-key-ring: #e2d5ff;
+  --t-layout-ring: #bdede3;
+  --t-time-ring: #f8dfa8;
+  --t-exit-ring: #fbcad4;
+  --t-trans-ring: #bfebcc;
+  --ic-bg: #f3f4f8;
+  --ic-ring: #e3e6ee;
+  --prop: #0369a1;
+  --type: #7c3aed;
+  --type-bg: #f5f0ff;
+  --type-ring: #e6dbff;
+  --num: #c2410c;
+  --kv-key: #be185d;
+  --ink-bg: #0b1020;
+  --ink-bar: #141a2e;
+  --ink-ring: transparent;
+  --ink-line: #1c2440;
   --t-bad: #b42318;
   --t-string: #8f5200;
   --t-comment: #8a91a3;
@@ -65,18 +83,36 @@
   --accent-fg: #0b0e17;
   --accent-soft: #1a2142;
   --link: #93a7ff;
-  --t-preset: #8fa3ff;
-  --t-preset-bg: #1a2142;
-  --t-key: #b597ff;
-  --t-key-bg: #241a3d;
-  --t-layout: #4fd1db;
-  --t-layout-bg: #0f2b30;
-  --t-time: #f5b84d;
-  --t-time-bg: #2e2312;
-  --t-exit: #ff7aa5;
-  --t-exit-bg: #331722;
-  --t-trans: #5fd68a;
-  --t-trans-bg: #12291b;
+  --t-preset: #93c5fd;
+  --t-preset-bg: #14203d;
+  --t-key: #c4b5fd;
+  --t-key-bg: #1e1838;
+  --t-layout: #5eead4;
+  --t-layout-bg: #0d2a2a;
+  --t-time: #fcd34d;
+  --t-time-bg: #2a2110;
+  --t-exit: #fda4af;
+  --t-exit-bg: #2e1520;
+  --t-trans: #86efac;
+  --t-trans-bg: #10261a;
+  --t-preset-ring: #22345f;
+  --t-key-ring: #33295a;
+  --t-layout-ring: #164543;
+  --t-time-ring: #4a3a16;
+  --t-exit-ring: #4d2233;
+  --t-trans-ring: #1c4029;
+  --ic-bg: #161b29;
+  --ic-ring: #262d40;
+  --prop: #7dd3fc;
+  --type: #c4b5fd;
+  --type-bg: #1e1838;
+  --type-ring: #33295a;
+  --num: #fdba74;
+  --kv-key: #f9a8d4;
+  --ink-bg: #0f1424;
+  --ink-bar: #141a2c;
+  --ink-ring: #232a3f;
+  --ink-line: #1a2238;
   --t-bad: #ff8a80;
   --t-string: #f5b84d;
   --t-comment: #6f7890;
@@ -1135,79 +1171,172 @@ a.card:hover {
 
 /* ---------------------------------------------------------------- Code */
 
+/* Code blocks use a dark ink theme in both color schemes, like
+   tailwindcss.com, so syntax colors stay vivid and consistent. */
 .codeblock {
   position: relative;
   margin: 20px 0;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--code-bg);
+  border-radius: 14px;
+  background: var(--ink-bg);
+  box-shadow: inset 0 0 0 1px var(--ink-ring);
   overflow: hidden;
+  color: #cbd5e1;
 }
 
 .codeblock-title {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--line);
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 52px 0 16px;
+  background: var(--ink-bar);
+  border-bottom: 1px solid #1c2440;
   font-family: var(--mono);
-  font-size: 12px;
-  color: var(--fg-faint);
+  font-size: 12.5px;
+  color: #e2e8f0;
+}
+
+.codeblock-dots {
+  display: flex;
+  gap: 6px;
+  margin-right: 4px;
+}
+
+.codeblock-dots i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #2a3350;
+}
+
+.codeblock-lang {
+  font-size: 11px;
+  color: #7c879e;
+  border: 1px solid #2a3350;
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.pm-tab {
+  font: inherit;
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 500;
+  border: 0;
+  background: none;
+  padding: 11px 2px;
+  margin-right: 14px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  color: #7c879e;
+}
+
+.pm-tab:hover {
+  color: #e2e8f0;
+}
+
+.pm-tab[aria-pressed='true'] {
+  color: #f1f5f9;
+  border-bottom-color: #7dd3fc;
 }
 
 .codeblock pre {
   margin: 0;
-  padding: 16px 18px;
+  padding: 16px 20px;
   overflow-x: auto;
   font-size: 13.5px;
-  line-height: 1.7;
-  color: var(--code-fg);
+  line-height: 1.75;
+  color: #cbd5e1;
   tab-size: 2;
+}
+
+.codeblock pre[hidden] {
+  display: none;
+}
+
+.codeblock pre.numbered {
+  padding-left: 0;
+}
+
+.codeblock .line {
+  display: block;
+  padding-right: 20px;
+}
+
+.codeblock .line.hl {
+  background: var(--ink-line);
+  box-shadow: inset 2px 0 0 #7dd3fc;
+}
+
+.codeblock .ln {
+  display: inline-block;
+  width: 28px;
+  margin-right: 20px;
+  text-align: right;
+  color: #3e4763;
+  user-select: none;
+}
+
+.codeblock .line.hl .ln {
+  color: #7dd3fc;
 }
 
 .codeblock .copy-code {
   position: absolute;
-  top: 8px;
+  top: 6px;
   right: 8px;
   width: 30px;
   height: 30px;
   border-radius: 8px;
-  background: var(--bg);
-  border: 1px solid var(--line);
+  background: transparent;
+  border: 0;
+  color: #7c879e;
   opacity: 0;
-  transition: opacity 150ms;
+  transition: opacity 150ms, background-color 150ms;
+}
+
+.codeblock .copy-code:hover {
+  background: #1c2440;
+  color: #e2e8f0;
 }
 
 .codeblock:hover .copy-code,
-.codeblock .copy-code:focus-visible {
+.codeblock .copy-code:focus-visible,
+.codeblock-title ~ .copy-code {
   opacity: 1;
-}
-
-.codeblock-title + pre + .copy-code,
-.codeblock .codeblock-title ~ .copy-code {
-  top: 4px;
-  height: 26px;
-  width: 26px;
 }
 
 .copy-code.copied {
-  color: var(--t-trans);
+  color: #86efac;
   opacity: 1;
 }
 
-.hl-k { color: var(--t-key); }
-.hl-s { color: var(--t-string); }
-.hl-c { color: var(--t-comment); font-style: italic; }
-.hl-n { color: var(--t-layout); }
-.hl-t { color: var(--t-preset); }
-.hl-p { color: var(--code-dim); }
-.hl-a { color: var(--fg-muted); }
+/* Syntax colors inside code blocks */
+.hl-k { color: #c084fc; }
+.hl-s { color: #a5f3fc; }
+.hl-c { color: #5f6b85; font-style: italic; }
+.hl-n { color: #fdba74; }
+.hl-t { color: #7dd3fc; }
+.hl-p { color: #7c879e; }
+.hl-a { color: #f0abfc; }
+.hl-f { color: #fde68a; }
+
+/* Token colors: text on light surfaces outside code blocks */
 .tk-preset { color: var(--t-preset); font-weight: 600; }
 .tk-keyframe { color: var(--t-key); font-weight: 600; }
 .tk-layout { color: var(--t-layout); font-weight: 600; }
 .tk-timing { color: var(--t-time); font-weight: 600; }
 .tk-exit { color: var(--t-exit); font-weight: 600; }
 .tk-transition { color: var(--t-trans); font-weight: 600; }
+
+/* ...and on the dark ink of code blocks */
+.codeblock .tk-preset { color: #93c5fd; }
+.codeblock .tk-keyframe { color: #c4b5fd; }
+.codeblock .tk-layout { color: #5eead4; }
+.codeblock .tk-timing { color: #fcd34d; }
+.codeblock .tk-exit { color: #fda4af; }
+.codeblock .tk-transition { color: #86efac; }
+.codeblock .squiggle { color: #fca5a5; }
 
 /* ---------------------------------------------------------------- Docs */
 
@@ -1395,16 +1524,70 @@ a.card:hover {
 }
 
 .article :not(pre) > code {
-  font-size: 0.875em;
+  font-size: 0.86em;
+  font-weight: 500;
   color: var(--fg);
-  background: var(--bg-inset);
-  border-radius: 5px;
+  background: var(--ic-bg);
+  box-shadow: inset 0 0 0 1px var(--ic-ring);
+  border-radius: 6px;
   padding: 2px 6px;
   overflow-wrap: break-word;
 }
 
 .article a code {
   color: var(--link);
+}
+
+/* Animate tokens in prose and tables: colored badges by category */
+.article :not(pre) > code[class*='tk-'] {
+  font-weight: 600;
+  padding: 2px 7px;
+}
+
+.article :not(pre) > code.tk-preset { color: var(--t-preset); background: var(--t-preset-bg); box-shadow: inset 0 0 0 1px var(--t-preset-ring); }
+.article :not(pre) > code.tk-keyframe { color: var(--t-key); background: var(--t-key-bg); box-shadow: inset 0 0 0 1px var(--t-key-ring); }
+.article :not(pre) > code.tk-layout { color: var(--t-layout); background: var(--t-layout-bg); box-shadow: inset 0 0 0 1px var(--t-layout-ring); }
+.article :not(pre) > code.tk-timing { color: var(--t-time); background: var(--t-time-bg); box-shadow: inset 0 0 0 1px var(--t-time-ring); }
+.article :not(pre) > code.tk-exit { color: var(--t-exit); background: var(--t-exit-bg); box-shadow: inset 0 0 0 1px var(--t-exit-ring); }
+.article :not(pre) > code.tk-transition { color: var(--t-trans); background: var(--t-trans-bg); box-shadow: inset 0 0 0 1px var(--t-trans-ring); }
+
+/* A whole animate string inline: one chip, tokens colored inside */
+.article :not(pre) > code.tk-string span {
+  font-weight: 600;
+}
+
+/* Reference tables */
+.article code.prop,
+.table-wrap code.prop {
+  color: var(--prop);
+  font-weight: 600;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.article :not(pre) > code.ty {
+  color: var(--type);
+  background: var(--type-bg);
+  box-shadow: inset 0 0 0 1px var(--type-ring);
+}
+
+.ty-union {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.article :not(pre) > code.num {
+  color: var(--num);
+}
+
+.kv-k {
+  color: var(--kv-key);
+}
+
+.kv-v {
+  color: var(--num);
 }
 
 .table-wrap {
@@ -2008,4 +2191,24 @@ a.card:hover {
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
   }
+}
+
+/* Landing page: inline code and code blocks inside cards */
+.steps p code,
+.feature-body p code,
+.card p code,
+.section-head p code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  font-weight: 500;
+  color: var(--fg);
+  background: var(--ic-bg);
+  box-shadow: inset 0 0 0 1px var(--ic-ring);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+
+.steps .codeblock,
+.feature-body .codeblock {
+  margin: 0;
 }

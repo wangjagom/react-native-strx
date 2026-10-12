@@ -120,7 +120,15 @@ function highlightCode(code, lang, context) {
       .split('\n')
       .map(line => {
         if (/^\s*#/.test(line)) return `<span class="hl-c">${escapeHtml(line)}</span>`;
-        return escapeHtml(line).replace(/^(npm|npx|yarn|pnpm|cd|bun)\b/, '<span class="hl-k">$1</span>');
+        const [command, comment] = line.split(/(?=\s#)/);
+        const words = command.split(/(\s+)/).map((word, index) => {
+          if (!word.trim()) return word;
+          if (index === 0) return `<span class="hl-f">${escapeHtml(word)}</span>`;
+          if (/^--?[a-z]/.test(word)) return `<span class="hl-a">${escapeHtml(word)}</span>`;
+          if (/^(react-native|@|github:|expo-)/.test(word)) return `<span class="hl-t">${escapeHtml(word)}</span>`;
+          return escapeHtml(word);
+        });
+        return words.join('') + (comment ? `<span class="hl-c">${escapeHtml(comment)}</span>` : '');
       })
       .join('\n');
   }
@@ -130,7 +138,7 @@ function highlightCode(code, lang, context) {
   }
 
   const pattern =
-    /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`)|(<\/?[A-Z][\w.]*|<\/?[a-z][\w]*(?=[\s>/]))|(\b[A-Za-z_$][\w$]*\b)|(\b\d+(?:\.\d+)?\b)/g;
+    /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`)|(<\/?[A-Z][\w.]*|<\/?[a-z][\w]*(?=[\s>/]))|(\b[A-Za-z_$][\w$]*\b)|(\b\d+(?:\.\d+)?\b)|(=>|[{}()[\];,])/g;
   let out = '';
   let last = 0;
   let match;
@@ -138,7 +146,7 @@ function highlightCode(code, lang, context) {
   while ((match = pattern.exec(code))) {
     out += escapeHtml(code.slice(last, match.index));
     last = pattern.lastIndex;
-    const [text, comment, string, tag, word, number] = match;
+    const [text, comment, string, tag, word, number, punctuation] = match;
 
     if (comment) {
       out += `<span class="hl-c">${escapeHtml(text)}</span>`;
@@ -157,10 +165,23 @@ function highlightCode(code, lang, context) {
       const slash = tag.startsWith('</') ? '&lt;/' : '&lt;';
       out += `<span class="hl-p">${slash}</span><span class="hl-t">${escapeHtml(tag.replace(/^<\/?/, ''))}</span>`;
     } else if (word) {
-      const isKey = /^\s*:/.test(code.slice(last));
-      out += KEYWORDS.test(word) && !isKey ? `<span class="hl-k">${word}</span>` : escapeHtml(word);
+      const rest = code.slice(last);
+      const isKey = /^\s*:/.test(rest);
+
+      if (KEYWORDS.test(word) && !isKey) {
+        out += `<span class="hl-k">${word}</span>`;
+      } else if (/^=(?!=)/.test(rest) && /[\s{]$/.test(code.slice(0, match.index))) {
+        // JSX attribute or prop: animate="…", onPress={…}
+        out += `<span class="hl-a">${word}</span>`;
+      } else if (/^\(/.test(rest) || /function\s+$/.test(code.slice(0, match.index))) {
+        out += `<span class="hl-f">${word}</span>`;
+      } else {
+        out += escapeHtml(word);
+      }
     } else if (number) {
       out += `<span class="hl-n">${number}</span>`;
+    } else if (punctuation) {
+      out += `<span class="hl-p">${escapeHtml(punctuation)}</span>`;
     }
   }
 
@@ -205,15 +226,98 @@ function validateAnimate(body, context) {
   }
 }
 
+/** Splits highlighted HTML into lines, closing and reopening spans that cross a line break. */
+function splitHighlightedLines(html) {
+  const lines = [];
+  let open = [];
+
+  for (const raw of html.split('\n')) {
+    let line = open.join('') + raw;
+    const stack = [...open];
+
+    for (const tag of raw.matchAll(/<span[^>]*>|<\/span>/g)) {
+      if (tag[0] === '</span>') stack.pop();
+      else stack.push(tag[0]);
+    }
+
+    line += '</span>'.repeat(stack.length);
+    open = stack;
+    lines.push(line);
+  }
+
+  return lines;
+}
+
+/** Parses `{2,5-7}` in a fence's meta into a set of highlighted line numbers. */
+function highlightedLines(meta) {
+  const set = new Set();
+  const match = /\{([\d,\s-]+)\}/.exec(meta || '');
+
+  if (!match) return set;
+
+  for (const part of match[1].split(',')) {
+    const [from, to] = part.trim().split('-').map(Number);
+    for (let line = from; line <= (to || from); line += 1) set.add(line);
+  }
+
+  return set;
+}
+
+const PACKAGE_MANAGERS = [
+  ['npm', line => line],
+  ['yarn', line => line.replace(/^npm install\b/, 'yarn add')],
+  ['pnpm', line => line.replace(/^npm install\b/, 'pnpm add')],
+];
+
+const DOTS = '<span class="codeblock-dots" aria-hidden="true"><i></i><i></i><i></i></span>';
+
 function codeBlock(code, lang, meta, context) {
   const title = /title="([^"]+)"/.exec(meta || '');
   const allowInvalid = /allow-invalid/.test(meta || '');
-  const body = highlightCode(code, lang, { ...context, allowInvalid });
+  const isShell = lang === 'sh' || lang === 'bash';
+  const commands = code.split('\n').filter(line => line.trim() && !/^\s*#/.test(line));
+
+  // An install-only shell block gets npm / yarn / pnpm tabs.
+  if (isShell && commands.length > 0 && commands.every(line => /^npm install\b/.test(line))) {
+    const tabs = PACKAGE_MANAGERS.map(
+      ([name], index) =>
+        `<button type="button" class="pm-tab" data-pm="${name}" aria-pressed="${index === 0}">${name}</button>`,
+    ).join('');
+    const variants = PACKAGE_MANAGERS.map(
+      ([name, convert], index) =>
+        `<pre data-pm="${name}"${index === 0 ? '' : ' hidden'}><code class="lang-sh">${highlightCode(
+          code.split('\n').map(convert).join('\n'),
+          'sh',
+        )}</code></pre>`,
+    ).join('');
+
+    return `<div class="codeblock" data-pm-block><div class="codeblock-title">${tabs}</div>${variants}</div>`;
+  }
+
+  let body = highlightCode(code, lang, { ...context, allowInvalid });
+  const isScript = /^(tsx|ts|jsx|js)$/.test(lang || '');
+  const marked = highlightedLines(meta);
+  let numbered = false;
+
+  if (isScript && (code.split('\n').length >= 4 || marked.size)) {
+    numbered = true;
+    body = splitHighlightedLines(body)
+      .map(
+        (line, index) =>
+          `<span class="line${marked.has(index + 1) ? ' hl' : ''}"><span class="ln">${index + 1}</span>${line}</span>`,
+      )
+      .join('');
+  }
+
+  const bar = title
+    ? `<div class="codeblock-title">${DOTS}<span>${escapeHtml(title[1])}</span>${
+        lang ? `<span class="codeblock-lang">${escapeHtml(lang)}</span>` : ''
+      }</div>`
+    : '';
 
   return (
-    `<div class="codeblock">` +
-    (title ? `<div class="codeblock-title"><span>${escapeHtml(title[1])}</span></div>` : '') +
-    `<pre><code class="lang-${escapeHtml(lang || 'text')}">${body}</code></pre></div>`
+    `<div class="codeblock">${bar}` +
+    `<pre${numbered ? ' class="numbered"' : ''}><code class="lang-${escapeHtml(lang || 'text')}">${body}</code></pre></div>`
   );
 }
 
@@ -235,12 +339,18 @@ function tokenCode(token, kind) {
 
 function frame(values) {
   return Object.entries(values)
-    .map(([key, value]) => `<code>${key}: ${value}</code>`)
+    .map(
+      ([key, value]) =>
+        `<code class="kv"><span class="kv-k">${key}</span>: <span class="kv-v">${value}</span></code>`,
+    )
     .join(', ');
 }
 
 function inlineMarkdown(text) {
-  return escapeHtml(text).replace(/`([^`]+)`/g, '<code>$1</code>');
+  return text
+    .split(/`([^`]+)`/)
+    .map((part, index) => (index % 2 ? inlineCode(part) : escapeHtml(part)))
+    .join('');
 }
 
 const GENERATED = {
@@ -330,7 +440,36 @@ function renderInline(text) {
       return `<a href="${href}"${external ? ' rel="noopener"' : ''}>${label}</a>`;
     });
 
-  return html.replace(/\u0000(\d+)\u0000/g, (_, index) => `<code>${escapeHtml(codes[Number(index)])}</code>`);
+  return html.replace(/\u0000(\d+)\u0000/g, (_, index) => inlineCode(codes[Number(index)]));
+}
+
+/** Category of an inline-code token, including wildcards such as `layout-*` and `from:`. */
+function tokenKind(text) {
+  const kind = T.classify(text);
+
+  if (kind !== 'invalid') return kind;
+  if (/^(from|to):(\*|[a-z-]+\*?)?$/.test(text)) return 'keyframe';
+  if (/^exit:(\*|[a-z-]+\*?)?$/.test(text)) return 'exit';
+  if (/^layout-\*$/.test(text)) return 'layout';
+  if (/^transition-\*$/.test(text)) return 'transition';
+  if (/^(duration|delay|play|repeat|damping|stiffness|mass)-(\*|\{number\})$/.test(text)) return 'timing';
+  return null;
+}
+
+/** Inline code: animate tokens become colored badges, whole animate strings get colored tokens. */
+function inlineCode(text) {
+  const kind = tokenKind(text);
+
+  if (kind) return `<code class="tk-${kind}">${escapeHtml(text)}</code>`;
+
+  if (/[\s,]/.test(text.trim()) && T.isAnimateString(text)) {
+    const parts = text.split(/(\s+|,)/).map(part =>
+      !part.trim() || part === ',' ? escapeHtml(part) : `<span class="tk-${T.classify(part)}">${escapeHtml(part)}</span>`,
+    );
+    return `<code class="tk-string">${parts.join('')}</code>`;
+  }
+
+  return `<code>${escapeHtml(text)}</code>`;
 }
 
 function parseFrontmatter(source) {
@@ -832,6 +971,30 @@ function searchIndex(pages) {
 }
 
 /**
+ * Reference-table coloring: names in the first column, type unions split
+ * into pills, and literal defaults.
+ */
+function colorCell(content, label, column) {
+  if (column === 0) {
+    return content.replace(/^<code>([^<]*)<\/code>/, '<code class="prop">$1</code>');
+  }
+
+  if (label === 'Type') {
+    return content.replace(/<code>([^<]*)<\/code>/g, (_, inner) => {
+      const parts = inner.split(/\s+\|\s+/);
+      const pills = parts.map(part => `<code class="ty">${part}</code>`).join('');
+      return parts.length > 1 ? `<span class="ty-union">${pills}</span>` : pills;
+    });
+  }
+
+  if (label === 'Default') {
+    return content.replace(/<code>(-?\d[\d.]*|true|false)<\/code>/g, '<code class="num">$1</code>');
+  }
+
+  return content;
+}
+
+/**
  * Adds each column's header text to its cells as `data-label`, so phones can
  * show tables as labelled cards (see site.css).
  */
@@ -847,10 +1010,11 @@ function labelTableCells(html) {
 
     return table.replace(/<tr>([\s\S]*?)<\/tr>/g, (row, cells) => {
       let index = 0;
-      const labelled = cells.replace(
-        /<td>([\s\S]*?)<\/td>/g,
-        (_, content) => `<td data-label="${labels[index++] ?? ''}"><div class="cell">${content}</div></td>`,
-      );
+      const labelled = cells.replace(/<td>([\s\S]*?)<\/td>/g, (_, content) => {
+        const column = index;
+        const label = labels[index++] ?? '';
+        return `<td data-label="${label}"><div class="cell">${colorCell(content, label, column)}</div></td>`;
+      });
       return `<tr>${labelled}</tr>`;
     });
   });
