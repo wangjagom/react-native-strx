@@ -126,7 +126,7 @@
       '<div class="ed-line"><span class="ed-ln">12</span><span class="ed-pun">&lt;</span><span class="ed-comp">Strx.View</span></div>' +
       '<div class="ed-line ed-flow"><span class="ed-ln">13</span><span class="ed-code"><span class="ed-ind"></span><span class="ed-attr">animate</span><span class="ed-pun">=</span><span class="ed-str">"</span>' +
       '<span class="ed-field"><span class="ed-marks" aria-hidden="true"></span>' +
-      '<textarea rows="1" aria-label="' + TEXT.value + '" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">fade-in </textarea></span></span></div>' +
+      '<textarea rows="1" aria-label="' + TEXT.value + '" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">duration-800 delay-200 </textarea></span></span></div>' +
       '<div class="ed-line"><span class="ed-ln">14</span><span class="ed-ind"></span><span class="ed-attr">style</span><span class="ed-pun">={</span>styles.card<span class="ed-pun">}</span></div>' +
       '<div class="ed-line"><span class="ed-ln">15</span><span class="ed-pun">/&gt;</span></div>' +
       '<div class="ed-suggest" hidden><div class="ed-list" role="listbox" aria-label="' + TEXT.suggestions + '"></div><div class="ed-details ed-md"></div></div>' +
@@ -257,11 +257,11 @@
       }).join('');
 
       var item = state.items[state.index];
-      var svg = X.tokenPreviewSvg(item.label, context.metadata);
+      // Previews follow the rest of the comma group, like in VS Code.
+      var preview = X.tokenPreviewMarkdown(item.label, context.metadata, item.groupTokens);
       details.innerHTML =
         '<div class="ed-head">' + escapeHtml(item.detail) + '</div>' +
-        markdown(item.documentation) +
-        (svg ? '<img alt="' + escapeHtml(TEXT.preview(item.label)) + '" src="' + dataUri(svg) + '">' : '');
+        markdown(item.documentation + (preview ? '\n\n' + preview : ''));
 
       var selectedRow = list.querySelector('.sel');
       if (selectedRow) {
@@ -369,12 +369,12 @@
       if (state.open) renderSuggest();
     });
 
-    // Start in a realistic state: "fade-in " with ease-in-out selected.
+    // Start in a realistic state: a slow, delayed group with slide-up selected.
     renderMarks();
     input.setSelectionRange(input.value.length, input.value.length);
     openSuggest();
     state.items.some(function (item, index) {
-      if (item.label === 'ease-in-out') {
+      if (item.label === 'slide-up') {
         state.index = index;
         return true;
       }
@@ -400,6 +400,7 @@
   // ----------------------------------------------------------------- hover
 
   var EXAMPLES = [
+    'slide-up duration-800 delay-200 ease-in-out',
     'fade-in from:translate-y-12 spring',
     'fade-in duration-200, slide-up delay-150 duration-500 ease-in-out',
     'scale-in spring damping-4 stiffness-180',
@@ -415,15 +416,15 @@
       '</div></div>' +
       '<div class="ed-examples" role="group" aria-label="' + TEXT.examples + '">' +
       EXAMPLES.map(function (value, index) {
-        return '<button type="button" data-ex="' + index + '" aria-pressed="' + (index === 1) + '">' + escapeHtml(value) + '</button>';
+        return '<button type="button" data-ex="' + index + '" aria-pressed="' + (index === 0) + '">' + escapeHtml(value) + '</button>';
       }).join('') +
       '</div>';
 
     var body = container.querySelector('.ed-body');
     var line = container.querySelector('.ed-hover-line');
     var card = container.querySelector('.ed-hovercard');
-    var value = EXAMPLES[1];
-    var current = 2;
+    var value = EXAMPLES[0];
+    var current = 0;
 
     function renderLine() {
       var analyzed = X.analyze(value, context);

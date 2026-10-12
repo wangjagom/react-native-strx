@@ -13,6 +13,8 @@ Typing a quote, space, comma or `:` inside an `animate` string opens suggestions
 
 <div data-editor-demo="completion"></div>
 
+Previews **follow the rest of the comma group**. With `duration-800 delay-200` already in the group, as above, `slide-up` waits 0.2s and then moves for 0.8s. Picking a `duration-*` or easing token shows its chart, then the group's motion with that value, so you can see what changing it does.
+
 Suggestions follow the grammar:
 
 - Once a group has a preset, other presets aren't suggested. Start a new group with a comma to get them back.
