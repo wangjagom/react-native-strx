@@ -7,12 +7,15 @@ STRX is a thin layer over Reanimated, so most of the setup is the standard Reani
 
 ## Install the packages
 
+> [!NOTE] 1.0 is in beta
+> STRX 1.0 is published under the `beta` tag, so install `react-native-strx@beta`. A plain `npm install react-native-strx` still installs 0.1.x until 1.0.0 is released.
+
 ### Expo
 
 Install STRX with npm, and the Reanimated packages with `expo install` so their versions match your SDK:
 
 ```sh
-npm install react-native-strx
+npm install react-native-strx@beta
 npx expo install react-native-reanimated react-native-worklets
 ```
 
@@ -21,7 +24,7 @@ npx expo install react-native-reanimated react-native-worklets
 ### Bare React Native
 
 ```sh
-npm install react-native-strx react-native-reanimated react-native-worklets
+npm install react-native-strx@beta react-native-reanimated react-native-worklets
 ```
 
 Then add the Worklets plugin to `babel.config.js`. It must be the **last** plugin:

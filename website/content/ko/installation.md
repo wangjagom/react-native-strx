@@ -7,12 +7,15 @@ STRX는 Reanimated 위에 얹은 얇은 레이어예요. 그래서 설정은 대
 
 ## 패키지 설치하기 {#install-the-packages}
 
+> [!NOTE] 1.0은 베타 버전이에요
+> STRX 1.0은 `beta` 태그로 배포되어 있어서 `react-native-strx@beta`로 설치해야 해요. 그냥 `npm install react-native-strx`를 실행하면 1.0.0 정식 출시 전까지는 0.1.x가 설치돼요.
+
 ### Expo {#expo}
 
 STRX는 npm으로 설치하고, Reanimated 패키지는 SDK에 맞는 버전이 들어가도록 `expo install`로 설치해 주세요.
 
 ```sh
-npm install react-native-strx
+npm install react-native-strx@beta
 npx expo install react-native-reanimated react-native-worklets
 ```
 
@@ -21,7 +24,7 @@ npx expo install react-native-reanimated react-native-worklets
 ### Bare React Native {#bare-react-native}
 
 ```sh
-npm install react-native-strx react-native-reanimated react-native-worklets
+npm install react-native-strx@beta react-native-reanimated react-native-worklets
 ```
 
 그다음 `babel.config.js`에 Worklets 플러그인을 넣어 주세요. 꼭 **맨 마지막** 플러그인이어야 해요.

@@ -9,6 +9,8 @@
     "phase-1-parser",
     "phase-2-engine",
     "phase-3-layout",
-    "phase-4-api"
+    "phase-4-api",
+    "readme-beta-install",
+    "token-metadata"
   ]
 }
