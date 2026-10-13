@@ -37,8 +37,10 @@ It supports preset animations, explicit `from:/to:/exit:` keyframes, implicit `t
 ### From npm
 
 ```sh
-npm install react-native-strx react-native-reanimated react-native-worklets
+npm install react-native-strx@beta react-native-reanimated react-native-worklets
 ```
+
+> This README documents the 1.0 beta, published under the `beta` tag. The npm `latest` tag still points to 0.1.x (Reanimated 3), so a plain `npm install react-native-strx` installs 0.1.x until 1.0.0 is released.
 
 For Expo apps, prefer `npx expo install react-native-reanimated react-native-worklets` so the versions match your SDK.
 
@@ -206,6 +208,22 @@ The recommended app or screen root. It installs global motion defaults, OS Reduc
 `StrxEasingName` autocompletes `linear`, `ease`, `ease-in`, `ease-out`, and `ease-in-out`, while still allowing custom string names for userland easing adapters.
 
 When Reduce Motion is enabled, STRX shortens explicit/style animation duration, removes delay/repeat, and turns layout transitions into stable no-op transitions. This keeps the UI accessible without changing component code.
+
+### `useStrxMotion`
+
+Reads the motion settings `Strx.Provider` resolved for the subtree. Use it to make your own animations (or skip them) consistently with STRX, for example honoring Reduce Motion:
+
+```tsx
+import { useStrxMotion } from "react-native-strx";
+
+function Confetti() {
+  const { isReduceMotionEnabled, duration, easing, reduceMotion } = useStrxMotion();
+  if (isReduceMotionEnabled) return null;
+  // ...
+}
+```
+
+`duration` and `easing` are `undefined` unless the provider's `motionPreset` sets them. Outside a provider the hook returns `{ reduceMotion: "system", isReduceMotionEnabled: false }`.
 
 ### Debug overlay
 
@@ -387,6 +405,14 @@ import { Strx } from "react-native-strx";
 <Strx.View animate="fade-in" />;
 ```
 
+The full token list also ships as machine-readable JSON at `react-native-strx/tokens.json` (presets with their values, easings, timing and keyframe prefixes, transitions, and layout tokens). Editor tooling such as STRX Animation IntelliSense reads it so completions match the installed version:
+
+```ts
+import tokens from "react-native-strx/tokens.json";
+
+tokens.presets.map((p) => p.name); // ["fade-in", "fade-out", ...]
+```
+
 Named exports are also available for teams that prefer them: `StrxView`, `StrxText`, `StrxPressable`, `StrxImage`, `StrxScrollView`, `StrxTextInput`, `StrxTimeline`, `StrxProvider`, `StrxLayoutGroup`, and `StrxTimelineRoot`. Components are not exported under React Native's own names (`View`, `Text`, ...) to avoid shadowing them.
 
 ```tsx
@@ -461,6 +487,15 @@ definePreset("pop-in", {
 });
 
 <Strx.View animate="pop-in" />;
+```
+
+`animationPresets` is a read-only view of the preset registry, built-ins plus anything registered with `definePreset`. Use it to list presets or inspect their values:
+
+```tsx
+import { animationPresets } from "react-native-strx";
+
+Object.keys(animationPresets); // ["fade-in", "fade-out", ..., "pop-in"]
+animationPresets["slide-up"].initial; // { translateY: 24 }
 ```
 
 <!-- generated:presets -->
