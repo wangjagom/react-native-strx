@@ -1,5 +1,19 @@
 # react-native-strx
 
+## 1.0.0-beta.1
+
+### Minor Changes
+
+- 34a5188: Publish `react-native-strx/tokens.json`, machine-readable metadata for every `animate` token (presets, timing, keyframe utilities, transitions, layout). Editor tooling such as STRX Animation IntelliSense reads it from the installed package so completions and diagnostics match the library version in use.
+
+### Patch Changes
+
+- Documentation and package metadata only; no runtime changes.
+
+  - README installs the 1.0 beta with `npm install react-native-strx@beta` and explains that npm `latest` still points to 0.1.x until 1.0.0.
+  - README documents `useStrxMotion`, `animationPresets`, and the `react-native-strx/tokens.json` export.
+  - npm keywords add `expo`, `motion`, and `react-native-reanimated`.
+
 ## 1.0.0-beta.0
 
 ### Major Changes

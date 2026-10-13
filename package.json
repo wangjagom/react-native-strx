@@ -1,6 +1,6 @@
 {
   "name": "react-native-strx",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0-beta.1",
   "description": "Tailwind-style declarative animations, layout transitions, and component adapters for React Native Reanimated.",
   "keywords": [
     "react-native",
@@ -8,7 +8,10 @@
     "animation",
     "layout-animation",
     "tailwind",
-    "transition"
+    "transition",
+    "expo",
+    "motion",
+    "react-native-reanimated"
   ],
   "license": "MIT",
   "author": "wangjagom",
